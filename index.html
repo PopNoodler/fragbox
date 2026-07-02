@@ -143,6 +143,10 @@
       <div class="setrow"><span class="setlabel">Time</span><button class="setbtn" data-k="len" data-v="180">3m</button><button class="setbtn" data-k="len" data-v="300">5m</button><button class="setbtn" data-k="len" data-v="600">10m</button></div>
     </div>
     <button id="playbtn" class="bigbtn">PLAY</button>
+    <div style="margin-top:12px">
+      <button id="mpbtn" class="bigbtn" style="font-size:15px; padding:10px 30px; background:linear-gradient(135deg,#7e57c2,#5e35b1); box-shadow:0 4px 20px rgba(94,53,177,.4)">MULTIPLAYER</button>
+    </div>
+    <div id="mphint" style="margin-top:8px; font-size:12px; opacity:.6"></div>
     <div class="hint">
       <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim/scope · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>
       <kbd>R</kbd> reload · <kbd>1–5</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
@@ -161,6 +165,7 @@
 <script type="importmap">{ "imports": { "three": "./lib/three.module.js" } }</script>
 <script type="module">
 import * as THREE from 'three';
+import { ARENA, BOXES, SPAWNS as SPAWN_XZ, PADS as PAD_DEFS, PICKUPS as PICKUP_DEFS } from './shared/map.mjs';
 
 /* =============================================================
    KourHero — single-file low-poly arena FPS vs bots
@@ -199,8 +204,7 @@ sun.shadow.camera.top = 70; sun.shadow.camera.bottom = -70;
 sun.shadow.camera.far = 200;
 scene.add(sun);
 
-// ---------- Arena ----------
-const ARENA = 45;                 // half-size of playable square
+// ---------- Arena (layout data lives in shared/map.mjs) ----------
 const colliders = [];             // {min:Vector3, max:Vector3} AABBs
 
 const matGround = new THREE.MeshLambertMaterial({ color:0x8a9a5b });
@@ -218,34 +222,12 @@ function addBox(x, y, z, sx, sy, sz, color, solid=true){
   return m;
 }
 
-// Perimeter walls
-const WALLC = 0x9aa7b0;
-addBox(0, 3, -ARENA-1, ARENA*2+2, 6, 2, WALLC);
-addBox(0, 3,  ARENA+1, ARENA*2+2, 6, 2, WALLC);
-addBox(-ARENA-1, 3, 0, 2, 6, ARENA*2+2, WALLC);
-addBox( ARENA+1, 3, 0, 2, 6, ARENA*2+2, WALLC);
-
-// Cover layout — mirrored-ish arena (crates, blocks, ramps as stacked boxes, a center tower)
-const CRATE = 0xc98f4e, BLOCK = 0x7d8ca3, ACC = 0x5e8d5a;
-addBox(0, 2, 0, 8, 4, 8, BLOCK);           // center block
-addBox(0, 5, 0, 5, 2, 5, 0x6b7a91);        // center top
-[[-16,-16],[16,16],[-16,16],[16,-16]].forEach(([x,z])=>{
-  addBox(x, 1.25, z, 5, 2.5, 5, CRATE);
-  addBox(x, 3.1, z, 2.5, 1.2, 2.5, CRATE);
-});
-[[-30,0],[30,0],[0,-30],[0,30]].forEach(([x,z])=>{
-  addBox(x, 1.5, z, 10, 3, 3.5, ACC);
-});
-[[-32,-32],[32,32],[-32,32],[32,-32]].forEach(([x,z])=>{
-  addBox(x, 2, z, 4, 4, 4, BLOCK);
-});
-[[-8,24],[8,-24],[24,8],[-24,-8]].forEach(([x,z])=>{
-  addBox(x, 0.75, z, 3, 1.5, 3, CRATE);   // low crates — jumpable steps
-});
+// Build all solid geometry from the shared map definition
+for(const b of BOXES) addBox(b.x, b.y, b.z, b.sx, b.sy, b.sz, b.color, b.solid);
 
 // Jump pads (Kour-style): launch anything standing on them
 const PADS = [];
-[[-7,0,19],[7,0,19],[-32,-24,15],[32,24,15]].forEach(([x,z,v])=>{
+PAD_DEFS.map(p=>[p.x,p.z,p.v]).forEach(([x,z,v])=>{
   const m = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.25, 12),
     new THREE.MeshLambertMaterial({ color:0x29b6f6, emissive:0x0d47a1 }));
   m.position.set(x, 0.125, z); m.receiveShadow = true; scene.add(m);
@@ -271,10 +253,7 @@ for(let i=0;i<14;i++){
   addBox(x, 6, z, 4, 4, 4, 0x3e7a3e, false);
 }
 
-const SPAWNS = [
-  [-38,-38],[38,38],[-38,38],[38,-38],[12,-38],[-12,38],[-38,12],[38,-12],
-  [-22,10],[22,-10],[10,-22],[-10,22]
-].map(([x,z])=>new THREE.Vector3(x, 0, z));
+const SPAWNS = SPAWN_XZ.map(([x,z])=>new THREE.Vector3(x, 0, z));
 
 // ---------- Audio (procedural WebAudio, no assets) ----------
 let AC = null;
@@ -560,9 +539,7 @@ function makePickup(x, z, kind, y=0.7){
   scene.add(g);
   pickups.push({ g, kind, homeY:y, taken:false, respawnT:0, spin:Math.random()*6 });
 }
-makePickup(-16, 0, 'hp');  makePickup(16, 0, 'hp');
-makePickup(0, 0, 'hp', 6.7);   // on the center tower top — a risky prize
-makePickup(0, -16, 'ammo'); makePickup(0, 16, 'ammo');
+for(const p of PICKUP_DEFS) makePickup(p.x, p.z, p.kind, p.y !== undefined ? p.y : 0.7);
 
 function updatePickups(dt){
   for(const p of pickups){
@@ -640,6 +617,7 @@ addEventListener('keydown', e=>{
   if(e.code==='Digit5') switchWeapon(4);
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
+  if(e.code==='Escape' && !document.pointerLockElement) showMenu();   // MP: 2nd Esc leaves match
 });
 addEventListener('keyup', e=>{
   keys[e.code] = false;
@@ -667,7 +645,12 @@ addEventListener('mousemove', e=>{
 });
 document.addEventListener('pointerlockchange', ()=>{
   locked = document.pointerLockElement === document.body;
-  if(!locked && state===ST.PLAY){ showMenu(); }
+  // Solo: unlock = pause to menu. MP: stay in the match (alt-tab shouldn't kick you);
+  // click re-locks, pressing Esc again opens the menu (= leave match).
+  if(!locked && state===ST.PLAY && mode !== 'mp'){ showMenu(); }
+});
+canvas.addEventListener('click', ()=>{
+  if(state===ST.PLAY && !locked && !isTouch){ try { document.body.requestPointerLock(); } catch(e){} }
 });
 
 // ---------- Touch controls ----------
@@ -959,6 +942,111 @@ function renderScoreboard(){
     `<tr${r.self?' class="self"':''}><td>${r.name}</td><td>${r.kills}</td><td>${r.deaths}</td></tr>`).join('');
 }
 
+// ---------- Multiplayer (Phase 2) ----------
+let mode = 'solo';
+const NET = { ws:null, id:null, remotes:new Map(), sendT:null };
+
+function makeNameTag(name){
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 64;
+  const c = cv.getContext('2d');
+  c.font = 'bold 34px Segoe UI, sans-serif';
+  c.textAlign = 'center';
+  c.fillStyle = 'rgba(0,0,0,.45)';
+  const w = Math.min(240, c.measureText(name).width + 24);
+  c.fillRect(128-w/2, 8, w, 46);
+  c.fillStyle = '#fff';
+  c.fillText(name, 128, 42);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent:true }));
+  sprite.scale.set(2.2, 0.55, 1);
+  sprite.position.y = 2.25;
+  return sprite;
+}
+
+function addRemote(q){
+  if(NET.remotes.has(q.id)) return;
+  const mesh = makeBotMesh(q.color);
+  mesh.add(makeNameTag(q.name));
+  mesh.position.set(q.pos[0], q.pos[1], q.pos[2]);
+  scene.add(mesh);
+  NET.remotes.set(q.id, { mesh, name:q.name, target:new THREE.Vector3(q.pos[0], q.pos[1], q.pos[2]), yaw:q.yaw||0 });
+}
+function removeRemote(id){
+  const r = NET.remotes.get(id);
+  if(r){ scene.remove(r.mesh); NET.remotes.delete(id); }
+}
+function updateRemotes(dt){
+  for(const r of NET.remotes.values()){
+    r.mesh.position.lerp(r.target, Math.min(1, dt*12));
+    let dy = r.yaw - r.mesh.rotation.y;
+    while(dy > Math.PI) dy -= Math.PI*2;
+    while(dy < -Math.PI) dy += Math.PI*2;
+    r.mesh.rotation.y += dy * Math.min(1, dt*12);
+  }
+}
+function sendInput(){
+  if(NET.ws && NET.ws.readyState === 1 && state === ST.PLAY){
+    NET.ws.send(JSON.stringify({ t:'in',
+      pos:[+player.pos.x.toFixed(2), +player.pos.y.toFixed(2), +player.pos.z.toFixed(2)],
+      yaw:+player.yaw.toFixed(3), pitch:+player.pitch.toFixed(3) }));
+  }
+}
+function mpConnect(){
+  el('mphint').textContent = 'Connecting…';
+  let ws;
+  try { ws = new WebSocket((location.protocol==='https:'?'wss://':'ws://') + location.host); }
+  catch(e){ mpFail(); return; }
+  NET.ws = ws;
+  const failT = setTimeout(()=>{ if(ws.readyState !== 1){ try{ws.close();}catch(e){} mpFail(); } }, 3000);
+  ws.onopen = ()=>{
+    clearTimeout(failT);
+    let name = localStorage.kh_name;
+    if(!name){ name = 'Hero' + (100 + Math.floor(Math.random()*900)); localStorage.kh_name = name; }
+    ws.send(JSON.stringify({ t:'join', name }));
+  };
+  ws.onmessage = ev=>{
+    let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+    if(m.t === 'welcome'){
+      NET.id = m.id;
+      mode = 'mp';
+      el('mphint').textContent = '';
+      startMatch();
+      player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
+      player.yaw = Math.atan2(player.pos.x, player.pos.z);   // face arena center from server spawn
+      for(const q of m.roster) if(q.id !== NET.id) addRemote(q);
+      NET.sendT = setInterval(sendInput, 50);
+    }
+    else if(m.t === 'joined'){ addRemote(m); killfeed(`<b>${m.name}</b> joined`); }
+    else if(m.t === 'left'){
+      const r = NET.remotes.get(m.id);
+      if(r) killfeed(`<b>${r.name}</b> left`);
+      removeRemote(m.id);
+    }
+    else if(m.t === 'snap'){
+      for(const q of m.players){
+        if(q.id === NET.id) continue;
+        const r = NET.remotes.get(q.id);
+        if(r){ r.target.set(q.pos[0], q.pos[1], q.pos[2]); r.yaw = q.yaw; }
+      }
+    }
+  };
+  ws.onclose = ()=>{ if(mode === 'mp') mpDisconnect(); else mpFail(); };
+  ws.onerror = ()=>{};
+}
+function mpFail(){
+  NET.ws = null;
+  el('mphint').textContent = 'No server found — start it with: node server/server.mjs (then open that host)';
+}
+function mpDisconnect(){
+  clearInterval(NET.sendT); NET.sendT = null;
+  for(const id of [...NET.remotes.keys()]) removeRemote(id);
+  if(NET.ws){ try{ NET.ws.close(); }catch(e){} }
+  NET.ws = null; NET.id = null;
+  mode = 'solo';
+  if(state === ST.PLAY) showMenu();
+}
+el('mpbtn').addEventListener('click', ()=>{ audio(); if(!NET.ws) mpConnect(); });
+
 // ---------- Match flow ----------
 function startMatch(){
   // reset
@@ -972,7 +1060,7 @@ function startMatch(){
   matchT = SET.len;
   for(const b of bots){ scene.remove(b.mesh); }
   bots.length = 0;
-  for(let i=0;i<SET.bots;i++) makeBot(i);
+  if(mode !== 'mp') for(let i=0;i<SET.bots;i++) makeBot(i);
   for(const p of pickups){ p.taken = false; p.respawnT = 0; p.g.visible = true; }
   el('killfeed').innerHTML = '';
   updateHpHUD(); updateAmmoHUD(); updateScoreHUD();
@@ -987,8 +1075,10 @@ function showMenu(){
   el('hud').style.display = 'none';
   el('menu').classList.add('show');
   if(document.pointerLockElement) document.exitPointerLock();
+  if(mode === 'mp') mpDisconnect();     // leaving to menu = leaving the match
 }
 function checkMatchEnd(){
+  if(mode === 'mp') return;             // MP matches are open-ended for now
   const top = Math.max(player.kills, ...bots.map(b=>b.kills));
   if(top >= KILL_TARGET || matchT <= 0) endMatch();
 }
@@ -1221,9 +1311,14 @@ function frame(now){
   if(dt>0.05) dt = 0.05;                       // clamp — playbook §9
 
   if(state===ST.PLAY){
-    matchT -= dt;
-    el('timeleft').textContent = fmtTime(matchT);
-    if(matchT<=0){ endMatch(); }
+    if(mode === 'mp'){
+      el('timeleft').textContent = 'ONLINE';
+      updateRemotes(dt);
+    } else {
+      matchT -= dt;
+      el('timeleft').textContent = fmtTime(matchT);
+      if(matchT<=0){ endMatch(); }
+    }
     updatePlayer(dt);
     for(const b of bots) updateBot(b, dt);
     updatePickups(dt);
@@ -1235,7 +1330,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 // Debug hook for automated verification (harmless in production)
-window.__dbg = { player, bots, camera, THREE, colliders };
+window.__dbg = { player, bots, camera, THREE, colliders, NET, get mode(){ return mode; } };
 
 // ---------- Service worker (real hosts only — playbook §4) ----------
 if('serviceWorker' in navigator && (location.hostname.endsWith('github.io') || location.hostname==='localhost' || location.hostname==='127.0.0.1')){

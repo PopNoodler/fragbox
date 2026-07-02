@@ -16,9 +16,23 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 ## Backlog (roughly ordered)
 - [ ] ADS/scope for touch devices (currently desktop RMB only)
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
-- [ ] Phase 2: Node WS server (`server/`), authoritative movement+hits, client prediction, bots server-side
+- [ ] Phase 2b: MP combat — server-authoritative fire/hit/hp/kills, killfeed + scoreboard from server
+- [ ] Phase 2c: server-side bots to fill MP lobbies; match timer + rounds on server
+- [ ] MP polish: interpolation buffer (currently rate-lerp), remote anim (walk bob), join/leave sounds
 
 ## Releases (newest first)
+- **v006** (2026-07-02 ~04:20): Phase 2a — multiplayer foundation. Map extracted to
+  `shared/map.mjs` (boxes/spawns/pads/pickups/phys consts; client builds meshes from it, solo
+  playtest confirmed identical). `server/server.mjs`: static hosting + ws (same port), join/leave
+  with roster, 20Hz snapshots, movement validation (speed cap sprint*1.6+slack, arena bounds,
+  finite checks). Client: MULTIPLAYER button (connect to location.host, 3s fail hint), remote
+  avatars = bot mesh + canvas-sprite name tags, target-lerp interpolation with angle-wrap fix,
+  join/leave killfeed lines, 20Hz input send, ONLINE HUD mode, no local bots/match-end in MP.
+  Key fix: pointer-lock loss in MP no longer exits to menu (was disconnecting players on
+  alt-tab/focus loss — canvas click re-locks, 2nd Esc leaves). tools/mptest.js: spawns server +
+  2 headless clients; Alice's 7.2u move seen by Bob with 0.0 gap; remote removed on leave; 0
+  errors. NOTE for tests: background tabs pause rAF — assert on r.target, not mesh position.
+  Playtest MIME map needed .mjs. SW → v006 (caches shared/map.mjs).
 - **v005** (2026-07-02 ~04:09): 5-weapon roster + ADS + streaks + death cam. New SMG (13dmg/
   900rpm/35mag) and Sniper (90dmg = 2-body/1-head, 5mag, huge hip spread 0.045, adsSpread 0.001).
   Right-mouse ADS: sniper → FOV 26 + full scope overlay (crosshair+viewmodel hidden, slower look
