@@ -1,0 +1,13 @@
+{
+  "name": "KourHero",
+  "short_name": "KourHero",
+  "description": "Low-poly arena FPS — fight AI bots in your browser",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
