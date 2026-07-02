@@ -202,8 +202,8 @@ for(let i=0;i<14;i++){
 }
 
 const SPAWNS = [
-  [-38,-38],[38,38],[-38,38],[38,-38],[0,-38],[0,38],[-38,0],[38,0],
-  [-22,0],[22,0],[0,-22],[0,22]
+  [-38,-38],[38,38],[-38,38],[38,-38],[12,-38],[-12,38],[-38,12],[38,-12],
+  [-22,10],[22,-10],[10,-22],[-10,22]
 ].map(([x,z])=>new THREE.Vector3(x, 0, z));
 
 // ---------- Audio (procedural WebAudio, no assets) ----------
@@ -291,6 +291,8 @@ function resolveAABB(pos, vel, dt){
   return onGround;
 }
 
+const UP = new THREE.Vector3(0,1,0);
+
 // Raycast vs world geometry (for bullets & bot LOS)
 const worldMeshes = colliders.map(c=>c.mesh);
 const raycaster = new THREE.Raycaster();
@@ -341,6 +343,7 @@ function makeBot(i){
     hp: 100, alive: true, yaw: 0,
     kills: 0, deaths: 0,
     target: null,          // waypoint Vector3
+    enemy: null,           // current combat target: player object or another bot
     fireT: 0, thinkT: 0, respawnT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
     skill: 0.55 + Math.random()*0.35   // accuracy/aggression 0..1
   };
@@ -549,38 +552,63 @@ function raySphere(o, d, c, r){
   return t - Math.sqrt(r*r - d2);
 }
 
-function damageBot(b, dmg, headshot){
+function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = the player
   b.hp -= dmg;
   if(b.hp<=0 && b.alive){
     b.alive = false;
-    b.deaths++; player.kills++;
+    b.deaths++;
     b.respawnT = 2.5;
     b.mesh.visible = false;
+    b.enemy = null;
     addPuff(new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z), 0xd32f2f, 14, 5);
-    SFX.kill();
-    killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
-    updateScoreHUD();
+    if(attacker){
+      attacker.kills++;
+      killfeed(`<b>${attacker.name}</b> 🔫 <b>${b.name}</b>`);
+    } else {
+      player.kills++;
+      SFX.kill();
+      killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
+      updateScoreHUD();
+    }
     checkMatchEnd();
   }
 }
 
-function botShootPlayer(b){
-  const w = WEAPONS[0]; // bots use rifle-ish stats
+// ---------- Bot targeting (FFA: bots fight each other too) ----------
+function entPos(e){ return e.pos; }
+function entEye(e){ return e===player ? playerEye().clone() : botEye(e); }
+
+function acquireEnemy(b){
+  let best = null, bestD = Infinity;
+  for(const e of [player, ...bots]){
+    if(e===b || !e.alive) continue;
+    const d = b.pos.distanceTo(entPos(e));
+    if(d < bestD && d < 60 && botCanSee(b, entEye(e))){ best = e; bestD = d; }
+  }
+  return best;
+}
+
+function botShoot(b, e){
   const eye = botEye(b);
-  const target = playerEye().clone();
+  const tEye = entEye(e);
   // lead-less aim with skill-based error
   const err = (1-b.skill) * 1.4;
+  const target = tEye.clone();
   target.x += (Math.random()-0.5)*err; target.y += (Math.random()-0.5)*err; target.z += (Math.random()-0.5)*err;
   const dir = target.sub(eye).normalize();
-  const dist = eye.distanceTo(playerEye());
+  const dist = eye.distanceTo(tEye);
   const wallDist = castWorld(eye, dir, dist+1);
   addTracer(eye.clone().add(dir.clone().multiplyScalar(1)), eye.clone().add(dir.clone().multiplyScalar(Math.min(wallDist, dist))));
-  SFX.shoot({ loud: Math.max(0.06, 0.3 - dist*0.004) });
+  // gunshot volume by distance to the LISTENER (the player), not the target
+  const dPlayer = eye.distanceTo(playerEye());
+  SFX.shoot({ loud: Math.max(0.03, 0.3 - dPlayer*0.004) });
   if(wallDist >= dist - 0.5){
     // hit chance falls with distance
     const pHit = Math.min(0.6, b.skill * (0.9 - dist/75));
     if(Math.random() < pHit){
-      damagePlayer(8 + Math.floor(Math.random()*5), b);
+      const dmg = 8 + Math.floor(Math.random()*5);
+      if(e===player) damagePlayer(dmg, b);
+      else damageBot(e, dmg, false, b);
     }
   }
 }
@@ -770,43 +798,56 @@ function updateBot(b, dt){
     return;
   }
   b.thinkT -= dt;
-  const pEye = playerEye().clone();
-  const canSee = player.alive && botCanSee(b, pEye);
-  const dist = b.pos.distanceTo(player.pos);
-
   if(b.thinkT<=0){
     b.thinkT = 0.4 + Math.random()*0.5;
-    if(canSee && dist < 40 && Math.random() < b.skill){
-      b.target = null; // fight mode: strafe
-    } else if(!b.target || b.pos.distanceTo(b.target) < 2){
-      b.target = canSee ? player.pos.clone() : randomWaypoint();
-    }
+    const prev = b.enemy;
+    b.enemy = acquireEnemy(b);
+    if(b.enemy !== prev) b.seeT = 0;           // new target → fresh reaction window
+    if(b.enemy) b.target = null;
+    else if(!b.target || b.pos.distanceTo(b.target) < 2) b.target = randomWaypoint();
   }
+  const enemy = (b.enemy && b.enemy.alive) ? b.enemy : null;
+  const canSee = enemy ? botCanSee(b, entEye(enemy)) : false;
+  const dist = enemy ? b.pos.distanceTo(entPos(enemy)) : Infinity;
 
   // movement
   const move = new THREE.Vector3();
-  if(b.target){
-    move.subVectors(b.target, b.pos); move.y = 0;
-    if(move.lengthSq()>0.5) move.normalize();
-  } else if(canSee){
-    // combat strafe
+  if(enemy && canSee){
+    // combat strafe around the enemy
     b.strafeT -= dt;
     if(b.strafeT<=0){ b.strafeT = 0.7+Math.random(); b.strafeDir *= -1; }
-    const toP = new THREE.Vector3().subVectors(player.pos, b.pos); toP.y = 0; toP.normalize();
-    move.set(toP.z*b.strafeDir, 0, -toP.x*b.strafeDir);
-    if(dist > 25) move.add(toP.multiplyScalar(0.8));
-    else if(dist < 8) move.sub(toP.multiplyScalar(0.7));
+    const toE = new THREE.Vector3().subVectors(entPos(enemy), b.pos); toE.y = 0; toE.normalize();
+    move.set(toE.z*b.strafeDir, 0, -toE.x*b.strafeDir);
+    if(dist > 25) move.add(toE.multiplyScalar(0.8));
+    else if(dist < 8) move.sub(toE.multiplyScalar(0.7));
     move.normalize();
+  } else if(b.target){
+    move.subVectors(b.target, b.pos); move.y = 0;
+    if(move.lengthSq()>0.5) move.normalize(); else move.set(0,0,0);
   }
+
+  // obstacle steering: if a wall is close ahead, slide along the clearer side
+  if(move.lengthSq()>0){
+    const feeler = new THREE.Vector3(b.pos.x, b.pos.y+0.9, b.pos.z);
+    const ahead = castWorld(feeler, move, 2.2);
+    if(ahead < 2.2){
+      const L = move.clone().applyAxisAngle(UP, 1.0), R = move.clone().applyAxisAngle(UP, -1.0);
+      const dl = castWorld(feeler, L, 3), dr = castWorld(feeler, R, 3);
+      move.copy(dl > dr ? L : R);
+    }
+  }
+
   const bSpeed = 6.2;
   b.vel.x += (move.x*bSpeed - b.vel.x)*Math.min(1, 10*dt);
   b.vel.z += (move.z*bSpeed - b.vel.z)*Math.min(1, 10*dt);
   b.vel.y -= GRAV*dt;
   resolveAABB(b.pos, b.vel, dt);
 
-  // face movement or player
-  const face = canSee ? player.pos : (b.target || player.pos);
-  b.yaw = Math.atan2(face.x-b.pos.x, face.z-b.pos.z);
+  // face enemy, else waypoint
+  const face = enemy ? entPos(enemy) : (b.target || b.pos);
+  if(face !== b.pos){
+    b.yaw = Math.atan2(face.x-b.pos.x, face.z-b.pos.z);
+  }
   b.mesh.position.copy(b.pos);
   b.mesh.rotation.y = b.yaw;
 
@@ -814,9 +855,9 @@ function updateBot(b, dt){
   b.fireT -= dt;
   if(canSee){ b.seeT += dt; } else { b.seeT = Math.max(0, b.seeT - dt*2); }
   const reaction = 0.35 + (1-b.skill)*0.45;
-  if(canSee && player.alive && dist < 55 && b.fireT<=0 && b.seeT >= reaction){
+  if(enemy && canSee && dist < 55 && b.fireT<=0 && b.seeT >= reaction){
     b.fireT = 0.75 + (1-b.skill)*0.8 + Math.random()*0.3;
-    botShootPlayer(b);
+    botShoot(b, enemy);
   }
 
   // bunny-ish hop occasionally when fighting

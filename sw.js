@@ -1,4 +1,4 @@
-const CACHE = 'kourhero-v001';
+const CACHE = 'kourhero-v002';
 const ASSETS = ['./', './index.html', './lib/three.module.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

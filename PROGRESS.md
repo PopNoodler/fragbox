@@ -14,10 +14,7 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - Every release: bump `CACHE` in `sw.js` (currently v001) + commit.
 
 ## Backlog (roughly ordered)
-- [ ] Spawn layout: mid-edge spawns stare into the [0,±30]/[±30,0] cover bars from 2u away — reposition spawns or bars
 - [ ] Weapon feel polish: distinct viewmodels per weapon, better muzzle flash, camera recoil kick
-- [ ] Bot pathing: bots get stuck on cover corners (no avoidance) — add simple obstacle steering
-- [ ] Bots fight each other (currently only target the player) — true FFA
 - [ ] Health pickups / ammo pickups on map
 - [ ] Sniper + SMG weapons, weapon pickup spots (Kour-style)
 - [ ] Mobile touch controls (dual stick + fire button)
@@ -27,6 +24,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] Phase 2: Node WS server (`server/`), authoritative movement+hits, client prediction, bots server-side
 
 ## Releases (newest first)
+- **v002** (2026-07-02 ~03:50): True FFA — bots now acquire the nearest visible enemy (player OR
+  other bots) via `acquireEnemy()`, fight/strafe/shoot whoever it is; kill credit + kill feed for
+  bot-vs-bot. Generalized `botShoot(b, enemy)` and `damageBot(..., attacker)`; gunshot volume now
+  scales with distance to the *player* (listener), not the target. Obstacle steering: 2.2u feeler
+  raycast ahead, slide toward the clearer of ±57° when blocked. Mid-edge spawns shifted sideways
+  so they no longer stare into the cover bars. Enemy switch resets the reaction window. Soak
+  test (45s headless): 7 bot-vs-bot kills, 0 stuck bots, 0 errors. SW cache → v002.
 - **v001** (2026-07-02 ~03:45): Initial playable build. Three.js r160 vendored. Pointer-lock FPS
   (WASD/jump/sprint, accel-based movement, AABB collision vs box colliders). 3 hitscan weapons
   (Rifle auto 600rpm/22dmg, Shotgun 7-pellet, Pistol 30dmg) with mag/reserve/reload, spread,
