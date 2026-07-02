@@ -58,7 +58,7 @@ function raySphere(o, d, c, r){
   return t - Math.sqrt(r*r - d2);
 }
 
-const PORT = (() => { const a = process.argv.slice(2).find(x => /^d+$/.test(x)); return a ? +a : 8080; })();
+const PORT = (() => { const a = process.argv.slice(2).find(x => /^[0-9]+$/.test(x)); return a ? +a : 8080; })();
 const TEST = process.argv.includes('--test');   // enables {t:'tp'} for automated tests only
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.svg':'image/svg+xml' };
