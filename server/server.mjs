@@ -106,6 +106,7 @@ function addBot(){
     color: COLORS[id % COLORS.length],
     pos: spawnPos(), yaw: 0, pitch: 0,
     hp: 100, kills: 0, deaths: 0, alive: true, deadUntil: 0, lastFire: 0,
+    lvl: 1 + Math.floor(Math.random()*15),
     target: null, enemy: null, thinkT: Math.random(), fireT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
     skill: 0.45 + Math.random()*0.3
   };
@@ -138,6 +139,7 @@ wss.on('connection', ws => {
         name: String(m.name || 'Player').slice(0, 14),
         color: COLORS[id % COLORS.length],
         maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
+        lvl: Math.max(1, Math.min(99, (+m.lvl|0) || 1)),
         pos: spawnPos(), yaw: 0, pitch: 0,
         hp: 100, kills: 0, deaths: 0,
         alive: true, deadUntil: 0, lastFire: 0,
@@ -148,7 +150,7 @@ wss.on('connection', ws => {
       if(players.size === 1) roundEnd = Date.now() + ROUND_LEN;   // first human starts the round
       balanceBots();
       send(ws, { t:'welcome', id, pos:p.pos, color:p.color,
-        roster: ents().map(q=>({ id:q.id, name:q.name, color:q.color, pos:q.pos, yaw:q.yaw })) });
+        roster: ents().map(q=>({ id:q.id, name:q.name, color:q.color, pos:q.pos, yaw:q.yaw, lvl:q.lvl })) });
       broadcast({ t:'joined', id, name:p.name, color:p.color, pos:p.pos }, id);
       console.log(`[+] ${p.name} (#${id}) joined — ${players.size} human(s), ${bots.length} bot(s)`);
       return;
@@ -386,7 +388,7 @@ setInterval(() => {
     t:'snap',
     rt: Math.max(0, Math.ceil((roundEnd - now)/1000)),
     players: ents().map(p => ({
-      id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0
+      id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl
     }))
   };
   broadcast(snap);

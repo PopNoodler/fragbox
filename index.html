@@ -38,6 +38,9 @@
   #ammonum { font-size:32px; font-weight:800; }
   #ammores { font-size:16px; opacity:.75; }
   #wname { font-size:14px; opacity:.85; letter-spacing:1px; text-transform:uppercase; }
+  #slots { display:flex; gap:5px; justify-content:flex-end; margin-bottom:5px; }
+  .slotpill { background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.18); color:#90a4ae; border-radius:5px; padding:2px 8px; font-size:10.5px; letter-spacing:.5px; }
+  .slotpill.on { background:rgba(79,195,247,.25); border-color:#4fc3f7; color:#fff; font-weight:700; }
   #reloadmsg { position:absolute; left:50%; top:58%; transform:translateX(-50%); color:#ffca28; font-size:16px; font-weight:700; text-shadow:0 2px 4px rgba(0,0,0,.7); display:none; }
   #callout { position:absolute; left:50%; top:26%; transform:translate(-50%,-50%) scale(1); color:#ffca28; font-size:38px; font-weight:900; letter-spacing:2px; text-shadow:0 3px 10px rgba(0,0,0,.8); opacity:0; transition:opacity .3s, transform .3s; }
   #callout.show { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
@@ -71,12 +74,16 @@
   #dmgvig { position:absolute; inset:0; box-shadow:inset 0 0 120px rgba(255,0,0,0); transition:box-shadow .1s; }
 
   /* ---------- Scoreboard ---------- */
-  #scoreboard { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(10,10,25,.92); border-radius:10px; padding:18px 26px; min-width:420px; display:none; color:#fff; }
-  #scoreboard h3 { text-align:center; margin-bottom:10px; letter-spacing:2px; color:#ffca28; }
-  #sbtable { width:100%; border-collapse:collapse; font-size:14px; }
-  #sbtable th { text-align:left; opacity:.6; font-weight:600; padding:4px 8px; border-bottom:1px solid rgba(255,255,255,.15); }
-  #sbtable td { padding:4px 8px; }
+  #scoreboard { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(8,10,22,.94); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:16px 24px 18px; min-width:480px; display:none; color:#fff; box-shadow:0 12px 50px rgba(0,0,0,.5); }
+  #scoreboard h3 { text-align:center; margin-bottom:2px; letter-spacing:3px; color:#ffca28; font-size:16px; }
+  #sbmode { text-align:center; font-size:11px; opacity:.5; margin-bottom:10px; }
+  #sbtable { width:100%; border-collapse:collapse; font-size:13.5px; }
+  #sbtable th { text-align:left; opacity:.55; font-weight:600; padding:4px 10px; border-bottom:1px solid rgba(255,255,255,.15); font-size:11px; letter-spacing:1px; }
+  #sbtable th.num, #sbtable td.num { text-align:right; }
+  #sbtable td { padding:5px 10px; }
+  #sbtable tbody tr:nth-child(odd) { background:rgba(255,255,255,.035); }
   #sbtable tr.self td { color:#4fc3f7; font-weight:700; }
+  .lvlchip { display:inline-block; background:rgba(255,202,40,.16); color:#ffca28; border-radius:4px; padding:0 6px; font-size:11px; font-weight:700; }
 
   /* ---------- Menus ---------- */
   .overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:radial-gradient(ellipse at center,#1a1a2e 0%,#0d0d1a 100%); z-index:10; overflow:auto; }
@@ -146,7 +153,7 @@
   <div id="crosshair"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="hitmarker"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="healthbar"><div id="hpnum">100</div><div id="hpbg"><div id="hpfill"></div></div></div>
-  <div id="ammobox"><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div></div>
+  <div id="ammobox"><div id="slots"></div><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div></div>
   <div id="reloadmsg">RELOADING…</div>
   <div id="callout"></div>
   <div id="respawnmsg"></div>
@@ -167,7 +174,7 @@
     <div id="relbtn" class="tbtn">R</div>
     <div id="pausebtn" class="tbtn">☰</div>
   </div>
-  <div id="scoreboard"><h3>SCOREBOARD</h3><table id="sbtable"><thead><tr><th>Player</th><th>Kills</th><th>Deaths</th></tr></thead><tbody id="sbbody"></tbody></table></div>
+  <div id="scoreboard"><h3>SCOREBOARD</h3><div id="sbmode"></div><table id="sbtable"><thead><tr><th>LV</th><th>PLAYER</th><th class="num">KILLS</th><th class="num">DEATHS</th><th class="num">K/D</th></tr></thead><tbody id="sbbody"></tbody></table></div>
 </div>
 
 <div id="menu" class="overlay show">
@@ -713,6 +720,7 @@ function makeBot(i){
     mesh, pos: new THREE.Vector3(), vel: new THREE.Vector3(),
     hp: 100, alive: true, yaw: 0,
     kills: 0, deaths: 0,
+    lvl: 1 + Math.floor(Math.random()*15),
     target: null,          // waypoint Vector3
     enemy: null,           // current combat target: player object or another bot
     fireT: 0, thinkT: 0, respawnT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
@@ -1371,6 +1379,8 @@ function updateHpHUD(){
 }
 function updateAmmoHUD(){
   const w = curW();
+  el('slots').innerHTML = player.loadout.map((wi,i)=>
+    `<span class="slotpill${i===player.wIdx?' on':''}">${i+1} ${WEAPONS[wi].name.toUpperCase()}</span>`).join('');
   el('wname').textContent = w.name;
   el('ammonum').textContent = player.ammo[player.wIdx];
   el('ammores').textContent = '/ ' + player.res[player.wIdx];
@@ -1386,12 +1396,18 @@ function showHitmarker(){
 }
 function renderScoreboard(){
   const others = mode === 'mp'
-    ? [...NET.remotes.values()].map(r=>({ name:r.name, kills:r.k||0, deaths:r.d||0 }))
-    : bots.map(b=>({ name:b.name, kills:b.kills, deaths:b.deaths }));
-  const rows = [{ name:'You', kills:player.kills, deaths:player.deaths, self:true }, ...others]
+    ? [...NET.remotes.values()].map(r=>({ name:r.name, kills:r.k||0, deaths:r.d||0, lvl:r.lvl||1 }))
+    : bots.map(b=>({ name:b.name, kills:b.kills, deaths:b.deaths, lvl:b.lvl||1 }));
+  const rows = [{ name:'You', kills:player.kills, deaths:player.deaths, lvl:levelOf(xp), self:true }, ...others]
     .sort((a,b)=>b.kills-a.kills || a.deaths-b.deaths);
-  el('sbbody').innerHTML = rows.map(r=>
-    `<tr${r.self?' class="self"':''}><td>${r.name}</td><td>${r.kills}</td><td>${r.deaths}</td></tr>`).join('');
+  el('sbmode').textContent = mode === 'mp'
+    ? 'ONLINE FFA · round resets every 5:00'
+    : 'FREE-FOR-ALL · first to ' + KILL_TARGET;
+  el('sbbody').innerHTML = rows.map((r,i)=>{
+    const kd = r.deaths ? (r.kills/r.deaths).toFixed(1) : r.kills.toFixed(1);
+    const crown = (i===0 && r.kills>0) ? '👑 ' : '';
+    return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${crown}${r.name}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
+  }).join('');
 }
 
 // ---------- Multiplayer (Phase 2) ----------
@@ -1421,7 +1437,7 @@ function addRemote(q){
   mesh.add(makeNameTag(q.name));
   mesh.position.set(q.pos[0], q.pos[1], q.pos[2]);
   scene.add(mesh);
-  NET.remotes.set(q.id, { mesh, name:q.name, target:new THREE.Vector3(q.pos[0], q.pos[1], q.pos[2]), yaw:q.yaw||0 });
+  NET.remotes.set(q.id, { mesh, name:q.name, lvl:q.lvl||1, target:new THREE.Vector3(q.pos[0], q.pos[1], q.pos[2]), yaw:q.yaw||0 });
 }
 function removeRemote(id){
   const r = NET.remotes.get(id);
@@ -1463,7 +1479,7 @@ function mpConnect(){
   ws.onopen = ()=>{
     clearTimeout(failT);
     const cls = CLASSES[SET.cls] || CLASSES[0];
-    ws.send(JSON.stringify({ t:'join', name: myName(), maxhp: cls.hp }));
+    ws.send(JSON.stringify({ t:'join', name: myName(), maxhp: cls.hp, lvl: levelOf(xp) }));
   };
   ws.onmessage = ev=>{
     let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
@@ -1504,6 +1520,7 @@ function mpConnect(){
         if(r){
           r.target.set(q.pos[0], q.pos[1], q.pos[2]);
           r.yaw = q.yaw; r.k = q.k; r.d = q.d;
+          if(q.l) r.lvl = q.l;
           r.mesh.visible = !!q.a;                     // hide the dead
         }
       }
