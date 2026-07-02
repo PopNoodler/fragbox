@@ -145,6 +145,18 @@
   #btnrow .bigbtn { flex:1; max-width:200px; }
   #gearbtn { pointer-events:auto; position:absolute; top:14px; right:14px; width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; font-size:19px; cursor:pointer; }
   #gearbtn:hover { background:rgba(255,255,255,.16); }
+  #statsbtn { pointer-events:auto; position:absolute; top:14px; right:60px; width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); font-size:17px; cursor:pointer; }
+  #statsbtn:hover { background:rgba(255,255,255,.16); }
+  #statspanel { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.75); backdrop-filter:blur(3px); pointer-events:auto; }
+  #statshead { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:14px; }
+  .statcell { background:#141a2a; border:1.5px solid #2b3550; border-radius:10px; padding:9px 4px; text-align:center; }
+  .statcell b { display:block; color:#ffca28; font-size:17px; }
+  .statcell span { font-size:9.5px; color:#8fa3b8; letter-spacing:1px; }
+  #statstable { width:100%; border-collapse:collapse; font-size:13px; color:#cfd8dc; }
+  #statstable th { text-align:left; opacity:.55; font-size:10.5px; letter-spacing:1px; padding:4px 8px; border-bottom:1px solid rgba(255,255,255,.15); }
+  #statstable th.num, #statstable td.num { text-align:right; }
+  #statstable td { padding:4px 8px; }
+  #statstable tbody tr:nth-child(odd) { background:rgba(255,255,255,.03); }
   #adsim { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; background:rgba(4,6,12,.9); pointer-events:auto; }
   #settingspanel { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.75); backdrop-filter:blur(3px); pointer-events:auto; }
   .setslider { margin:14px 0; text-align:left; color:#cfd8dc; }
@@ -232,6 +244,7 @@
 <div id="menu" class="overlay show">
   <div class="panel">
     <button id="gearbtn" title="Settings">⚙</button>
+    <button id="statsbtn" title="Career stats">📊</button>
     <div class="logo">FRAGBOX</div>
     <div class="tagline">Fast low-poly arena FPS</div>
     <div id="setupcard">
@@ -255,6 +268,15 @@
       <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Ctrl</kbd> crouch/slide · <kbd>G</kbd> grenade<br>
       <kbd>R</kbd> reload · <kbd>1 2</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
     </div>
+  </div>
+</div>
+
+<div id="statspanel">
+  <div class="pausecard" style="max-width:520px">
+    <div class="ptitle">CAREER</div>
+    <div id="statshead"></div>
+    <table id="statstable"><thead><tr><th>WEAPON</th><th class="num">KILLS</th><th class="num">ACCURACY</th><th class="num">SHOTS</th></tr></thead><tbody id="statsbody"></tbody></table>
+    <div style="margin-top:14px"><button id="statsclose" class="bigbtn" style="font-size:15px; padding:11px 34px">DONE</button></div>
   </div>
 </div>
 
@@ -910,6 +932,40 @@ function recordWeaponKill(wname){
   }
   updateChallengesUI();
 }
+// ---------- Career stats (kh_stats) ----------
+let stats = { shots:{}, hits:{}, deaths:0, matches:0, wins:0, playMs:0 };
+try { stats = Object.assign(stats, JSON.parse(localStorage.kh_stats || '{}')); } catch(e){}
+let statsDirty = 0;
+function saveStats(){ localStorage.kh_stats = JSON.stringify(stats); statsDirty = 0; }
+function statShot(wname, count){ stats.shots[wname] = (stats.shots[wname] || 0) + count; statsDirty++; }
+function statHit(wname, count = 1){ stats.hits[wname] = (stats.hits[wname] || 0) + count; statsDirty++; }
+function accOf(wname){
+  const sh = stats.shots[wname] || 0;
+  return sh ? Math.round((stats.hits[wname] || 0) / sh * 100) : null;
+}
+function fmtPlaytime(ms){
+  const m = Math.floor(ms / 60000);
+  return m >= 60 ? Math.floor(m/60) + 'h ' + (m%60) + 'm' : m + 'm';
+}
+function renderStatsPage(){
+  const totalK = Object.values(wkills).reduce((a,b)=>a+b, 0);
+  const totalS = Object.values(stats.shots).reduce((a,b)=>a+b, 0);
+  const totalH = Object.values(stats.hits).reduce((a,b)=>a+b, 0);
+  const kd = stats.deaths ? (totalK/stats.deaths).toFixed(2) : totalK.toFixed(2);
+  el('statshead').innerHTML = [
+    ['LEVEL', levelOf(xp)], ['XP', xp], ['KILLS', totalK], ['K/D', kd],
+    ['ACCURACY', totalS ? Math.round(totalH/totalS*100) + '%' : '—'],
+    ['MATCHES', stats.matches], ['WINS', stats.wins], ['PLAYTIME', fmtPlaytime(stats.playMs)]
+  ].map(([k,v]) => '<div class="statcell"><b>' + v + '</b><span>' + k + '</span></div>').join('');
+  el('statsbody').innerHTML = WEAPONS.map(w => {
+    const acc = accOf(w.name);
+    return '<tr><td>' + w.name + '<span style="color:#ffca28">' + attachStars(w.name) + '</span></td>'
+      + '<td class="num">' + (wkills[w.name] || 0) + '</td>'
+      + '<td class="num">' + (acc === null ? '—' : acc + '%') + '</td>'
+      + '<td class="num">' + (stats.shots[w.name] || 0) + '</td></tr>';
+  }).join('');
+}
+
 // ---------- Weapon attachments (earned by per-gun kills) ----------
 const ATTACH = [ [25, 'EXTENDED MAG'], [100, 'LASER'] ];
 function attachTier(wname){
@@ -1622,6 +1678,8 @@ el('volsl').addEventListener('input', ()=>{ SET.vol = +el('volsl').value; saveSE
   if(masterGain) masterGain.gain.value = SET.vol/100; SFX.swap(); });
 function openSettings(){ syncSettingsUI(); el('settingspanel').style.display = 'flex'; }
 el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
+el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('statspanel').style.display = 'flex'; });
+el('statsclose').addEventListener('click', ()=>{ saveStats(); el('statspanel').style.display = 'none'; });
 el('gearbtn2').addEventListener('click', ()=>openSettings());
 el('musicbtn').addEventListener('click', ()=>{
   SET.music = SET.music ? 0 : 1; saveSET();
@@ -1843,6 +1901,7 @@ function playerShoot(){
   const spr = currentSpread(w);
   const sprBase = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
   bloom = Math.min(1, bloom + (w.bloom || 0.1) * (attachTier(w.name) >= 2 ? 0.7 : 1));
+  statShot(w.name, w.pellets);
   for(let p=0; p<w.pellets; p++){
     const dir = fireDir(spr).clone();
     const wallHit = castWorldHit(eye, dir, 200);
@@ -1864,6 +1923,7 @@ function playerShoot(){
     addTracer(eye.clone().add(dir.clone().multiplyScalar(1.2)), end);
     if(hitBot){
       hitSomething = true;
+      statHit(w.name);
       damageBot(hitBot, headshot ? w.dmg*2 : w.dmg, headshot);
       addPuff(end, 0xd32f2f, 4, 2.5);
     } else if(wallHit){
@@ -1981,6 +2041,7 @@ function damagePlayer(dmg, from){
   if(player.hp<=0){
     player.hp = 0; player.alive = false;
     player.deaths++; from.kills++;
+    stats.deaths++; statsDirty++;
     player.killedBy = { name: from.name, hp: Math.max(1, Math.round(from.hp)) };
     player.respawnT = 3;
     player.streak = 0;
@@ -2349,6 +2410,7 @@ function mpConnect(){
     else if(m.t === 'over'){
       NET.lastOver = m.top;
       if(m.gg){
+        if(m.gg === localStorage.kh_name){ stats.wins++; statsDirty++; }
         showCallout(m.gg === localStorage.kh_name ? 'YOU WIN THE GUN GAME!' : m.gg.toUpperCase() + ' WINS THE GUN GAME');
         NET.gg = 0;
       } else if(m.ts){
@@ -2399,6 +2461,7 @@ function mpConnect(){
       if(r) r.mesh.rotation.y = Math.atan2(d.x, d.z);
     }
     else if(m.t === 'hitfx'){
+      statHit(curW().name);
       SFX.hit(); showHitmarker();
       if(m.pos) showDmg(new THREE.Vector3(m.pos[0], m.pos[1] + 1.8, m.pos[2]), m.dmg || 0, m.hs);
     }
@@ -2413,6 +2476,7 @@ function mpConnect(){
     }
     else if(m.t === 'die'){
       player.hp = 0; player.alive = false;
+      stats.deaths++; statsDirty++;
       player.shield = 0;
       updateStreakHUD();
       player.killedBy = { name: m.by, hp: m.bhp };
@@ -2583,6 +2647,7 @@ function startMatch(){
   resetLoadout(); buildViewmodel();
   player.hp = player.maxHp;
   player.matchXpStart = xp;
+  stats.matches++; statsDirty++;
   matchT = SET.len;
   for(const b of bots){ scene.remove(b.mesh); }
   bots.length = 0;
@@ -2602,6 +2667,7 @@ function startMatch(){
 }
 function showMenu(){
   state = ST.MENU;
+  saveStats();
   TUT.active = false;
   el('tutbanner').style.display = 'none';
   setMusicMode('menu');
@@ -2627,6 +2693,7 @@ function endMatch(){
   el('hud').style.display = 'none';
   const rows = [{ name:'You', kills:player.kills }, ...bots.map(b=>({ name:b.name, kills:b.kills }))].sort((a,b)=>b.kills-a.kills);
   const won = rows[0].name === 'You';
+  if(won){ stats.wins++; statsDirty++; }
   el('overtitle').textContent = won ? 'VICTORY!' : 'MATCH OVER';
   el('overtitle').style.color = won ? '#ffca28' : '#fff';
   const matchXp = xp - (player.matchXpStart === undefined ? xp : player.matchXpStart);
@@ -3045,6 +3112,8 @@ function frame(now){
   if(dt>0.05) dt = 0.05;                       // clamp — playbook §9
 
   if(state===ST.PLAY){
+    stats.playMs += dt * 1000;
+    if(++statsDirty > 300) saveStats();
     if(mode === 'mp'){
       const tdm = (NET.gameMode === 'tdm' || NET.gameMode === 'ctf') && NET.ts;
       const gg = NET.gameMode === 'gungame';

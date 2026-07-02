@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v043** (2026-07-03 ~02:45): CAREER STATS PAGE (wave 2 #7). 📊 menu button opens CAREER
+  overlay: headline grid (level/XP/kills/KD/accuracy/matches/wins/playtime) + per-weapon table
+  (kills, accuracy, shots, attachment stars). kh_stats tracks shots (per pellet at trigger
+  time), hits (solo pellet hits + MP hitfx confirmations), deaths (both modes), matches,
+  wins (solo victory, MP gungame win; team wins TODO), playtime (accumulated per frame,
+  persisted every ~300 events + on menu/close). Fixtures verified (45% acc computes, 1h30m
+  playtime formats) and live fire persists. Full suite green. SW → v043.
 - **v042** (2026-07-03 ~02:20): CAPTURE THE FLAG (wave 2 #6). Server --mode=ctf: team infra
   generalized to TEAMED (tdm||ctf — colors/FF/spawns/nade/airstrike team rules shared; kill-
   scoring stays TDM-only, CTF teamScores = captures, first to 3 ends the round). Flag state
