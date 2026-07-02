@@ -59,6 +59,20 @@ sw.js                 service worker (network-first navigations; bump CACHE ever
 tools/                verify.mjs (static checks), playtest.js (headless solo), mptest.js (2-client MP)
 ```
 
+## Hosting / shipping
+
+**Solo (static, PWA):** push this folder to GitHub and enable GitHub Pages — the game plays
+offline-installable at `https://<you>.github.io/<repo>/`. The service worker only registers
+on github.io/localhost, so other hosts are safe too.
+
+**Multiplayer:** run `node server/server.mjs [port] [--map=depot] [--mode=tdm|gungame] [--pop=N] [--round=S]`
+on any Node host (Railway, Fly.io, a VPS) and share the URL. `PLAY.bat` passes flags
+through: `PLAY.bat --mode=tdm --map=depot`.
+
+**Game portals (CrazyGames / Poki / itch):** `node tools/build-portal.mjs` produces
+`dist/fragbox-portal.zip` — the solo client bundle, iframe-safe. Upload as an HTML5 game.
+See `MONETIZATION.md` for wiring their ad SDKs.
+
 ## Development
 
 Each release: make a change, run the test suite, bump `CACHE` in `sw.js`, commit.

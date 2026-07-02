@@ -7,6 +7,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-echo Starting FragBox at http://localhost:8080 ...
+rem Pass any flags through to the server, e.g.:  PLAY.bat --mode=tdm --map=depot
+echo Starting FragBox at http://localhost:8080  %*
 start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8080"
-node server\server.mjs
+node server\server.mjs %*

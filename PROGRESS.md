@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v035** (2026-07-02 ~22:35): Deploy packaging (roadmap #8 — ROADMAP COMPLETE).
+  tools/build-portal.mjs stages client files and Compress-Archives dist/fragbox-portal.zip
+  (203 KB, 8 files; SW self-gates so portal iframes are safe). README "Hosting / shipping"
+  guide: GitHub Pages (solo PWA), Node hosts for MP with full flag reference, portal upload
+  path. PLAY.bat passes flags through (PLAY.bat --mode=tdm --map=depot). No client changes
+  (no SW bump). Full suite green. Product roadmap delivered end to end.
 - **v034** (2026-07-02 ~22:20): Dormant monetization (roadmap #7, playbook §7). Monetize
   abstraction (provider:'sim'): showRewarded plays a simulated 2s AD BREAK overlay then
   rewards exactly once (onFail restores UI for no-fill), buyPremium → "COMING SOON" callout.
