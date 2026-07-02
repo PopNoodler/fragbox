@@ -10,7 +10,8 @@ import { getMap, PHYS } from '../shared/map.mjs';
 const mapArg = (process.argv.find(a => a.startsWith('--map=')) || '').split('=')[1];
 const MAP = getMap(mapArg);
 const modeRaw = (process.argv.find(a => a.startsWith('--mode=')) || '').split('=')[1];
-const MODE = modeRaw === 'tdm' ? 'tdm' : modeRaw === 'gungame' ? 'gungame' : 'ffa';
+const MODE = ['tdm','gungame','ctf'].includes(modeRaw) ? modeRaw : 'ffa';
+const TEAMED = MODE === 'tdm' || MODE === 'ctf';
 const TEAM_COLORS = [0xe53935, 0x2196f3];   // red, blue
 const teamScores = [0, 0];
 function pickTeam(){
@@ -89,7 +90,7 @@ function spawnPos(team){
     let d = 1000;
     for(const p of ents()){
       if(!p.alive) continue;
-      if(MODE === 'tdm' && team !== undefined && p.team === team) continue;
+      if(TEAMED && team !== undefined && p.team === team) continue;
       d = Math.min(d, Math.hypot(s[0]-p.pos[0], s[1]-p.pos[2]));
     }
     d += Math.random()*8;
@@ -118,13 +119,13 @@ function ents(){ return [...players.values(), ...bots]; }
 
 function addBot(){
   const id = nextId++;
-  const team = MODE === 'tdm' ? pickTeam() : -1;
+  const team = TEAMED ? pickTeam() : -1;
   const wPool = [0,0,1,1,2,4,5,6,7];        // weighted arsenal (AWP excluded from bots)
   const b = {
     id, ws:null, isBot:true, team, gg: 0, streak: 0, shield: 0,
     wIdx: wPool[Math.floor(Math.random()*wPool.length)],
     name: BOT_NAMES[botIdx++ % BOT_NAMES.length],
-    color: MODE === 'tdm' ? TEAM_COLORS[team] : COLORS[id % COLORS.length],
+    color: TEAMED ? TEAM_COLORS[team] : COLORS[id % COLORS.length],
     pos: spawnPos(team), yaw: 0, pitch: 0,
     hp: 100, kills: 0, deaths: 0, alive: true, deadUntil: 0, lastFire: 0,
     lvl: 1 + Math.floor(Math.random()*15),
@@ -158,7 +159,7 @@ wss.on('connection', ws => {
       const p = {
         id, ws,
         name: String(m.name || 'Player').slice(0, 14),
-        team: MODE === 'tdm' ? pickTeam() : -1,
+        team: TEAMED ? pickTeam() : -1,
         gg: 0, nades: NADE.perLife, streak: 0, shield: 0,
         color: SKIN_COLORS.has(+m.skin) ? +m.skin : COLORS[id % COLORS.length],
         maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
@@ -168,7 +169,7 @@ wss.on('connection', ws => {
         alive: true, deadUntil: 0, lastFire: 0,
         lastMove: Date.now()
       };
-      if(MODE === 'tdm') p.color = TEAM_COLORS[p.team];
+      if(TEAMED) p.color = TEAM_COLORS[p.team];
       p.pos = spawnPos(p.team);
       p.hp = p.maxHp;
       players.set(id, p);
@@ -249,6 +250,9 @@ wss.on('connection', ws => {
   });
 
   ws.on('close', () => {
+    if(flags) for(const f of flags){
+      if(f.carrier === id){ dropFlag(f, f.pos); flagEvent('dropped', f.team, null); }
+    }
     if(players.delete(id)){
       broadcast({ t:'left', id });
       balanceBots();
@@ -268,7 +272,7 @@ function doFire(shooter, o, nd, w, ads, bloomMult = 1){
     let victim = null, hitT = wallT, headshot = false;
     for(const q of ents()){
       if(q.id === shooter.id || !q.alive) continue;
-      if(MODE === 'tdm' && q.team === shooter.team) continue;   // no friendly fire
+      if(TEAMED && q.team === shooter.team) continue;   // no friendly fire
       const hY = q.crouch ? HITBOX.headY * 0.68 : HITBOX.headY;
       const bY = q.crouch ? HITBOX.bodyY * 0.7  : HITBOX.bodyY;
       const tH = raySphere(o, d, [q.pos[0], q.pos[1]+hY, q.pos[2]], HITBOX.headR);
@@ -287,7 +291,7 @@ function scheduleAirstrike(striker){
     let delay = 0;
     for(const e of ents()){
       if(!e.alive || e.id === striker.id) continue;
-      if(MODE === 'tdm' && striker.team >= 0 && e.team === striker.team) continue;
+      if(TEAMED && striker.team >= 0 && e.team === striker.team) continue;
       for(let k = 0; k < 2; k++){
         const at = [e.pos[0] + (Math.random()-0.5)*4, 0.4, e.pos[2] + (Math.random()-0.5)*4];
         setTimeout(()=>explodeNade({ pos: at, owner: striker.id }), delay);
@@ -295,6 +299,70 @@ function scheduleAirstrike(striker){
       }
     }
   }, 1500);
+}
+
+// ---- Capture the Flag ----
+const CTF_CAPS_TO_WIN = 3;
+const flags = MODE === 'ctf' ? [0, 1].map(team => {
+  const base = [SPAWNS[team][0], SPAWNS[team][2] || 0, SPAWNS[team][1]];
+  return { team, base, pos: [...base], state: 'home', carrier: null, returnT: 0 };
+}) : null;
+
+function flagEvent(ev, team, by){
+  broadcast({ t:'flag', ev, team, by: by ? by.name : undefined });
+  console.log('[⚑] ' + ev + ' team' + team + (by ? ' by ' + by.name : ''));
+}
+function dropFlag(f, at){
+  f.state = 'dropped';
+  f.carrier = null;
+  f.pos = [at[0], 0.2, at[2]];
+  f.returnT = 15;
+}
+function carrierOf(f){ return f.carrier === null ? null : ents().find(e => e.id === f.carrier); }
+function tickFlags(dt){
+  if(!flags) return;
+  for(const f of flags){
+    if(f.state === 'carried'){
+      const c = carrierOf(f);
+      if(!c || !c.alive){ dropFlag(f, c ? c.pos : f.pos); flagEvent('dropped', f.team, c); continue; }
+      f.pos = [c.pos[0], c.pos[1] + 2.1, c.pos[2]];
+      // capture: carrier at own base while own flag is home
+      const own = flags[c.team];
+      const d = Math.hypot(c.pos[0] - own.base[0], c.pos[2] - own.base[2]);
+      if(d < 2.4 && own.state === 'home'){
+        teamScores[c.team]++;
+        f.state = 'home'; f.carrier = null; f.pos = [...f.base];
+        flagEvent('captured', f.team, c);
+        send(c.ws, { t:'streak', tier: 0 });   // no-op tier keeps protocol simple; capture XP client-side via flag event
+        if(teamScores[c.team] >= CTF_CAPS_TO_WIN) roundEnd = Date.now();   // triggers round over
+      }
+      continue;
+    }
+    if(f.state === 'dropped'){
+      f.returnT -= dt;
+      if(f.returnT <= 0){
+        f.state = 'home'; f.pos = [...f.base];
+        flagEvent('returned', f.team, null);
+        continue;
+      }
+    }
+    // pickups / returns by touch
+    for(const e of ents()){
+      if(!e.alive || e.team < 0) continue;
+      const d = Math.hypot(e.pos[0] - f.pos[0], e.pos[2] - f.pos[2]);
+      if(d > 1.8) continue;
+      if(e.team !== f.team && (f.state === 'home' || f.state === 'dropped')){
+        f.state = 'carried'; f.carrier = e.id;
+        flagEvent('taken', f.team, e);
+        break;
+      }
+      if(e.team === f.team && f.state === 'dropped'){
+        f.state = 'home'; f.pos = [...f.base]; f.returnT = 0;
+        flagEvent('returned', f.team, e);
+        break;
+      }
+    }
+  }
 }
 
 const liveNades = [];
@@ -328,7 +396,7 @@ function explodeNade(g){
   const owner = ents().find(e => e.id === g.owner) || { id:g.owner, name:'Grenade', ws:null, kills:0, team:-1 };
   for(const e of ents()){
     if(!e.alive || e.id === g.owner) continue;                       // no MP self-damage
-    if(MODE === 'tdm' && owner.team >= 0 && e.team === owner.team) continue;
+    if(TEAMED && owner.team >= 0 && e.team === owner.team) continue;
     const c = [e.pos[0], e.pos[1]+1, e.pos[2]];
     const dx = c[0]-g.pos[0], dy = c[1]-g.pos[1], dz = c[2]-g.pos[2];
     const dist = Math.hypot(dx, dy, dz);
@@ -376,6 +444,9 @@ function applyDamage(victim, dmg, attacker, headshot){
   attacker.streak = (attacker.streak || 0) + 1;
   victim.streak = 0;
   victim.shield = 0;
+  if(flags) for(const f of flags){
+    if(f.carrier === victim.id){ dropFlag(f, victim.pos); flagEvent('dropped', f.team, victim); }
+  }
   if(attacker.streak === 3) send(attacker.ws, { t:'streak', tier:3 });
   else if(attacker.streak === 5){ attacker.shield = 50; send(attacker.ws, { t:'streak', tier:5, sh:50 }); }
   else if(attacker.streak === 7){
@@ -447,7 +518,7 @@ function tickBot(b, dt){
     let best = null, bestD = Infinity;
     for(const e of ents()){
       if(e.id === b.id || !e.alive) continue;
-      if(MODE === 'tdm' && e.team === b.team) continue;
+      if(TEAMED && e.team === b.team) continue;
       const d = canSee(b, e);
       if(d && d < bestD){ best = e; bestD = d; }
     }
@@ -457,6 +528,23 @@ function tickBot(b, dt){
     else if(!b.target || Math.hypot(b.target[0]-b.pos[0], b.target[2]-b.pos[2]) < 2) b.target = randomWaypoint();
   }
 
+  // CTF objectives override roaming
+  if(flags){
+    const mine = flags.find(f => f.carrier === b.id);
+    if(mine){
+      const own = flags[b.team];
+      b.target = [own.base[0], 0, own.base[2]];        // run it home
+    } else {
+      const enemyFlag = flags[1 - b.team];
+      const ownFlag = flags[b.team];
+      if(ownFlag.state === 'carried' && Math.random() < 0.6){
+        const c = carrierOf(ownFlag);
+        if(c) b.target = [c.pos[0], 0, c.pos[2]];      // hunt the carrier
+      } else if(!b.enemy && Math.random() < 0.35){
+        b.target = [enemyFlag.pos[0], 0, enemyFlag.pos[2]];   // go for the grab
+      }
+    }
+  }
   const enemy = (b.enemy && b.enemy.alive) ? b.enemy : null;
   const seeDist = enemy ? canSee(b, enemy) : 0;
 
@@ -470,7 +558,8 @@ function tickBot(b, dt){
     mx = uz*b.strafeDir; mz = -ux*b.strafeDir;
     if(seeDist > 25){ mx += ux*0.8; mz += uz*0.8; }
     else if(seeDist < 8){ mx -= ux*0.7; mz -= uz*0.7; }
-    const ml = Math.hypot(mx, mz) || 1; mx = mx/ml*BOT_SPEED; mz = mz/ml*BOT_SPEED;
+    const carrySlow = flags && flags.some(f => f.carrier === b.id) ? 0.9 : 1;
+    const ml = Math.hypot(mx, mz) || 1; mx = mx/ml*BOT_SPEED*carrySlow; mz = mz/ml*BOT_SPEED*carrySlow;
     b.yaw = Math.atan2(tx, tz);
   } else if(b.target){
     const tx = b.target[0]-b.pos[0], tz = b.target[2]-b.pos[2];
@@ -506,7 +595,7 @@ setInterval(() => {
   if(now >= roundEnd){
     const standings = ents().slice().sort((a,b)=>b.kills-a.kills || a.deaths-b.deaths)
       .map(e => ({ name:e.name, k:e.kills, d:e.deaths }));
-    broadcast({ t:'over', top: standings.slice(0, 10), ts: MODE === 'tdm' ? [...teamScores] : undefined });
+    broadcast({ t:'over', top: standings.slice(0, 10), ts: TEAMED ? [...teamScores] : undefined });
     console.log(`[◷] round over — winner: ${standings[0] ? standings[0].name : '—'}`);
     for(const e of ents()){
       e.kills = 0; e.deaths = 0; e.gg = 0;
@@ -517,9 +606,11 @@ setInterval(() => {
       if(MODE === 'gungame') send(e.ws, { t:'gg', idx: 0 });
     }
     teamScores[0] = 0; teamScores[1] = 0;
+    if(flags) for(const f of flags){ f.state = 'home'; f.carrier = null; f.pos = [...f.base]; f.returnT = 0; }
     roundEnd = now + ROUND_LEN;
   }
 
+  tickFlags(dt);
   for(let i = liveNades.length-1; i >= 0; i--){
     const g = liveNades[i];
     g.t += dt;
@@ -540,7 +631,8 @@ setInterval(() => {
   const snap = {
     t:'snap',
     rt: Math.max(0, Math.ceil((roundEnd - now)/1000)),
-    ts: MODE === 'tdm' ? [teamScores[0], teamScores[1]] : undefined,
+    ts: TEAMED ? [teamScores[0], teamScores[1]] : undefined,
+    fl: flags ? flags.map(f => ({ p: f.pos.map(v=>+v.toFixed(1)), s: f.state[0], c: f.carrier })) : undefined,
     players: ents().map(p => ({
       id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl, g:p.gg, c:p.crouch?1:0
     }))

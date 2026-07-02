@@ -18,6 +18,17 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v042** (2026-07-03 ~02:20): CAPTURE THE FLAG (wave 2 #6). Server --mode=ctf: team infra
+  generalized to TEAMED (tdm||ctf — colors/FF/spawns/nade/airstrike team rules shared; kill-
+  scoring stays TDM-only, CTF teamScores = captures, first to 3 ends the round). Flag state
+  machines (home/carried/dropped): touch pickup by enemies, drop on death/disconnect, 15s
+  return timer, teammates touch-return, capture requires own flag home; flags ride carriers
+  at +2.1y in snap (fl payload). Bots PLAY THE OBJECTIVE: carriers run home (10% slowed),
+  teammates hunt the enemy carrier, others make grabs. Client: pole+cloth flag meshes with
+  spin, "YOU HAVE THE FLAG" banner + 10% carry slow, minimap ⚑ markers, killfeed lines for
+  taken/dropped/returned/captured, +300 XP capture callout, RED·BLUE pill shows captures.
+  Live test: full taken→dropped→returned cycles from pure bot play, carrier-hunting confirmed.
+  Full suite green. SW → v042.
 - **v041** (2026-07-03 ~01:50): WEAPON ATTACHMENTS (max-grind #5 — queue complete). Per-gun
   kill milestones auto-unlock: 25 kills = EXTENDED MAG (+50% mag, flows through resetLoadout/
   reload/gungame paths via wMag()), 100 kills = LASER (hip spread ×0.85 + bloom accumulation

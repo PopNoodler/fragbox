@@ -53,6 +53,7 @@
   #respawnmsg small b { color:#ff8a80; }
   .dmgnum { position:absolute; color:#ffec8a; font-weight:900; font-size:17px; text-shadow:0 2px 4px rgba(0,0,0,.85); pointer-events:none; transform:translate(-50%,-50%); }
   .dmgnum.hs { color:#ff5252; font-size:22px; }
+  #flagbanner { position:absolute; left:50%; top:19%; transform:translateX(-50%); background:rgba(7,9,18,.9); border:1.5px solid #ffca28; border-radius:10px; padding:7px 18px; color:#ffca28; font-size:13px; font-weight:800; letter-spacing:1px; pointer-events:none; }
   #tutbanner { position:absolute; left:50%; top:12%; transform:translateX(-50%); display:none; background:rgba(7,9,18,.92); border:1.5px solid #ffca28; border-radius:12px; padding:10px 22px; color:#fff; font-size:16px; font-weight:700; letter-spacing:.5px; pointer-events:none; animation:tutpulse 1.6s ease-in-out infinite; }
   #tutbanner b { color:#ffca28; }
   @keyframes tutpulse { 0%,100% { box-shadow:0 0 0 rgba(255,202,40,0); } 50% { box-shadow:0 0 18px rgba(255,202,40,.45); } }
@@ -193,6 +194,7 @@
   <div id="respawnmsg"></div>
   <div id="killbanner"></div>
   <div id="tutbanner"></div>
+  <div id="flagbanner" style="display:none">⚑ YOU HAVE THE FLAG — RETURN TO YOUR BASE</div>
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
   <div id="pausemenu">
     <div class="pausecard">
@@ -2183,10 +2185,48 @@ function renderScoreboard(){
   el('sbbody').innerHTML = rows.map((r,i)=>{
     const kd = r.deaths ? (r.kills/r.deaths).toFixed(1) : r.kills.toFixed(1);
     const crown = (i===0 && r.kills>0) ? '👑 ' : '';
-    const dot = (mode==='mp' && NET.gameMode==='tdm' && r.team>=0) ? `<span style="color:${r.team===0?'#ff8a80':'#82b1ff'}">●</span> ` : '';
+    const dot = (mode==='mp' && (NET.gameMode==='tdm'||NET.gameMode==='ctf') && r.team>=0) ? `<span style="color:${r.team===0?'#ff8a80':'#82b1ff'}">●</span> ` : '';
     const ggTag = isGG ? ` <span style="color:#ffca28; font-size:11px">⟨${Math.min((r.g||0)+1, 8)}/8⟩</span>` : '';
     return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${dot}${crown}${r.name}${ggTag}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
   }).join('');
+}
+
+// ---------- CTF flags (client visuals; server owns state) ----------
+const flagMeshes = [];
+function ensureFlagMeshes(){
+  if(flagMeshes.length) return;
+  for(const team of [0, 1]){
+    const g = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.6, 6),
+      new THREE.MeshLambertMaterial({ color: 0x8d9499 }));
+    pole.position.y = 1.3;
+    g.add(pole);
+    const cloth = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.06),
+      new THREE.MeshLambertMaterial({ color: team === 0 ? 0xe53935 : 0x2196f3,
+        emissive: team === 0 ? 0x7a1512 : 0x0d3d70, emissiveIntensity: 0.6 }));
+    cloth.position.set(0.58, 2.2, 0);
+    g.add(cloth);
+    g.visible = false;
+    scene.add(g);
+    flagMeshes.push(g);
+  }
+}
+function updateFlagVisuals(dt){
+  if(mode !== 'mp' || NET.gameMode !== 'ctf' || !NET.fl){ flagMeshes.forEach(m => m.visible = false); return; }
+  ensureFlagMeshes();
+  for(let i = 0; i < 2; i++){
+    const f = NET.fl[i];
+    if(!f){ flagMeshes[i].visible = false; continue; }
+    flagMeshes[i].visible = true;
+    flagMeshes[i].position.set(f.p[0], f.p[1], f.p[2]);
+    flagMeshes[i].rotation.y += dt * 1.2;
+  }
+  // carrying me? slow + banner
+  const carrying = NET.fl.some(f => f && f.c === NET.id);
+  if(carrying !== player.carryingFlag){
+    player.carryingFlag = carrying;
+    el('flagbanner').style.display = carrying ? 'block' : 'none';
+  }
 }
 
 // ---------- Multiplayer (Phase 2) ----------
@@ -2326,6 +2366,7 @@ function mpConnect(){
     else if(m.t === 'snap'){
       NET.roundT = m.rt;
       if(m.ts) NET.ts = m.ts;
+      NET.fl = m.fl;
       for(const q of m.players){
         if(q.id === NET.id){
           player.kills = q.k; player.deaths = q.d;   // server-authoritative score
@@ -2402,6 +2443,19 @@ function mpConnect(){
         killfeed(`<b>${m.killer}</b> ${hsIcon} <b>${m.victim}</b>`);
       }
     }
+    else if(m.t === 'flag'){
+      const tn = m.team === 0 ? 'RED' : 'BLUE';
+      const col = m.team === 0 ? '#ff8a80' : '#82b1ff';
+      if(m.ev === 'taken') killfeed(`<span style="color:${col}">⚑ ${tn} flag taken${m.by ? ' by <b>' + m.by + '</b>' : ''}</span>`);
+      else if(m.ev === 'dropped') killfeed(`<span style="color:${col}">⚑ ${tn} flag dropped</span>`);
+      else if(m.ev === 'returned') killfeed(`<span style="color:${col}">⚑ ${tn} flag returned</span>`);
+      else if(m.ev === 'captured'){
+        killfeed(`<span style="color:${col}">⚑ ${tn} flag CAPTURED${m.by ? ' by <b>' + m.by + '</b>' : ''}</span>`);
+        showCallout(m.by === myName() ? 'FLAG CAPTURED  +300' : (m.team === NET.team ? 'ENEMY SCORED ON YOUR FLAG' : 'YOUR TEAM CAPTURED THE FLAG'));
+        if(m.by === myName()) addXp(300);
+        SFX.streak();
+      }
+    }
     else if(m.t === 'streak'){
       if(m.sh !== undefined) player.shield = m.sh;
       grantStreakReward(m.tier);
@@ -2460,6 +2514,10 @@ function mpDisconnect(){
   for(const id of [...NET.remotes.keys()]) removeRemote(id);
   if(NET.ws){ try{ NET.ws.close(); }catch(e){} }
   NET.ws = null; NET.id = null; NET.roundT = undefined; NET.lastOver = null;
+  NET.fl = null;
+  player.carryingFlag = false;
+  el('flagbanner').style.display = 'none';
+  flagMeshes.forEach(m => m.visible = false);
   mode = 'solo';
   if(state === ST.PLAY) showMenu();
 }
@@ -2653,6 +2711,7 @@ function updatePlayer(dt){
   player.eyeH += (eyeTarget - (player.eyeH || EYE)) * Math.min(1, dt*12);
 
   let speed = (sprinting ? SPRINT : WALK) * (player.speedMul || 1);
+  if(player.carryingFlag) speed *= 0.9;
   if(player.crouch && !sliding) speed *= 0.5;
   if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
 
@@ -2943,7 +3002,7 @@ function drawMinimap(){
   if(mode === 'mp'){
     for(const r of NET.remotes.values()){
       if(!r.mesh.visible) continue;
-      const mate = NET.gameMode === 'tdm' && r.team === NET.team;
+      const mate = (NET.gameMode === 'tdm' || NET.gameMode === 'ctf') && r.team === NET.team;
       if(!mate && !pingable(r.mesh.position, r.lastLoud)) continue;
       mmc.fillStyle = mate ? '#69f0ae' : '#ff5252';
       const rad = (!mate && reveal) ? 4 : 3;
@@ -2954,6 +3013,15 @@ function drawMinimap(){
     for(const b of bots){
       if(!b.alive || !pingable(b.pos, b.lastLoud)) continue;
       mmc.beginPath(); mmc.arc(px(b.pos.x), px(b.pos.z), reveal ? 4 : 3, 0, 7); mmc.fill();
+    }
+  }
+  if(mode === 'mp' && NET.gameMode === 'ctf' && NET.fl){
+    for(let i = 0; i < 2; i++){
+      const f = NET.fl[i];
+      if(!f) continue;
+      mmc.fillStyle = i === 0 ? '#ff5252' : '#448aff';
+      mmc.font = 'bold 10px sans-serif';
+      mmc.fillText('⚑', px(f.p[0]) - 4, px(f.p[2]) + 4);
     }
   }
   if(reveal){ mmc.strokeStyle = 'rgba(255,202,40,.8)'; mmc.lineWidth = 2; mmc.strokeRect(1, 1, S-2, S-2); }
@@ -2978,7 +3046,7 @@ function frame(now){
 
   if(state===ST.PLAY){
     if(mode === 'mp'){
-      const tdm = NET.gameMode === 'tdm' && NET.ts;
+      const tdm = (NET.gameMode === 'tdm' || NET.gameMode === 'ctf') && NET.ts;
       const gg = NET.gameMode === 'gungame';
       el('tdmscore').style.display = tdm ? '' : 'none';
       el('ggscore').style.display = gg ? '' : 'none';
@@ -2987,6 +3055,7 @@ function frame(now){
       if(gg) el('ggnum').textContent = Math.min((NET.gg || 0) + 1, GG_LADDER.length);
       el('timeleft').textContent = NET.roundT !== undefined ? fmtTime(NET.roundT) : 'ONLINE';
       updateRemotes(dt);
+      updateFlagVisuals(dt);
     } else if(!paused){
       matchT -= dt;
       el('timeleft').textContent = fmtTime(matchT);
