@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v026** (2026-07-02 ~19:10): Viewmodel character pass — each gun now looks like its real
+  counterpart: AK-47 (wood handguard/stock, stamped receiver, curved two-segment mag, front
+  sight post), MP5 (slim body, curved mag, sliding stock), M870 (under-barrel mag tube, wood
+  pump/stock), AWP (olive body, long scope w/ objective+ocular rims, muzzle brake), M249
+  (olive belt box, carry handle, bipod), M14 (full wood stock line + scope), .44 Magnum
+  (silver frame, top strap, hammer). Gotcha: stray Cyrillic char corrupted a hex literal —
+  caught by verify. Screenshots confirmed AK/AWP silhouettes. Full suite green. SW → v026.
 - **v025** (2026-07-02 ~19:00): Real-world arsenal (user request). Weapons renamed to iconic
   counterparts — AK-47, MP5, M870, AWP, M1911, M249, M14, .44 Magnum — via new `type` field
   in shared/weapons.mjs: logic (viewmodel shapes, sniper scope/FOV, pistol one-hand) now keys

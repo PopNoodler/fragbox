@@ -889,49 +889,65 @@ function buildViewmodel(){
   const mat = c => new THREE.MeshLambertMaterial({ color:c });
   const box = (sx,sy,sz,c,x,y,z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), mat(c)); m.position.set(x,y,z); g.add(m); return m; };
   let tipZ;
-  if(w.type==='rifle'){
-    box(0.045,0.05,0.55, w.color, 0,0.01,-0.38);       // barrel
-    box(0.06,0.09,0.28,  0x2f3b44, 0,-0.01,-0.05);     // receiver
-    box(0.05,0.16,0.06,  0x263238, 0,-0.11,0.02);      // mag
-    box(0.05,0.07,0.16,  0x4e342e, 0,-0.02,0.16);      // stock
+  const WOOD = 0x8a5a2b, DARKWOOD = 0x5d3a1a, GUNMETAL = 0x2a3238, BLACK = 0x16191c;
+  if(w.type==='rifle'){                                  // AK-47: wood furniture + curved mag
+    box(0.045,0.05,0.5,  BLACK,   0,0.015,-0.42);        // barrel
+    box(0.02,0.05,0.02,  BLACK,   0,0.06,-0.64);         // front sight post
+    box(0.06,0.075,0.2,  WOOD,    0,-0.005,-0.26);       // wood handguard
+    box(0.065,0.09,0.24, GUNMETAL,0,-0.01,-0.04);        // stamped receiver
+    box(0.05,0.1,0.06,   BLACK,   0,-0.095,-0.02);       // mag top
+    const m2 = box(0.05,0.1,0.06, BLACK, 0,-0.17,0.015); m2.rotation.x = 0.35;  // curved mag lower
+    box(0.055,0.075,0.18,WOOD,    0,-0.015,0.16);        // wood stock
     tipZ = -0.66;
-  } else if(w.type==='shotgun'){
-    box(0.065,0.075,0.5, w.color, 0,0.01,-0.32);       // barrel
-    box(0.075,0.06,0.18, 0x8d6e63, 0,-0.045,-0.28);    // pump
-    box(0.07,0.1,0.22,   0x4e342e, 0,-0.02,0.05);      // body/stock
+  } else if(w.type==='shotgun'){                         // M870: pump + under-barrel tube
+    box(0.05,0.055,0.5,  BLACK,   0,0.02,-0.32);         // barrel
+    box(0.04,0.04,0.4,   GUNMETAL,0,-0.035,-0.3);        // mag tube
+    box(0.075,0.06,0.16, DARKWOOD,0,-0.045,-0.33);       // pump grip
+    box(0.07,0.09,0.2,   GUNMETAL,0,-0.005,0.0);         // receiver
+    box(0.06,0.08,0.16,  WOOD,    0,-0.02,0.16);         // wood stock
     tipZ = -0.57;
-  } else if(w.type==='smg'){
-    box(0.04,0.045,0.3,  w.color, 0,0.01,-0.22);       // stubby barrel
-    box(0.06,0.08,0.2,   0x37474f, 0,-0.01,-0.02);     // body
-    box(0.045,0.14,0.05, 0x263238, 0,-0.1,-0.06);      // mag (forward, SMG-style)
+  } else if(w.type==='smg'){                             // MP5: slim body, curved mag, front grip
+    box(0.038,0.045,0.26,BLACK,   0,0.01,-0.24);         // barrel
+    box(0.06,0.075,0.24, GUNMETAL,0,-0.005,-0.02);       // body
+    box(0.055,0.065,0.1, BLACK,   0,-0.025,-0.16);       // handguard
+    box(0.04,0.11,0.05,  BLACK,   0,-0.095,-0.08);       // mag top
+    const s2 = box(0.04,0.09,0.05,BLACK, 0,-0.17,-0.05); s2.rotation.x = 0.3;   // curved mag lower
+    box(0.045,0.05,0.1,  GUNMETAL,0,0.0,0.14);           // sliding stock
     tipZ = -0.38;
-  } else if(w.type==='sniper'){
-    box(0.04,0.045,0.8,  w.color, 0,0.01,-0.5);        // long barrel
-    box(0.055,0.08,0.3,  0x2f3b44, 0,-0.01,0.0);       // receiver
-    box(0.04,0.05,0.16,  0x111111, 0,0.06,-0.06);      // scope tube
-    box(0.05,0.06,0.14,  0x4e342e, 0,-0.02,0.18);      // stock
-    tipZ = -0.92;
-  } else if(w.type==='lmg'){
-    box(0.06,0.065,0.62, w.color, 0,0.01,-0.42);       // heavy barrel
-    box(0.09,0.11,0.3,   0x2c363e, 0,-0.01,-0.02);     // receiver
-    box(0.12,0.18,0.16,  0x222b31, 0,-0.13,-0.02);     // box mag
-    box(0.05,0.07,0.14,  0x4e342e, 0,-0.02,0.17);      // stock
-    box(0.02,0.12,0.02,  0x263238, -0.03,-0.06,-0.6);  // bipod leg
-    box(0.02,0.12,0.02,  0x263238, 0.03,-0.06,-0.6);
+  } else if(w.type==='sniper'){                          // AWP: green body + long scope + brake
+    box(0.04,0.045,0.75, BLACK,   0,0.015,-0.52);        // barrel
+    box(0.05,0.055,0.07, BLACK,   0,0.015,-0.9);         // muzzle brake
+    box(0.06,0.085,0.34, w.color, 0,-0.01,0.0);          // olive body
+    box(0.042,0.042,0.24,0x0e1113,0,0.075,-0.06);        // long scope tube
+    box(0.05,0.05,0.02,  0x232a2e,0,0.075,-0.185);       // objective rim
+    box(0.05,0.05,0.02,  0x232a2e,0,0.075,0.06);         // ocular rim
+    box(0.055,0.07,0.16, w.color, 0,-0.02,0.19);         // stock
+    box(0.04,0.05,0.05,  BLACK,   0,-0.1,-0.02);         // mag
+    tipZ = -0.94;
+  } else if(w.type==='lmg'){                             // M249: belt box + carry handle + bipod
+    box(0.055,0.06,0.58, BLACK,   0,0.015,-0.42);        // heavy barrel
+    box(0.09,0.1,0.3,    GUNMETAL,0,-0.01,-0.02);        // receiver
+    box(0.03,0.05,0.12,  BLACK,   0,0.09,-0.06);         // carry handle
+    box(0.13,0.15,0.17,  0x5e6b48, -0.02,-0.135,-0.02);  // belt box (olive)
+    box(0.05,0.07,0.14,  BLACK,   0,-0.02,0.17);         // stock
+    box(0.018,0.12,0.018,BLACK,   -0.035,-0.06,-0.6);    // bipod legs
+    box(0.018,0.12,0.018,BLACK,   0.035,-0.06,-0.6);
     tipZ = -0.75;
-  } else if(w.type==='dmr'){
-    box(0.045,0.05,0.68, w.color, 0,0.01,-0.44);       // long barrel
-    box(0.06,0.085,0.26, 0x3a332a, 0,-0.01,-0.02);     // receiver
-    box(0.045,0.05,0.14, 0x14181c, 0,0.065,-0.04);     // low scope
-    box(0.05,0.14,0.06,  0x263238, 0,-0.1,0.0);        // mag
-    box(0.05,0.06,0.15,  0x4e342e, 0,-0.02,0.16);      // stock
+  } else if(w.type==='dmr'){                             // M14: full wood line
+    box(0.042,0.048,0.5, BLACK,   0,0.02,-0.5);          // barrel
+    box(0.06,0.07,0.55,  WOOD,    0,-0.02,-0.18);        // full wood stock line
+    box(0.055,0.05,0.2,  GUNMETAL,0,0.03,-0.05);         // receiver top
+    box(0.042,0.042,0.16,0x0e1113,0,0.085,-0.03);        // scope
+    box(0.045,0.1,0.05,  BLACK,   0,-0.11,-0.06);        // mag
     tipZ = -0.8;
-  } else if(w.type==='revolver'){
-    box(0.045,0.06,0.3,  w.color, 0,0.03,-0.14);       // barrel
-    box(0.07,0.085,0.12, 0x51565c, 0,0.0,-0.0);        // cylinder
-    box(0.045,0.12,0.06, 0x3e2a20, 0,-0.08,0.05);      // wood grip
-    tipZ = -0.31;
-  } else { // Pistol
+  } else if(w.type==='revolver'){                        // .44 Magnum: silver frame + fluted cylinder
+    box(0.042,0.065,0.3, 0x9aa2aa,0,0.03,-0.16);         // vent-rib barrel
+    box(0.065,0.08,0.11, 0x848c94,0,0.0,0.0);            // cylinder
+    box(0.075,0.02,0.11, 0x6d757d,0,0.045,0.0);          // top strap
+    box(0.045,0.12,0.06, DARKWOOD,0,-0.085,0.05);        // wood grip
+    box(0.02,0.025,0.03, 0x848c94,0,0.075,0.075);        // hammer
+    tipZ = -0.33;
+    } else { // Pistol
     box(0.05,0.07,0.26,  w.color, 0,0.02,-0.1);        // slide
     box(0.045,0.13,0.07, 0x2b2b2b, 0,-0.07,0.02);      // grip
     tipZ = -0.23;
