@@ -18,6 +18,18 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v039** (2026-07-03 ~00:55): BOT AI OVERHAUL (max-grind #3). Solo bots now play classes:
+  random class per bot (weapon/hp/speed from CLASSES — Breacher shotgunners tank at 115hp,
+  Gunners rush at 1.08x, Marksmen run AWPs), per-weapon combat model (auto weapons fire 3-5
+  round bursts at true rpm spacing; semis at rpm-derived cadence; shotgun damage ≈2.2 pellets),
+  aim smoothing (aimErr 1→0 at difficulty-scaled lock-on rate 0.5/0.95/1.6 per sec, resets on
+  target switch/LOS loss, multiplies pHit — bots now "acquire" you instead of instant-beaming),
+  hurt bots run to health packs, healthy ones occasionally ride jump pads, bots crouch to
+  steady long-range shots (smaller player-facing hitbox + squash visual + slower move), and
+  on HARD they throw grenades (8-26u band, 9-14s cooldown) that hurt you AND other bots with
+  proper attribution. Server lobby bots: weighted random arsenal (AWP excluded) with weapon-
+  appropriate cadence. Verified: class roster diversity, aimErr 1→0.52 lock-on, live bot nade.
+  Full suite green. SW → v039.
 - **v038** (2026-07-03 ~00:30): KILLSTREAK REWARDS (max-grind #2). Streak 3 = UAV (10s full
   minimap reveal w/ gold border + enlarged pings); 5 = OVERSHIELD (+50 absorbed before hp,
   blue bar segment, server-side in MP); 7 = AIRSTRIKE (1.5s "INBOUND" warning broadcast, then

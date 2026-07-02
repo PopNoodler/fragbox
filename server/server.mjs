@@ -119,8 +119,10 @@ function ents(){ return [...players.values(), ...bots]; }
 function addBot(){
   const id = nextId++;
   const team = MODE === 'tdm' ? pickTeam() : -1;
+  const wPool = [0,0,1,1,2,4,5,6,7];        // weighted arsenal (AWP excluded from bots)
   const b = {
     id, ws:null, isBot:true, team, gg: 0, streak: 0, shield: 0,
+    wIdx: wPool[Math.floor(Math.random()*wPool.length)],
     name: BOT_NAMES[botIdx++ % BOT_NAMES.length],
     color: MODE === 'tdm' ? TEAM_COLORS[team] : COLORS[id % COLORS.length],
     pos: spawnPos(team), yaw: 0, pitch: 0,
@@ -483,13 +485,14 @@ function tickBot(b, dt){
   if(seeDist){ b.seeT += dt; } else { b.seeT = Math.max(0, b.seeT - dt*2); }
   const reaction = 0.35 + (1-b.skill)*0.5;
   if(enemy && seeDist && seeDist < 55 && b.fireT <= 0 && b.seeT >= reaction){
-    b.fireT = 0.8 + (1-b.skill)*0.8 + Math.random()*0.3;
+    const bwv = MODE === 'gungame' ? WEAPONS[GG_LADDER[Math.min(b.gg, GG_LADDER.length-1)]] : WEAPONS[b.wIdx || 0];
+    b.fireT = bwv.auto ? (0.8 + (1-b.skill)*0.8 + Math.random()*0.3) : Math.max(0.6, 60/bwv.rpm*1.5) + (1-b.skill)*0.5;
     const o = [b.pos[0], b.pos[1]+PHYS.EYE, b.pos[2]];
     const err = (1-b.skill) * 1.3;
     const t = [ enemy.pos[0]+(Math.random()-0.5)*err, enemy.pos[1]+1.0+(Math.random()-0.5)*err, enemy.pos[2]+(Math.random()-0.5)*err ];
     let d = [t[0]-o[0], t[1]-o[1], t[2]-o[2]];
     const l = Math.hypot(...d) || 1; d = d.map(v=>v/l);
-    const bw = MODE === 'gungame' ? WEAPONS[GG_LADDER[Math.min(b.gg, GG_LADDER.length-1)]] : WEAPONS[0];
+    const bw = MODE === 'gungame' ? WEAPONS[GG_LADDER[Math.min(b.gg, GG_LADDER.length-1)]] : WEAPONS[b.wIdx || 0];
     doFire(b, o, d, bw, false);
   }
 }

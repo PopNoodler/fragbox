@@ -1020,8 +1020,29 @@ function updateNades(dt){
       scene.remove(g.mesh);
       nades.splice(i, 1);
       explodeFx(at);
-      if(g.doDamage){
-        // solo: hurt bots (full) and self (half), LOS-checked
+      if(g.doDamage === 'bot'){
+        const owner = g.owner;
+        for(const b of bots){
+          if(!b.alive || b === owner) continue;
+          const c = new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z);
+          const dist = at.distanceTo(c);
+          if(dist > NADE.radius) continue;
+          const dir = c.clone().sub(at); const L = dir.length()||1; dir.divideScalar(L);
+          if(castWorld(at, dir, L) < L - 0.3) continue;
+          damageBot(b, Math.max(NADE.minDmg, NADE.dmg * (1 - dist/NADE.radius)), false, owner);
+        }
+        if(player.alive){
+          const pc = new THREE.Vector3(player.pos.x, player.pos.y+1, player.pos.z);
+          const dist = at.distanceTo(pc);
+          if(dist <= NADE.radius){
+            const dir = pc.clone().sub(at); const L = dir.length()||1; dir.divideScalar(L);
+            if(!(castWorld(at, dir, L) < L - 0.3)){
+              damagePlayer(Math.max(NADE.minDmg, NADE.dmg * (1 - dist/NADE.radius)), owner);
+            }
+          }
+        }
+      } else if(g.doDamage){
+        // solo player nade: hurt bots (full) and self (half), LOS-checked
         for(const b of bots){
           if(!b.alive) continue;
           const c = new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z);
@@ -1137,15 +1158,20 @@ function spawnPoint(avoidPos){
 function makeBot(i){
   const mesh = makeBotMesh(BOT_COLORS[i % BOT_COLORS.length]);
   scene.add(mesh);
+  const cls = CLASSES[[0,1,2,3,4,5,6][Math.floor(Math.random()*7)]];   // any non-premium class
   const b = {
     name: BOT_NAMES[i % BOT_NAMES.length],
     mesh, pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-    hp: 100, alive: true, yaw: 0,
+    cls, weapon: WEAPONS[cls.weapons[0]],
+    maxHp: cls.hp, hp: cls.hp,
+    speed: 6.2 * cls.speed,
+    alive: true, yaw: 0,
     kills: 0, deaths: 0,
     lvl: 1 + Math.floor(Math.random()*15),
     target: null,          // waypoint Vector3
     enemy: null,           // current combat target: player object or another bot
     fireT: 0, thinkT: 0, respawnT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
+    burst: 0, burstT: 0, aimErr: 1, crouchT: 0, crouching: false, nadeCd: 5 + Math.random()*6,
     skill: Math.min(0.95, DIFFS[SET.diff].skill + Math.random()*0.25)   // accuracy/aggression 0..1
   };
   b.pos.copy(spawnPoint(player.pos));   // never spawn a bot on top of the player
@@ -1740,8 +1766,8 @@ function playerShoot(){
     let hitBot = null, hitDist = wallDist, headshot = false;
     for(const b of bots){
       if(!b.alive) continue;
-      const bodyC = new THREE.Vector3(b.pos.x, b.pos.y+1.0, b.pos.z);
-      const headC = new THREE.Vector3(b.pos.x, b.pos.y+1.66, b.pos.z);
+      const bodyC = new THREE.Vector3(b.pos.x, b.pos.y + (b.crouching ? 0.7 : 1.0), b.pos.z);
+      const headC = new THREE.Vector3(b.pos.x, b.pos.y + (b.crouching ? 1.15 : 1.66), b.pos.z);
       const dB = raySphere(eye, dir, bodyC, 0.55);
       const dH = raySphere(eye, dir, headC, 0.3);
       let d = Infinity, hs = false;
@@ -1829,24 +1855,26 @@ function acquireEnemy(b){
 
 function botShoot(b, e){
   b.lastLoud = performance.now();
+  const w = b.weapon || WEAPONS[0];
   const eye = botEye(b);
   const tEye = entEye(e);
-  // lead-less aim with skill-based error
-  const err = (1-b.skill) * 1.4;
+  // aim error blends skill with the lock-on tracker (aimErr 1 -> 0 while tracking)
+  const err = (1-b.skill) * 0.9 + b.aimErr * 1.6;
   const target = tEye.clone();
   target.x += (Math.random()-0.5)*err; target.y += (Math.random()-0.5)*err; target.z += (Math.random()-0.5)*err;
   const dir = target.sub(eye).normalize();
   const dist = eye.distanceTo(tEye);
   const wallDist = castWorld(eye, dir, dist+1);
   addTracer(eye.clone().add(dir.clone().multiplyScalar(1)), eye.clone().add(dir.clone().multiplyScalar(Math.min(wallDist, dist))));
-  // gunshot volume by distance to the LISTENER (the player), not the target
   const dPlayer = eye.distanceTo(playerEye());
-  SFX.shoot(WEAPONS[0], Math.max(0.08, 1 - dPlayer*0.013));
+  SFX.shoot(w, Math.max(0.08, 1 - dPlayer*0.013));
   if(wallDist >= dist - 0.5){
-    // hit chance falls with distance
-    const pHit = Math.min(0.6, b.skill * (0.9 - dist/75));
+    let pHit = Math.min(0.65, b.skill * (0.95 - dist/80));
+    pHit *= (1 - b.aimErr * 0.75);
+    if(b.crouching) pHit *= 1.12;
     if(Math.random() < pHit){
-      const dmg = Math.round((8 + Math.floor(Math.random()*5)) * DIFFS[SET.diff].dmg);
+      const per = w.pellets > 1 ? w.dmg * 2.2 : w.dmg;    // shotgun = pellets that connect
+      const dmg = Math.round(per * DIFFS[SET.diff].dmg * (0.85 + Math.random()*0.3));
       if(e===player) damagePlayer(dmg, b);
       else damageBot(e, dmg, false, b);
     }
@@ -2622,9 +2650,11 @@ function updateBot(b, dt){
   if(!b.alive){
     b.respawnT -= dt;
     if(b.respawnT<=0){
-      b.alive = true; b.hp = 100;
+      b.alive = true; b.hp = b.maxHp || 100;
+      b.aimErr = 1; b.burst = 0; b.crouchT = 0; b.crouching = false;
       b.pos.copy(spawnPoint(player.pos));
       b.mesh.visible = true;
+      b.mesh.scale.y = 1;
     }
     return;
   }
@@ -2633,9 +2663,25 @@ function updateBot(b, dt){
     b.thinkT = 0.4 + Math.random()*0.5;
     const prev = b.enemy;
     b.enemy = acquireEnemy(b);
-    if(b.enemy !== prev) b.seeT = 0;           // new target → fresh reaction window
+    if(b.enemy !== prev){ b.seeT = 0; b.aimErr = 1; }   // new target: re-acquire aim
     if(b.enemy) b.target = null;
-    else if(!b.target || b.pos.distanceTo(b.target) < 2) b.target = randomWaypoint();
+    else if(!b.target || b.pos.distanceTo(b.target) < 2){
+      let wp = null;
+      if(b.hp < (b.maxHp || 100) * 0.55){
+        let best = null, bd = 1e9;
+        for(const pk of pickups){
+          if(pk.taken || pk.kind !== 'hp') continue;
+          const d = b.pos.distanceTo(pk.g.position);
+          if(d < bd){ bd = d; best = pk; }
+        }
+        if(best) wp = new THREE.Vector3(best.g.position.x, 0, best.g.position.z);
+      }
+      if(!wp && Math.random() < 0.12 && PADS.length){
+        const pd = PADS[Math.floor(Math.random()*PADS.length)];
+        wp = new THREE.Vector3(pd.x, 0, pd.z);
+      }
+      b.target = wp || randomWaypoint();
+    }
   }
   const enemy = (b.enemy && b.enemy.alive) ? b.enemy : null;
   const canSee = enemy ? botCanSee(b, entEye(enemy)) : false;
@@ -2668,7 +2714,29 @@ function updateBot(b, dt){
     }
   }
 
-  const bSpeed = 6.2;
+  const aimRate = [0.5, 0.95, 1.6][SET.diff] || 0.95;
+  if(canSee) b.aimErr = Math.max(0, b.aimErr - aimRate*dt);
+  else b.aimErr = Math.min(1, b.aimErr + 1.6*dt);
+  b.crouchT -= dt;
+  if(canSee && dist > 20 && b.crouchT <= -1 && Math.random() < 0.5) b.crouchT = 1.4;
+  b.crouching = b.crouchT > 0;
+  const cScale = b.crouching ? 0.66 : 1;
+  b.mesh.scale.y += (cScale - b.mesh.scale.y) * Math.min(1, dt*10);
+  if(SET.diff === 2 && canSee && enemy && dist > 8 && dist < 26){
+    b.nadeCd -= dt;
+    if(b.nadeCd <= 0){
+      b.nadeCd = 9 + Math.random()*5;
+      const o = botEye(b).clone();
+      const t = entPos(enemy);
+      const dirN = new THREE.Vector3(t.x-o.x, 0, t.z-o.z);
+      const dN = dirN.length(); dirN.normalize();
+      const v = dirN.multiplyScalar(Math.min(NADE.speed, 6 + dN*0.85));
+      v.y = NADE.up + 1.5;
+      spawnNadeVisual(o, v, b, 'bot');
+      SFX.swap();
+    }
+  }
+  const bSpeed = (b.speed || 6.2) * (b.crouching ? 0.55 : 1);
   b.vel.x += (move.x*bSpeed - b.vel.x)*Math.min(1, 10*dt);
   b.vel.z += (move.z*bSpeed - b.vel.z)*Math.min(1, 10*dt);
   b.vel.y -= GRAV*dt;
@@ -2692,13 +2760,29 @@ function updateBot(b, dt){
     bLegs[1].rotation.x = -Math.sin(b.animT) * 0.6 * m;
   }
 
-  // shoot — needs a human-ish reaction window after gaining LOS
+  // shoot: reaction window, then weapon-appropriate bursts
   b.fireT -= dt;
   if(canSee){ b.seeT += dt; } else { b.seeT = Math.max(0, b.seeT - dt*2); }
-  const reaction = 0.35 + (1-b.skill)*0.45;
-  if(enemy && canSee && dist < 55 && b.fireT<=0 && b.seeT >= reaction){
-    b.fireT = 0.75 + (1-b.skill)*0.8 + Math.random()*0.3;
-    botShoot(b, enemy);
+  if(b.burst > 0){
+    b.burstT -= dt;
+    if(b.burstT <= 0 && b.enemy && b.enemy.alive){
+      botShoot(b, b.enemy);
+      b.burst--;
+      b.burstT = 60 / (b.weapon ? b.weapon.rpm : 600);
+    }
+  } else {
+    const reaction = 0.35 + (1-b.skill)*0.45;
+    if(enemy && canSee && dist < 55 && b.fireT <= 0 && b.seeT >= reaction){
+      const w = b.weapon || WEAPONS[0];
+      if(w.auto){
+        b.burst = 3 + Math.floor(Math.random()*3);
+        b.burstT = 0;
+        b.fireT = 0.9 + (1-b.skill)*0.6 + Math.random()*0.3;
+      } else {
+        botShoot(b, enemy);
+        b.fireT = Math.max(0.55, 60/w.rpm * 1.6) + (1-b.skill)*0.5;
+      }
+    }
   }
 
   // bunny-ish hop occasionally when fighting
