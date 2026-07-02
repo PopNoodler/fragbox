@@ -40,6 +40,8 @@ const server = http.createServer((req, res) => {
   await page.screenshot({ path: path.join(SHOTS, '1-menu.png') });
 
   await page.click('#playbtn');
+  await new Promise(r => setTimeout(r, 500));
+  await page.click('#resumebtn');            // DEPLOY through the spawn class picker
   await new Promise(r => setTimeout(r, 700));
   await page.screenshot({ path: path.join(SHOTS, '2-spawn.png') });
 

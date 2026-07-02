@@ -31,7 +31,9 @@ const PORT = 18790;
     await new Promise(r => setTimeout(r, 2200));
     await page.evaluate(n => { localStorage.kh_name = n; }, name);
     await page.click('#mpbtn');
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 900));
+    await page.click('#resumebtn').catch(()=>{});   // DEPLOY through spawn class picker
+    await new Promise(r => setTimeout(r, 500));
     return { page, errors, name };
   };
 
@@ -135,7 +137,9 @@ const PORT = 18790;
     await new Promise(r => setTimeout(r, 2200));
     await page.evaluate(() => { localStorage.kh_name = 'Cara'; });
     await page.click('#mpbtn');
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 900));
+    await page.click('#resumebtn').catch(()=>{});   // DEPLOY through spawn class picker
+    await new Promise(r => setTimeout(r, 700));
     return { page, errors };
   })();
   const botInfo1 = await C.page.evaluate(() => ({

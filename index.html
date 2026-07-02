@@ -111,19 +111,22 @@
   .setlabel { opacity:.55; font-size:12px; margin-right:auto; }
   .setbtn { pointer-events:auto; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; padding:6px 0; width:56px; border-radius:6px; font-size:12px; cursor:pointer; }
   .setbtn.active { background:#2196f3; color:#fff; border-color:#2196f3; font-weight:700; }
-  .classgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); gap:6px; width:100%; }
-  .clscard.locked { opacity:.45; cursor:not-allowed; filter:grayscale(.6); }
-  #deathpick { position:absolute; left:50%; top:56%; transform:translateX(-50%); width:min(520px, 92vw); background:rgba(10,10,25,.85); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px 14px; display:none; pointer-events:auto; }
+  .classgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(96px, 1fr)); gap:8px; width:100%; }
+  .clscard.locked { opacity:.5; cursor:not-allowed; filter:grayscale(.7); }
+  #deathpick { position:absolute; left:50%; top:56%; transform:translateX(-50%); width:min(560px, 92vw); background:rgba(7,9,18,.96); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:14px 16px; display:none; pointer-events:auto; backdrop-filter:blur(6px); box-shadow:0 14px 60px rgba(0,0,0,.6); }
   .dptitle { text-align:center; color:#ffca28; font-size:12px; font-weight:800; letter-spacing:2px; margin-bottom:8px; }
   #pausemenu { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.72); backdrop-filter:blur(3px); pointer-events:auto; }
-  .pausecard { width:min(560px, 92vw); background:rgba(12,14,28,.95); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:22px 24px; text-align:center; }
+  .pausecard { width:min(600px, 92vw); background:rgba(7,9,18,.97); border:1px solid rgba(255,255,255,.14); border-radius:18px; padding:22px 24px; text-align:center; box-shadow:0 16px 70px rgba(0,0,0,.65); }
   .ptitle { color:#ffca28; font-size:20px; font-weight:900; letter-spacing:4px; margin-bottom:14px; }
   .phint { margin-top:12px; font-size:11px; opacity:.45; color:#fff; }
-  .clscard { pointer-events:auto; background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.13); border-radius:10px; padding:8px 2px; cursor:pointer; display:flex; flex-direction:column; gap:2px; transition:border-color .12s, background .12s; }
-  .clscard b { font-size:12.5px; letter-spacing:.3px; }
-  .clscard span { font-size:10.5px; opacity:.65; }
-  .clscard i { font-size:9px; opacity:.45; font-style:normal; }
-  .clscard.active { border-color:#4fc3f7; background:rgba(79,195,247,.16); }
+  .clscard { pointer-events:auto; background:#141a2a; border:2px solid #2b3550; border-radius:12px; padding:11px 4px 9px; cursor:pointer; display:flex; flex-direction:column; gap:3px; transition:border-color .12s, background .12s, transform .08s; text-align:center; }
+  .clscard:hover:not(.locked) { transform:translateY(-2px); border-color:#3d4a6e; }
+  .clscard b { font-size:13.5px; letter-spacing:.4px; color:#fff; }
+  .clscard span { font-size:11.5px; color:#4fc3f7; font-weight:700; }
+  .clscard i { font-size:9.5px; color:#8fa3b8; font-style:normal; }
+  .clscard.locked span { color:#78909c; }
+  .clscard.active { border-color:#ffca28; background:#20233a; box-shadow:0 0 14px rgba(255,202,40,.25); }
+  .clscard.active b { color:#ffca28; }
   #lockerrow { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; }
   .swatch { pointer-events:auto; width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.25); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:rgba(255,255,255,.9); text-shadow:0 1px 2px rgba(0,0,0,.7); }
   .swatch.cur { border-color:#fff; box-shadow:0 0 8px rgba(255,255,255,.5); }
@@ -175,7 +178,7 @@
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
   <div id="pausemenu">
     <div class="pausecard">
-      <div class="ptitle">PAUSED</div>
+      <div class="ptitle" id="ptitle">PAUSED</div>
       <div id="pauseclasses" class="classgrid"></div>
       <div style="display:flex; gap:10px; margin-top:16px; justify-content:center">
         <button id="resumebtn" class="bigbtn" style="font-size:15px; padding:11px 30px">RESUME</button>
@@ -208,7 +211,6 @@
     <div class="logo">FRAGBOX</div>
     <div class="tagline">Fast low-poly arena FPS</div>
     <div id="setupcard">
-      <div id="classrow" class="classgrid"></div>
       <div id="menulvl" style="font-size:11px; opacity:.55"></div>
       <input id="namefield" maxlength="14" placeholder="Your name" autocomplete="off">
       <div id="lockerrow"></div>
@@ -1102,7 +1104,7 @@ function renderClassCards(){
     return '<div class="clscard' + (SET.cls===i?' active':'') + (unlocked?'':' locked') + '" data-c="' + i + '">'
       + '<b>' + c.name + '</b><span>' + sub + '</span><i>' + meta + '</i></div>';
   }).join('');
-  for(const id of ['classrow','deathclasses','pauseclasses']){
+  for(const id of ['deathclasses','pauseclasses']){
     const box = el(id);
     if(!box) continue;
     box.innerHTML = html;
@@ -1777,6 +1779,16 @@ el('mpbtn').addEventListener('click', ()=>{ audio(); if(!NET.ws) mpConnect(); })
 
 // ---------- Pause menu (in-game: change class / resume / quit) ----------
 let paused = false;
+let deployMode = false;
+function openSpawnPick(){
+  deployMode = true;
+  paused = true;
+  renderClassCards();
+  el('ptitle').textContent = 'CHOOSE YOUR CLASS';
+  el('resumebtn').textContent = 'DEPLOY';
+  el('pausemenu').style.display = 'flex';
+  if(document.pointerLockElement) document.exitPointerLock();
+}
 function openPause(){
   if(state !== ST.PLAY || !player.alive || paused) return;
   paused = true;
@@ -1785,7 +1797,15 @@ function openPause(){
   if(document.pointerLockElement) document.exitPointerLock();
 }
 function closePause(relock){
+  if(deployMode){
+    deployMode = false;
+    resetLoadout(); buildViewmodel();
+    player.hp = player.maxHp;
+    updateHpHUD(); updateAmmoHUD();
+  }
   paused = false;
+  el('ptitle').textContent = 'PAUSED';
+  el('resumebtn').textContent = 'RESUME';
   el('pausemenu').style.display = 'none';
   if(relock && state === ST.PLAY && !isTouch){ try { document.body.requestPointerLock(); } catch(e){} }
 }
@@ -1826,12 +1846,14 @@ function startMatch(){
   el('gameover').classList.remove('show');
   el('hud').style.display = 'block';
   state = ST.PLAY;
-  if(!isTouch){ try { document.body.requestPointerLock(); } catch(e){} }
+  openSpawnPick();
 }
 function showMenu(){
   state = ST.MENU;
   ads = false; mouseDown = false;
-  paused = false;
+  paused = false; deployMode = false;
+  el('ptitle').textContent = 'PAUSED';
+  el('resumebtn').textContent = 'RESUME';
   el('pausemenu').style.display = 'none';
   el('deathpick').style.display = 'none';
   el('hud').style.display = 'none';

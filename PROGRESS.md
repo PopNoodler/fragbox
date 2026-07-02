@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v027** (2026-07-02 ~20:10): Class selection fully in-game (user request) + picker restyle
+  (user: "clashes horribly with background"). Menu class grid REMOVED; match start (solo +
+  MP) opens an in-game CHOOSE YOUR CLASS deploy screen (pause machinery in deployMode: title/
+  button swap to DEPLOY, closing applies loadout + heals to class max; MAIN MENU quits).
+  Pause (Esc) and death pickers remain for mid-match changes. Server cls handler heals to new
+  max when still undamaged (pre-fight swaps). Class cards restyled: opaque #141a2a cards,
+  2px borders, weapon name in blue, gold active state w/ glow, hover lift, high-contrast lock
+  text; picker panels near-opaque + blur + heavy shadow. Test harnesses click DEPLOY after
+  PLAY/ONLINE. Verified: pick Gunner on deploy screen → spawn MP5 90/90. Full suite green.
+  SW → v027. USER DIRECTIVE: full product mode — manufacture work, implement good ideas.
 - **v026** (2026-07-02 ~19:10): Viewmodel character pass — each gun now looks like its real
   counterpart: AK-47 (wood handguard/stock, stamped receiver, curved two-segment mag, front
   sight post), MP5 (slim body, curved mag, sliding stock), M870 (under-barrel mag tube, wood

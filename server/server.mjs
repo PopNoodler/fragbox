@@ -162,7 +162,9 @@ wss.on('connection', ws => {
     if(!p) return;
 
     if(m.t === 'cls' && Number.isFinite(+m.maxhp)){
+      const undamaged = p.alive && p.hp === p.maxHp;
       p.maxHp = Math.max(80, Math.min(120, +m.maxhp));   // applies from next respawn
+      if(undamaged) p.hp = p.maxHp;                       // pre-fight class swap heals to new max
       return;
     }
 
