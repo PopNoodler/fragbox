@@ -190,8 +190,28 @@ addBox(0, 5, 0, 5, 2, 5, 0x6b7a91);        // center top
   addBox(x, 2, z, 4, 4, 4, BLOCK);
 });
 [[-8,24],[8,-24],[24,8],[-24,-8]].forEach(([x,z])=>{
-  addBox(x, 0.9, z, 3, 1.8, 3, CRATE);
+  addBox(x, 0.75, z, 3, 1.5, 3, CRATE);   // low crates — jumpable steps
 });
+
+// Jump pads (Kour-style): launch anything standing on them
+const PADS = [];
+[[-7,0,19],[7,0,19],[-32,-24,15],[32,24,15]].forEach(([x,z,v])=>{
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.25, 12),
+    new THREE.MeshLambertMaterial({ color:0x29b6f6, emissive:0x0d47a1 }));
+  m.position.set(x, 0.125, z); m.receiveShadow = true; scene.add(m);
+  PADS.push({ x, z, v, m, pulse: 0 });
+});
+function checkPad(pos, vel, isPlayer){
+  for(const p of PADS){
+    const dx = pos.x-p.x, dz = pos.z-p.z;
+    if(dx*dx+dz*dz < 1.25*1.25 && pos.y < 0.35 && vel.y <= 0.5){
+      vel.y = p.v; p.pulse = 1;
+      if(isPlayer) SFX.boing();
+      return true;
+    }
+  }
+  return false;
+}
 
 // Decorative low-poly "trees" outside walls (non-solid, sells the world)
 for(let i=0;i<14;i++){
@@ -237,19 +257,21 @@ const SFX = {
   jump(){ tone(220, 0.08, 0.08, 'sine'); },
   die(){ noiseBurst(0.4, 0.3, 500); tone(90, 0.4, 0.3, 'sawtooth'); },
   empty(){ tone(180, 0.05, 0.1, 'square'); },
-  swap(){ tone(500, 0.04, 0.1, 'square'); }
+  swap(){ tone(500, 0.04, 0.1, 'square'); },
+  pickup(){ tone(660, 0.07, 0.15, 'square'); setTimeout(()=>tone(990, 0.1, 0.15, 'square'), 70); },
+  boing(){ tone(180, 0.05, 0.2, 'sine'); setTimeout(()=>tone(420, 0.18, 0.22, 'sine'), 40); }
 };
 
 // ---------- Weapons ----------
 const WEAPONS = [
-  { name:'Rifle',   dmg:22, rpm:600, mag:30, reserve:90, reload:1.6, spread:0.012, pellets:1, auto:true,  loud:0.35, color:0x37474f, len:0.9 },
-  { name:'Shotgun', dmg:12, rpm:75,  mag:6,  reserve:24, reload:2.2, spread:0.06,  pellets:7, auto:false, loud:0.5,  color:0x5d4037, len:0.8 },
-  { name:'Pistol',  dmg:30, rpm:220, mag:12, reserve:48, reload:1.2, spread:0.02,  pellets:1, auto:false, loud:0.3,  color:0x455a64, len:0.45 }
+  { name:'Rifle',   dmg:22, rpm:600, mag:30, reserve:90, reload:1.6, spread:0.012, pellets:1, auto:true,  loud:0.35, color:0x37474f, len:0.9,  kick:0.011 },
+  { name:'Shotgun', dmg:12, rpm:75,  mag:6,  reserve:24, reload:2.2, spread:0.06,  pellets:7, auto:false, loud:0.5,  color:0x5d4037, len:0.8,  kick:0.035 },
+  { name:'Pistol',  dmg:30, rpm:220, mag:12, reserve:48, reload:1.2, spread:0.02,  pellets:1, auto:false, loud:0.3,  color:0x455a64, len:0.45, kick:0.018 }
 ];
 
 // ---------- Entity helpers ----------
 const PLAYER_R = 0.45, PLAYER_H = 1.8, EYE = 1.62;
-const GRAV = 24, JUMP_V = 8.5, WALK = 7, SPRINT = 10.4, AIR_CTRL = 0.35;
+const GRAV = 24, JUMP_V = 9.0, WALK = 7, SPRINT = 10.4, AIR_CTRL = 0.35;
 
 function resolveAABB(pos, vel, dt){
   // pos = feet position. Move axis-by-axis against colliders + ground + arena bounds.
@@ -380,7 +402,7 @@ const player = {
   pos: new THREE.Vector3(0,0,30), vel: new THREE.Vector3(),
   yaw: Math.PI, pitch: 0, hp: 100, alive: true,
   kills: 0, deaths: 0, respawnT: 0,
-  wIdx: 0, ammo: [], res: [], reloadT: 0, fireCd: 0
+  wIdx: 0, ammo: [], res: [], reloadT: 0, fireCd: 0, recoil: 0
 };
 function resetLoadout(){
   player.ammo = WEAPONS.map(w=>w.mag);
@@ -392,14 +414,36 @@ function resetLoadout(){
 const vmGroup = new THREE.Group();
 camera.add(vmGroup); scene.add(camera);
 let vmMesh = null;
+let vmFlash = null, vmFlashT = 0;
 function buildViewmodel(){
-  if(vmMesh){ vmGroup.remove(vmMesh); vmMesh.geometry?.dispose?.(); }
+  if(vmMesh){ vmGroup.remove(vmMesh); }
   const w = WEAPONS[player.wIdx];
   const g = new THREE.Group();
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.07, w.len*0.6), new THREE.MeshLambertMaterial({ color:w.color }));
-  barrel.position.z = -w.len*0.3; g.add(barrel);
-  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.07), new THREE.MeshLambertMaterial({ color:0x2b2b2b }));
-  grip.position.set(0, -0.09, -0.05); g.add(grip);
+  const mat = c => new THREE.MeshLambertMaterial({ color:c });
+  const box = (sx,sy,sz,c,x,y,z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), mat(c)); m.position.set(x,y,z); g.add(m); return m; };
+  let tipZ;
+  if(w.name==='Rifle'){
+    box(0.045,0.05,0.55, w.color, 0,0.01,-0.38);       // barrel
+    box(0.06,0.09,0.28,  0x2f3b44, 0,-0.01,-0.05);     // receiver
+    box(0.05,0.16,0.06,  0x263238, 0,-0.11,0.02);      // mag
+    box(0.05,0.07,0.16,  0x4e342e, 0,-0.02,0.16);      // stock
+    tipZ = -0.66;
+  } else if(w.name==='Shotgun'){
+    box(0.065,0.075,0.5, w.color, 0,0.01,-0.32);       // barrel
+    box(0.075,0.06,0.18, 0x8d6e63, 0,-0.045,-0.28);    // pump
+    box(0.07,0.1,0.22,   0x4e342e, 0,-0.02,0.05);      // body/stock
+    tipZ = -0.57;
+  } else { // Pistol
+    box(0.05,0.07,0.26,  w.color, 0,0.02,-0.1);        // slide
+    box(0.045,0.13,0.07, 0x2b2b2b, 0,-0.07,0.02);      // grip
+    tipZ = -0.23;
+  }
+  // muzzle flash sprite (shown for a few ms after each shot)
+  vmFlash = new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,0.05),
+    new THREE.MeshBasicMaterial({ color:0xffd54f, transparent:true, opacity:0.95 }));
+  vmFlash.position.set(0, 0.01, tipZ);
+  vmFlash.visible = false;
+  g.add(vmFlash);
   g.position.set(0.26, -0.24, -0.55);
   g.rotation.y = -0.06;
   vmGroup.add(g); vmMesh = g;
@@ -428,6 +472,73 @@ function addPuff(p, color=0xcccccc, n=5, speed=3){
     scene.add(m);
     puffs.push({ m, v: new THREE.Vector3((Math.random()-0.5)*speed,(Math.random())*speed*0.8,(Math.random()-0.5)*speed), t: 0.4+Math.random()*0.2 });
   }
+}
+
+// ---------- Pickups (health / ammo, fixed spots, respawn after taken) ----------
+const pickups = [];
+function makePickup(x, z, kind, y=0.7){
+  const g = new THREE.Group();
+  const mat = c => new THREE.MeshLambertMaterial({ color:c });
+  if(kind==='hp'){
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.55,0.55), mat(0xf5f5f5)); g.add(base);
+    const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.2,0.18), mat(0xe53935)); g.add(c1);
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.62,0.18), mat(0xe53935)); g.add(c2);
+    c1.position.z = c2.position.z = 0.19;
+  } else {
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.4,0.45), mat(0x4e5d3a)); g.add(base);
+    for(let i=0;i<3;i++){
+      const shell = new THREE.Mesh(new THREE.BoxGeometry(0.09,0.24,0.09), mat(0xd4af37));
+      shell.position.set(-0.15+i*0.15, 0.3, 0); g.add(shell);
+    }
+  }
+  g.traverse(m=>{ if(m.isMesh) m.castShadow = true; });
+  g.position.set(x, y, z);
+  scene.add(g);
+  pickups.push({ g, kind, homeY:y, taken:false, respawnT:0, spin:Math.random()*6 });
+}
+makePickup(-16, 0, 'hp');  makePickup(16, 0, 'hp');
+makePickup(0, 0, 'hp', 6.7);   // on the center tower top — a risky prize
+makePickup(0, -16, 'ammo'); makePickup(0, 16, 'ammo');
+
+function updatePickups(dt){
+  for(const p of pickups){
+    if(p.taken){
+      p.respawnT -= dt;
+      if(p.respawnT<=0){ p.taken = false; p.g.visible = true; }
+      continue;
+    }
+    p.spin += dt*2.2;
+    p.g.rotation.y = p.spin;
+    p.g.position.y = p.homeY + Math.sin(p.spin)*0.12;
+    // player collect
+    if(player.alive && tryCollect(p, player.pos, true)) continue;
+    // bots collect health only, and only when hurt
+    if(p.kind==='hp'){
+      for(const b of bots){
+        if(b.alive && b.hp < 65 && tryCollect(p, b.pos, false, b)) break;
+      }
+    }
+  }
+}
+function tryCollect(p, pos, isPlayer, bot){
+  const dx = pos.x - p.g.position.x, dz = pos.z - p.g.position.z;
+  const dy = (pos.y + 1) - p.g.position.y;
+  if(dx*dx + dz*dz > 1.4*1.4 || Math.abs(dy) > 1.8) return false;
+  if(p.kind==='hp'){
+    if(isPlayer){
+      if(player.hp >= 100) return false;
+      player.hp = Math.min(100, player.hp + 40);
+      updateHpHUD(); SFX.pickup();
+    } else {
+      bot.hp = Math.min(100, bot.hp + 40);
+    }
+  } else {
+    if(!isPlayer) return false;
+    for(let i=0;i<WEAPONS.length;i++) player.res[i] = Math.min(WEAPONS[i].reserve*2, player.res[i] + WEAPONS[i].mag);
+    updateAmmoHUD(); SFX.pickup();
+  }
+  p.taken = true; p.respawnT = 15; p.g.visible = false;
+  return true;
 }
 
 // ---------- Game state ----------
@@ -507,6 +618,8 @@ function playerShoot(){
   player.fireCd = 60/w.rpm;
   SFX.shoot(w);
   vmKick = 1;
+  player.recoil += w.kick;
+  vmFlashT = 0.045;
   flash.position.copy(playerEye()).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(0.8));
   flash.intensity = 3;
 
@@ -679,6 +792,7 @@ function startMatch(){
   for(const b of bots){ scene.remove(b.mesh); }
   bots.length = 0;
   for(let i=0;i<5;i++) makeBot(i);
+  for(const p of pickups){ p.taken = false; p.respawnT = 0; p.g.visible = true; }
   el('killfeed').innerHTML = '';
   updateHpHUD(); updateAmmoHUD(); updateScoreHUD();
   el('menu').classList.remove('show');
@@ -748,12 +862,14 @@ function updatePlayer(dt){
   if(keys.Space && wasGrounded){ player.vel.y = JUMP_V; SFX.jump(); }
 
   player.grounded = resolveAABB(player.pos, player.vel, dt);
+  checkPad(player.pos, player.vel, true);
 
-  // camera
+  // camera (recoil kicks pitch up, springs back)
+  player.recoil -= player.recoil * Math.min(1, dt*9);
   camera.position.set(player.pos.x, player.pos.y+EYE, player.pos.z);
   camera.rotation.set(0,0,0);
   camera.rotateY(player.yaw);
-  camera.rotateX(player.pitch);
+  camera.rotateX(Math.min(1.55, player.pitch + player.recoil));
 
   // viewmodel bob & kick
   const moving = wish.lengthSq()>0 && player.grounded;
@@ -842,6 +958,7 @@ function updateBot(b, dt){
   b.vel.z += (move.z*bSpeed - b.vel.z)*Math.min(1, 10*dt);
   b.vel.y -= GRAV*dt;
   resolveAABB(b.pos, b.vel, dt);
+  checkPad(b.pos, b.vel, false);
 
   // face enemy, else waypoint
   const face = enemy ? entPos(enemy) : (b.target || b.pos);
@@ -868,6 +985,14 @@ function updateBot(b, dt){
 
 function updateFX(dt){
   flash.intensity = Math.max(0, flash.intensity - dt*30);
+  vmFlashT -= dt;
+  if(vmFlash) vmFlash.visible = vmFlashT > 0;
+  for(const p of PADS){
+    if(p.pulse>0){
+      p.pulse = Math.max(0, p.pulse - dt*3);
+      p.m.scale.setScalar(1 + p.pulse*0.25);
+    }
+  }
   for(let i=tracers.length-1;i>=0;i--){
     const t = tracers[i];
     t.t -= dt; t.line.material.opacity = Math.max(0, t.t/0.07);
@@ -898,6 +1023,7 @@ function frame(now){
     if(matchT<=0){ endMatch(); }
     updatePlayer(dt);
     for(const b of bots) updateBot(b, dt);
+    updatePickups(dt);
     if(sbOpen) renderScoreboard();
   }
   updateFX(dt);

@@ -14,8 +14,6 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - Every release: bump `CACHE` in `sw.js` (currently v001) + commit.
 
 ## Backlog (roughly ordered)
-- [ ] Weapon feel polish: distinct viewmodels per weapon, better muzzle flash, camera recoil kick
-- [ ] Health pickups / ammo pickups on map
 - [ ] Sniper + SMG weapons, weapon pickup spots (Kour-style)
 - [ ] Mobile touch controls (dual stick + fire button)
 - [ ] Match settings (bot count/difficulty, match length) in menu
@@ -24,6 +22,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] Phase 2: Node WS server (`server/`), authoritative movement+hits, client prediction, bots server-side
 
 ## Releases (newest first)
+- **v003** (2026-07-02 ~03:57): Weapon feel + pickups + jump pads. Distinct low-poly viewmodels
+  per weapon (rifle barrel/receiver/mag/stock, shotgun pump, pistol slide), muzzle-flash sprite
+  at barrel tip (45ms) + camera recoil kick per weapon (springs back at 9/s). Pickups: 3 health
+  (+40) incl. one on the tower top, 2 ammo (+1 mag each weapon, cap 2x reserve), spin/bob,
+  15s respawn, bots grab health when <65hp. Kour-style jump pads: 2 launch to tower top (v=19),
+  2 corner pads (v=15); work for bots too; pulse+boing on use. JUMP_V 8.5→9.0 and small crates
+  1.8→1.5 so crates are jumpable steps. Functional headless tests: pad apex 6.3 (tower=6 ✓),
+  hp 30→70 ✓, reserve 10→40 ✓, 0 errors. SW cache → v003.
 - **v002** (2026-07-02 ~03:50): True FFA — bots now acquire the nearest visible enemy (player OR
   other bots) via `acquireEnemy()`, fight/strafe/shoot whoever it is; kill credit + kill feed for
   bot-vs-bot. Generalized `botShoot(b, enemy)` and `damageBot(..., attacker)`; gunshot volume now
