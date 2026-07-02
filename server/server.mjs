@@ -127,6 +127,7 @@ wss.on('connection', ws => {
   let joined = false;
 
   ws.on('message', raw => {
+    try {
     let m;
     try { m = JSON.parse(raw); } catch(e){ return; }
 
@@ -194,6 +195,7 @@ wss.on('connection', ws => {
       p.yaw = +m.yaw || 0;
       p.pitch = +m.pitch || 0;
     }
+    } catch(err){ console.error('[!] message handler error:', err.message); }
   });
 
   ws.on('close', () => {

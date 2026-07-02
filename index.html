@@ -1119,7 +1119,7 @@ function mpDisconnect(){
   clearInterval(NET.sendT); NET.sendT = null;
   for(const id of [...NET.remotes.keys()]) removeRemote(id);
   if(NET.ws){ try{ NET.ws.close(); }catch(e){} }
-  NET.ws = null; NET.id = null;
+  NET.ws = null; NET.id = null; NET.roundT = undefined; NET.lastOver = null;
   mode = 'solo';
   if(state === ST.PLAY) showMenu();
 }
@@ -1150,6 +1150,7 @@ function startMatch(){
 }
 function showMenu(){
   state = ST.MENU;
+  ads = false; mouseDown = false;
   el('hud').style.display = 'none';
   el('menu').classList.add('show');
   if(document.pointerLockElement) document.exitPointerLock();
@@ -1182,7 +1183,8 @@ const fwd = new THREE.Vector3(), right = new THREE.Vector3(), wish = new THREE.V
 function updatePlayer(dt){
   if(!player.alive){
     player.respawnT -= dt;
-    // death cam: sink + roll
+    // death cam: sink + roll (and un-zoom if we died scoped)
+    if(camera.fov < 74.9){ camera.fov += (75 - camera.fov)*Math.min(1, dt*10); camera.updateProjectionMatrix(); }
     player.deathRoll = Math.min(0.45, (player.deathRoll||0) + dt*1.1);
     camera.position.y = Math.max(player.pos.y+0.5, camera.position.y - dt*1.6);
     camera.rotation.set(0,0,0);

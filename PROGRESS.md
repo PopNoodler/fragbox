@@ -19,6 +19,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v010** (2026-07-02 ~04:55): QA sweep (playbook §9 checklist). Fixed: dying while scoped left
+  the death cam stuck at FOV 26 (dead branch now lerps FOV back); ads/mouseDown not reset on
+  menu exit (re-entered matches zoomed/firing); stale NET.roundT/lastOver after MP disconnect;
+  server message handler wrapped in try/catch (a handler exception could kill the whole lobby).
+  Audited clean: state resets across solo↔MP + round resets, NaN guards on normalizations,
+  backward iteration on FX arrays, key-repeat guards, fire-rate/self-hit/dead-entity server
+  checks, no showMenu↔mpDisconnect recursion. 45s hard-mode soak (7 bots): 0 errors, scene
+  graph stable (±transient VFX only). Full suite green. SW → v010.
 - **v009** (2026-07-02 ~04:45): MP rounds + polish + README. Server: 5-min rounds (`--round=S`),
   armed when first human joins; at 0 → broadcast standings ('over'), reset all scores/hp/pos,
   respawn everyone, next round. Snapshot carries `rt` (seconds left) → client HUD shows a real
