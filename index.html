@@ -31,7 +31,10 @@
 
   #healthbar { position:absolute; left:24px; bottom:24px; width:220px; }
   #hpnum { color:#fff; font-size:28px; font-weight:800; text-shadow:0 2px 4px rgba(0,0,0,.7); }
-  #hpbg { margin-top:4px; height:10px; background:rgba(0,0,0,.5); border-radius:5px; overflow:hidden; }
+  #shieldbg { margin-top:4px; height:5px; background:rgba(0,0,0,.4); border-radius:3px; overflow:hidden; }
+  #shieldfill { height:100%; width:0%; background:linear-gradient(90deg,#42a5f5,#90caf9); border-radius:3px; transition:width .15s; }
+  #streakchip { font-size:11px; color:#ffca28; letter-spacing:.5px; margin-bottom:3px; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  #hpbg { margin-top:3px; height:10px; background:rgba(0,0,0,.5); border-radius:5px; overflow:hidden; }
   #hpfill { height:100%; width:100%; background:linear-gradient(90deg,#4caf50,#8bc34a); border-radius:5px; transition:width .15s; }
 
   #ammobox { position:absolute; right:24px; bottom:24px; text-align:right; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.7); }
@@ -183,7 +186,7 @@
   <div id="dmgvig"></div>
   <div id="crosshair"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="hitmarker"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
-  <div id="healthbar"><div id="hpnum">100</div><div id="hpbg"><div id="hpfill"></div></div></div>
+  <div id="healthbar"><div id="streakchip" style="display:none"></div><div id="hpnum">100</div><div id="shieldbg"><div id="shieldfill"></div></div><div id="hpbg"><div id="hpfill"></div></div></div>
   <div id="ammobox"><div id="slots"></div><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div><div id="nadehud">🧨 2</div></div>
   <div id="reloadmsg">RELOADING…</div>
   <div id="callout"></div>
@@ -1206,9 +1209,11 @@ function resetLoadout(){
   player.res = player.loadout.map(i=>WEAPONS[i].reserve);
   player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
   player.nades = NADE.perLife;
+  player.shield = 0;
   bloom = 0;                                 // fresh spawn, fresh accuracy
   el('reloadmsg').style.display = 'none';
   updateNadeHUD();
+  updateStreakHUD();
 }
 
 // ---------- Viewmodel (first-person gun) ----------
@@ -1800,6 +1805,8 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       const st = STREAKS[player.streak];
       if(st){ showCallout(st[0] + '  +' + st[1]); addXp(st[1]); }
       else if(headshot) showCallout('HEADSHOT');
+      if(STREAK_REWARDS[player.streak]) grantStreakReward(player.streak);
+      updateStreakHUD();
       updateScoreHUD();
     }
     checkMatchEnd();
@@ -1821,6 +1828,7 @@ function acquireEnemy(b){
 }
 
 function botShoot(b, e){
+  b.lastLoud = performance.now();
   const eye = botEye(b);
   const tEye = entEye(e);
   // lead-less aim with skill-based error
@@ -1847,6 +1855,11 @@ function botShoot(b, e){
 
 function damagePlayer(dmg, from){
   if(!player.alive) return;
+  if((player.shield|0) > 0){
+    const abs = Math.min(player.shield, dmg);
+    player.shield -= abs;
+    dmg -= abs;
+  }
   player.hp -= dmg;
   SFX.hurt();
   showHitDir(from.pos.x, from.pos.z);
@@ -1952,6 +1965,54 @@ function updateTut(dt){
 
 // ---------- Kill streaks ----------
 const STREAKS = { 2:['DOUBLE KILL',50], 3:['TRIPLE KILL',75], 4:['QUAD KILL',100], 5:['RAMPAGE!',150], 8:['UNSTOPPABLE!',250] };
+// killstreak REWARDS (separate from XP callouts above)
+const STREAK_REWARDS = { 3:'UAV', 5:'OVERSHIELD', 7:'AIRSTRIKE' };
+let uavT = 0;
+function grantStreakReward(tier){
+  if(tier === 3){
+    uavT = 10;
+    setTimeout(()=>{ showCallout('UAV ONLINE — enemies revealed'); SFX.streak(); }, 700);
+  } else if(tier === 5){
+    player.shield = 50;
+    updateHpHUD();
+    setTimeout(()=>{ showCallout('OVERSHIELD +50'); SFX.streak(); }, 700);
+  } else if(tier === 7){
+    setTimeout(()=>{ showCallout('⚠ AIRSTRIKE INBOUND'); SFX.boom(0.4); }, 700);
+    if(mode !== 'mp') setTimeout(soloAirstrike, 2200);
+  }
+  updateStreakHUD();
+}
+function strikeBlast(at){
+  explodeFx(at);
+  for(const b of bots){
+    if(!b.alive) continue;
+    const c = new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z);
+    const dist = at.distanceTo(c);
+    if(dist > NADE.radius) continue;
+    const dir = c.clone().sub(at); const L = dir.length()||1; dir.divideScalar(L);
+    if(castWorld(at, dir, L) < L - 0.3) continue;
+    damageBot(b, Math.max(NADE.minDmg, NADE.dmg * (1 - dist/NADE.radius)), false);
+  }
+}
+function soloAirstrike(){
+  let delay = 0;
+  for(const b of bots){
+    if(!b.alive) continue;
+    for(let k=0;k<2;k++){
+      const at = new THREE.Vector3(b.pos.x + (Math.random()-0.5)*4, 0.4, b.pos.z + (Math.random()-0.5)*4);
+      setTimeout(()=>strikeBlast(at), delay);
+      delay += 140;
+    }
+  }
+}
+function updateStreakHUD(){
+  const chip = el('streakchip');
+  const stk = player.streak || 0;
+  if(stk < 1){ chip.style.display = 'none'; return; }
+  const next = [3,5,7].find(t => t > stk);
+  chip.style.display = '';
+  chip.innerHTML = 'STREAK <b>' + stk + '</b>' + (next ? ' · next: ' + STREAK_REWARDS[next] + ' (' + next + ')' : ' · MAXED');
+}
 let calloutTimer = null;
 function showCallout(text){
   const c = el('callout');
@@ -1977,6 +2038,7 @@ function updateHpHUD(){
   el('hpfill').style.width = pct + '%';
   el('hpfill').style.background = pct>50 ? 'linear-gradient(90deg,#4caf50,#8bc34a)' : pct>25 ? 'linear-gradient(90deg,#ff9800,#ffc107)' : 'linear-gradient(90deg,#f44336,#ff5722)';
   el('dmgvig').classList.toggle('lowhp', pct < 30 && pct > 0 && player.alive);
+  el('shieldfill').style.width = ((player.shield|0) / 50 * 100) + '%';
 }
 function updateAmmoHUD(){
   const w = curW();
@@ -2175,6 +2237,7 @@ function mpConnect(){
     else if(m.t === 'shot'){
       NET.shotsSeen = (NET.shotsSeen||0) + 1;
       const r = NET.remotes.get(m.id);
+      if(r) r.lastLoud = performance.now();
       const o = new THREE.Vector3(m.o[0], m.o[1], m.o[2]);
       const d = new THREE.Vector3(m.d[0], m.d[1], m.d[2]);
       const dist = Math.min(castWorld(o, d, 150), 150);
@@ -2189,6 +2252,7 @@ function mpConnect(){
     }
     else if(m.t === 'dmg'){
       player.hp = m.hp;
+      if(m.sh !== undefined) player.shield = m.sh;
       SFX.hurt();
       if(m.apos) showHitDir(m.apos[0], m.apos[2]);
       el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,.55)';
@@ -2197,6 +2261,8 @@ function mpConnect(){
     }
     else if(m.t === 'die'){
       player.hp = 0; player.alive = false;
+      player.shield = 0;
+      updateStreakHUD();
       player.killedBy = { name: m.by, hp: m.bhp };
       player.respawnT = 3;                       // server respawns us; this drives the countdown text
       player.streak = 0; player.deathRoll = 0; ads = false;
@@ -2218,11 +2284,21 @@ function mpConnect(){
         const st = STREAKS[player.streak];
         if(st){ showCallout(st[0] + '  +' + st[1]); addXp(st[1]); }
         else if(m.hs) showCallout('HEADSHOT');
+        updateStreakHUD();
       } else if(m.victimId === NET.id){
         killfeed(`<b>${m.killer}</b> ${hsIcon} <span class="me">You</span>`);
       } else {
         killfeed(`<b>${m.killer}</b> ${hsIcon} <b>${m.victim}</b>`);
       }
+    }
+    else if(m.t === 'streak'){
+      if(m.sh !== undefined) player.shield = m.sh;
+      grantStreakReward(m.tier);
+      updateHpHUD();
+    }
+    else if(m.t === 'strike'){
+      showCallout('⚠ AIRSTRIKE INBOUND — ' + m.by);
+      SFX.boom(0.4);
     }
     else if(m.t === 'nadeSpawn'){
       if(m.owner !== NET.id){
@@ -2692,20 +2768,28 @@ function drawMinimap(){
       mmc.beginPath(); mmc.arc(px(p.g.position.x), px(p.g.position.z), 2.2, 0, 7); mmc.fill();
     }
   }
+  const nowMs = performance.now();
+  const reveal = uavT > 0;
+  const pingable = (pos, lastLoud) =>
+    reveal || (lastLoud && nowMs - lastLoud < 2500) ||
+    Math.hypot(pos.x - player.pos.x, pos.z - player.pos.z) < 16;
   if(mode === 'mp'){
     for(const r of NET.remotes.values()){
       if(!r.mesh.visible) continue;
       const mate = NET.gameMode === 'tdm' && r.team === NET.team;
+      if(!mate && !pingable(r.mesh.position, r.lastLoud)) continue;
       mmc.fillStyle = mate ? '#69f0ae' : '#ff5252';
-      mmc.beginPath(); mmc.arc(px(r.mesh.position.x), px(r.mesh.position.z), 3, 0, 7); mmc.fill();
+      const rad = (!mate && reveal) ? 4 : 3;
+      mmc.beginPath(); mmc.arc(px(r.mesh.position.x), px(r.mesh.position.z), rad, 0, 7); mmc.fill();
     }
   } else {
     mmc.fillStyle = '#ff5252';
     for(const b of bots){
-      if(!b.alive) continue;
-      mmc.beginPath(); mmc.arc(px(b.pos.x), px(b.pos.z), 3, 0, 7); mmc.fill();
+      if(!b.alive || !pingable(b.pos, b.lastLoud)) continue;
+      mmc.beginPath(); mmc.arc(px(b.pos.x), px(b.pos.z), reveal ? 4 : 3, 0, 7); mmc.fill();
     }
   }
+  if(reveal){ mmc.strokeStyle = 'rgba(255,202,40,.8)'; mmc.lineWidth = 2; mmc.strokeRect(1, 1, S-2, S-2); }
   mmc.save();
   mmc.translate(px(player.pos.x), px(player.pos.z));
   mmc.rotate(-player.yaw);
@@ -2753,6 +2837,7 @@ function frame(now){
     updateDmgNums(dt);
     drawMinimap();
     if(hitdirT > 0){ hitdirT -= dt; if(hitdirT <= 0) el('hitdir').style.opacity = 0; }
+    if(uavT > 0) uavT -= dt;
     if(sbOpen) renderScoreboard();
   }
   updateFX(dt);

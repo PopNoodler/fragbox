@@ -120,7 +120,7 @@ function addBot(){
   const id = nextId++;
   const team = MODE === 'tdm' ? pickTeam() : -1;
   const b = {
-    id, ws:null, isBot:true, team, gg: 0,
+    id, ws:null, isBot:true, team, gg: 0, streak: 0, shield: 0,
     name: BOT_NAMES[botIdx++ % BOT_NAMES.length],
     color: MODE === 'tdm' ? TEAM_COLORS[team] : COLORS[id % COLORS.length],
     pos: spawnPos(team), yaw: 0, pitch: 0,
@@ -157,7 +157,7 @@ wss.on('connection', ws => {
         id, ws,
         name: String(m.name || 'Player').slice(0, 14),
         team: MODE === 'tdm' ? pickTeam() : -1,
-        gg: 0, nades: NADE.perLife,
+        gg: 0, nades: NADE.perLife, streak: 0, shield: 0,
         color: SKIN_COLORS.has(+m.skin) ? +m.skin : COLORS[id % COLORS.length],
         maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
         lvl: Math.max(1, Math.min(99, (+m.lvl|0) || 1)),
@@ -280,6 +280,21 @@ function doFire(shooter, o, nd, w, ads, bloomMult = 1){
   }
 }
 
+function scheduleAirstrike(striker){
+  setTimeout(()=>{
+    let delay = 0;
+    for(const e of ents()){
+      if(!e.alive || e.id === striker.id) continue;
+      if(MODE === 'tdm' && striker.team >= 0 && e.team === striker.team) continue;
+      for(let k = 0; k < 2; k++){
+        const at = [e.pos[0] + (Math.random()-0.5)*4, 0.4, e.pos[2] + (Math.random()-0.5)*4];
+        setTimeout(()=>explodeNade({ pos: at, owner: striker.id }), delay);
+        delay += 140;
+      }
+    }
+  }, 1500);
+}
+
 const liveNades = [];
 function stepNade(g, dt){
   g.vel[1] -= PHYS.GRAV * 0.85 * dt;
@@ -340,10 +355,15 @@ function ggWin(winner){
 
 function applyDamage(victim, dmg, attacker, headshot){
   if(!victim.alive) return;
+  if((victim.shield|0) > 0){
+    const abs = Math.min(victim.shield, dmg);
+    victim.shield -= abs;
+    dmg -= abs;
+  }
   victim.hp -= dmg;
   send(attacker.ws, { t:'hitfx', hs:!!headshot, dmg, pos:victim.pos.map(v=>+v.toFixed(1)) });
   if(victim.hp > 0){
-    send(victim.ws, { t:'dmg', hp:victim.hp, from:attacker.name, apos:attacker.pos.map(v=>+v.toFixed(1)) });
+    send(victim.ws, { t:'dmg', hp:victim.hp, sh:victim.shield|0, from:attacker.name, apos:attacker.pos.map(v=>+v.toFixed(1)) });
     return;
   }
   victim.hp = 0;
@@ -351,6 +371,16 @@ function applyDamage(victim, dmg, attacker, headshot){
   victim.deaths++;
   victim.deadUntil = Date.now() + 3000;
   attacker.kills++;
+  attacker.streak = (attacker.streak || 0) + 1;
+  victim.streak = 0;
+  victim.shield = 0;
+  if(attacker.streak === 3) send(attacker.ws, { t:'streak', tier:3 });
+  else if(attacker.streak === 5){ attacker.shield = 50; send(attacker.ws, { t:'streak', tier:5, sh:50 }); }
+  else if(attacker.streak === 7){
+    send(attacker.ws, { t:'streak', tier:7 });
+    broadcast({ t:'strike', by: attacker.name });
+    scheduleAirstrike(attacker);
+  }
   if(MODE === 'tdm' && attacker.team >= 0) teamScores[attacker.team]++;
   if(MODE === 'gungame'){
     attacker.gg++;

@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v038** (2026-07-03 ~00:30): KILLSTREAK REWARDS (max-grind #2). Streak 3 = UAV (10s full
+  minimap reveal w/ gold border + enlarged pings); 5 = OVERSHIELD (+50 absorbed before hp,
+  blue bar segment, server-side in MP); 7 = AIRSTRIKE (1.5s "INBOUND" warning broadcast, then
+  2 blasts per enemy using grenade explosion pipeline — kills credited, chains streaks; solo
+  local / MP server-authoritative via scheduleAirstrike+explodeNade). Server now tracks per-
+  entity streak/shield (bots get rewards too), {t:'streak'} tiers to the earner, dmg msgs
+  carry shield. HUD streak chip ("STREAK n · next: X"). BIG minimap rework to make UAV matter:
+  enemies now ping only when recently loud (2.5s after firing — tracked solo + via MP shot
+  events), within 16u, or UAV-revealed; TDM teammates always green. Solo ladder verified end
+  to end (airstrike wiped 5 bots, streak chained to 12). Full suite green. SW → v038.
 - **v037** (2026-07-03 ~00:05): Crouch + slide movement (max-grind queue #1). Ctrl/C (or touch
   ▼ toggle): 0.5x speed, eye lerps 1.62→1.08, collision height 1.2, accuracy bonus (bloom mult
   ×0.7 when steady). Sprint+crouch = SLIDE: 0.55s momentum burst (1.35× sprint), input accel
