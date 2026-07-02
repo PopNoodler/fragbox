@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v019** (2026-07-02 ~15:40): Minimap + killed-by + streak XP. Minimap (150px canvas,
+  top-left; 110px below pause btn on touch): walls/cover as translucent rects, red enemy dots
+  (alive only; MP uses remote visibility), green hp-pickup dots (solo), rotating player arrow
+  (rotate(-yaw), fwd=(-sin,-cos) → screen-up at yaw 0). Death screen adds "Killed by NAME ·
+  N HP left" (solo from bot state; MP server sends bhp in die msg). STREAKS now carry XP
+  bonuses (+50/+75/+100/+150/+250) shown in the callout and added via addXp. Full suite green.
+  SW → v019.
 - **v018** (2026-07-02 ~15:30): Scoreboard + HUD polish. Scoreboard: LV chip column (player =
   real level from xp; solo bots + server lobby bots get random 1–15), K/D ratio, 👑 on the
   leader, zebra rows, mode line ("FREE-FOR-ALL · first to 25" / "ONLINE FFA"), restyled card.

@@ -251,7 +251,7 @@ function applyDamage(victim, dmg, attacker, headshot){
   victim.deaths++;
   victim.deadUntil = Date.now() + 3000;
   attacker.kills++;
-  send(victim.ws, { t:'die', by:attacker.name });
+  send(victim.ws, { t:'die', by:attacker.name, bhp:Math.max(1, Math.round(attacker.hp)) });
   broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot });
   console.log(`[x] ${attacker.name} killed ${victim.name}${headshot?' (headshot)':''}`);
 }
