@@ -205,6 +205,14 @@ wss.on('connection', ws => {
       return;
     }
 
+    if(m.t === 'ability' && p.alive && m.k === 'nade'){
+      const nowMs = Date.now();
+      if(p.abilityAt && nowMs - p.abilityAt < 18000) return;   // server-side cooldown
+      p.abilityAt = nowMs;
+      p.nades = Math.min(NADE.perLife + 1, (p.nades|0) + 1);
+      return;
+    }
+
     if(m.t === 'nade' && p.alive && Array.isArray(m.o) && Array.isArray(m.v) && m.o.length === 3){
       if((p.nades|0) <= 0) return;
       const o = m.o.map(Number), v = m.v.map(Number);

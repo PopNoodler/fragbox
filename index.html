@@ -42,6 +42,7 @@
   #ammores { font-size:16px; opacity:.75; }
   #wname { font-size:14px; opacity:.85; letter-spacing:1px; text-transform:uppercase; }
   #nadehud { font-size:15px; margin-top:3px; opacity:.9; }
+  #abilitychip { font-size:10.5px; margin-top:4px; color:#80deea; letter-spacing:.5px; font-weight:700; transition:opacity .2s; }
   #slots { display:flex; gap:5px; justify-content:flex-end; margin-bottom:5px; }
   .slotpill { background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.18); color:#90a4ae; border-radius:5px; padding:2px 8px; font-size:10.5px; letter-spacing:.5px; }
   .slotpill.on { background:rgba(79,195,247,.25); border-color:#4fc3f7; color:#fff; font-weight:700; }
@@ -206,7 +207,7 @@
   <div id="crosshair"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="hitmarker"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="healthbar"><div id="streakchip" style="display:none"></div><div id="hpnum">100</div><div id="shieldbg"><div id="shieldfill"></div></div><div id="hpbg"><div id="hpfill"></div></div></div>
-  <div id="ammobox"><div id="slots"></div><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div><div id="nadehud">🧨 2</div></div>
+  <div id="ammobox"><div id="slots"></div><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div><div id="nadehud">🧨 2</div><div id="abilitychip"></div></div>
   <div id="reloadmsg">RELOADING…</div>
   <div id="callout"></div>
   <div id="respawnmsg"></div>
@@ -946,6 +947,57 @@ function recordWeaponKill(wname){
   }
   updateChallengesUI();
 }
+// ---------- Class abilities (Q, 20s cooldown) ----------
+const ABILITY_CD = 20;
+const ABILITIES = {
+  Assault:  { name:'FRAG RESTOCK', desc:'+1 grenade', use(){
+    if(mode === 'mp' && NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify({ t:'ability', k:'nade' }));
+    player.nades = Math.min(NADE.perLife + 1, (player.nades|0) + 1);
+    updateNadeHUD();
+  } },
+  Gunner:   { name:'DASH', desc:'4s speed burst', use(){ player.dashT = 4; } },
+  Breacher: { name:'FORTIFY', desc:'5s half damage', use(){ player.fortifyT = 5; } },
+  Marksman: { name:'RECON', desc:'8s enemy pings', use(){ uavT = Math.max(uavT, 8); } },
+  Support:  { name:'RESUPPLY', desc:'full reserve ammo', use(){
+    for(let i = 0; i < player.loadout.length; i++) player.res[i] = WEAPONS[player.loadout[i]].reserve * 2;
+    updateAmmoHUD();
+  } },
+  Ranger:   { name:'QUICKDRAW', desc:'instant reload', use(){
+    player.ammo[player.wIdx] = wMag(curW());
+    player.res[player.wIdx] = Math.max(0, player.res[player.wIdx]);
+    player.reloadT = 0; bloom = 0;
+    el('reloadmsg').style.display = 'none';
+    updateAmmoHUD();
+  } },
+  Outlaw:   { name:'FAN THE HAMMER', desc:'dump the mag', use(){
+    player.fanN = Math.min(6, player.ammo[player.wIdx]);
+    player.fanT = 0;
+  } }
+};
+function myAbility(){
+  const cls = CLASSES[player.clsIdx !== undefined ? player.clsIdx : SET.cls] || CLASSES[0];
+  return ABILITIES[cls.name];
+}
+function useAbility(){
+  if(state !== ST.PLAY || !player.alive || paused) return;
+  const ab = myAbility();
+  if(!ab || (player.abilityCd || 0) > 0) return;
+  player.abilityCd = ABILITY_CD;
+  ab.use();
+  showCallout(ab.name);
+  SFX.streak();
+  updateAbilityHUD();
+}
+function updateAbilityHUD(){
+  const ab = myAbility();
+  const chip = el('abilitychip');
+  if(!ab){ chip.style.display = 'none'; return; }
+  chip.style.display = '';
+  const cd = Math.ceil(player.abilityCd || 0);
+  chip.textContent = cd > 0 ? 'Q · ' + ab.name + ' (' + cd + ')' : 'Q · ' + ab.name;
+  chip.style.opacity = cd > 0 ? 0.4 : 1;
+}
+
 // ---------- Career stats (kh_stats) ----------
 let stats = { shots:{}, hits:{}, deaths:0, matches:0, wins:0, playMs:0 };
 try { stats = Object.assign(stats, JSON.parse(localStorage.kh_stats || '{}')); } catch(e){}
@@ -1370,6 +1422,7 @@ function resetLoadout(){
   }
   if(!classUnlocked(SET.cls)) SET.cls = 0;      // saved class may be locked on this profile
   const cls = CLASSES[SET.cls] || CLASSES[0];
+  player.clsIdx = SET.cls;
   player.loadout = cls.weapons.slice();
   player.maxHp = cls.hp;
   player.speedMul = cls.speed;
@@ -1378,6 +1431,8 @@ function resetLoadout(){
   player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
   player.nades = NADE.perLife;
   player.shield = 0;
+  player.abilityCd = 0; player.dashT = 0; player.fortifyT = 0; player.fanN = 0;
+  updateAbilityHUD();
   bloom = 0;                                 // fresh spawn, fresh accuracy
   el('reloadmsg').style.display = 'none';
   updateNadeHUD();
@@ -1648,7 +1703,9 @@ function renderClassCards(){
   const html = CLASSES.map((c,i)=>{
     const unlocked = classUnlocked(i);
     const primary = WEAPONS[c.weapons[0]].name;
-    const sub = c.soon ? '★ PREMIUM' : (unlocked ? primary + attachStars(primary) : '🔒 Level ' + c.lvl);
+    const ab = ABILITIES[c.name];
+    const abLine = ab && !c.soon ? '<div style="font-size:9px;color:#80deea;margin-top:2px">Q: ' + ab.name + '</div>' : '';
+    const sub = (c.soon ? '★ PREMIUM' : (unlocked ? primary + attachStars(primary) : '🔒 Level ' + c.lvl)) + abLine;
     const meta = c.soon ? 'coming soon' : c.hp + ' HP' + (c.speed>1 ? ' · fast' : c.speed<1 ? ' · slow' : '');
     return '<div class="clscard' + (SET.cls===i?' active':'') + (unlocked?'':' locked') + '" data-c="' + i + '">'
       + '<b>' + c.name + '</b><span>' + sub + '</span><i>' + meta + '</i></div>';
@@ -1734,6 +1791,7 @@ addEventListener('keydown', e=>{
   if(e.code==='Digit1') switchWeapon(0);
   if(e.code==='Digit2') switchWeapon(1);
   if(e.code==='KeyG' && !e.repeat) throwNade();
+  if(e.code==='KeyQ' && !e.repeat) useAbility();
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
   if(e.code==='Escape' && !document.pointerLockElement){
@@ -2042,6 +2100,7 @@ function botShoot(b, e){
 
 function damagePlayer(dmg, from){
   if(!player.alive) return;
+  if(player.fortifyT > 0) dmg *= 0.5;
   if((player.shield|0) > 0){
     const abs = Math.min(player.shield, dmg);
     player.shield -= abs;
@@ -2894,6 +2953,7 @@ function updatePlayer(dt){
   player.eyeH += (eyeTarget - (player.eyeH || EYE)) * Math.min(1, dt*12);
 
   let speed = (sprinting ? SPRINT : WALK) * (player.speedMul || 1);
+  if(player.dashT > 0) speed *= 1.35;
   if(player.carryingFlag) speed *= 0.9;
   if(player.crouch && !sliding) speed *= 0.5;
   if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
@@ -2938,6 +2998,25 @@ function updatePlayer(dt){
   if(chEl._sz !== chPx){ chEl._sz = chPx; chEl.style.width = chEl.style.height = chPx + 'px'; }
   vmGroup.visible = !scoped;
   if(isTouch) el('adsbtn').classList.toggle('on', ads);
+
+  // ability timers
+  if(player.abilityCd > 0){
+    player.abilityCd -= dt;
+    if(player.abilityCd <= 0){ player.abilityCd = 0; showCallout('ABILITY READY'); }
+    updateAbilityHUD();
+  }
+  if(player.dashT > 0) player.dashT -= dt;
+  if(player.fortifyT > 0) player.fortifyT -= dt;
+  if(player.fanN > 0){
+    player.fanT -= dt;
+    if(player.fanT <= 0 && player.ammo[player.wIdx] > 0 && player.reloadT <= 0){
+      player.fireCd = 0;
+      playerShoot();
+      player.fanN--;
+      player.fanT = mode === 'mp' ? 60 / curW().rpm * 0.75 : 0.075;
+    }
+    if(player.ammo[player.wIdx] <= 0) player.fanN = 0;
+  }
 
   // footsteps: cadence from speed, silent airborne/sliding, soft crouched
   const hSpeed = Math.hypot(player.vel.x, player.vel.z);

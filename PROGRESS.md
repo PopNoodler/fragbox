@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v047** (2026-07-03 ~00:50): CLASS ABILITIES (wave 3 #11) — every class gets a Q-key
+  signature, 20s cooldown, HUD chip w/ countdown next to ammo: Assault FRAG RESTOCK (+1 nade;
+  MP server-validated via {t:'ability'} handler w/ 18s server cooldown), Gunner DASH (4s
+  1.35x — verified 10.2u/s exactly), Breacher FORTIFY (5s half damage, solo), Marksman RECON
+  (8s personal UAV), Support RESUPPLY (full reserves), Ranger QUICKDRAW (instant reload +
+  bloom reset), Outlaw FAN THE HAMMER (dumps up to 6 rounds rapid-fire; MP-rate-cap aware).
+  Ability names on class cards ("Q: DASH"), ABILITY READY callout, resets per life. Dash
+  respects the server speed cap so no MP rejection. Full suite green. SW → v047.
 - **v046.1** (2026-07-03 ~00:30): PLAY.bat launch chain fully fixed after user report ("play.bat
   isnt working" x2). THREE stacked root causes: (1) zombie server from 14:54 held port 8080 —
   new server died EADDRINUSE while the browser silently loaded the ancient in-memory build
