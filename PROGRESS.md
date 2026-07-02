@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v025** (2026-07-02 ~19:00): Real-world arsenal (user request). Weapons renamed to iconic
+  counterparts — AK-47, MP5, M870, AWP, M1911, M249, M14, .44 Magnum — via new `type` field
+  in shared/weapons.mjs: logic (viewmodel shapes, sniper scope/FOV, pistol one-hand) now keys
+  on type, `name` is display-only. kh_wkills challenge counts auto-migrate old→new names on
+  load. Class cards/HUD/slot pills/challenges all show real names automatically. playtest
+  expectation Digit2→'M1911'. Full suite green. SW → v025.
 - **v024** (2026-07-02 ~16:30): Progression loop deepened — weapon challenges + skin locker.
   CHALLENGES: per-weapon kill counts (kh_wkills) with tiers 10/50/250 kills → +250/+1000/+5000
   XP, completion callout ("RIFLE I COMPLETE +250"), menu shows 3 nearest-to-complete. Hooked

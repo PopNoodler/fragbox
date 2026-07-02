@@ -626,6 +626,15 @@ const CHALLENGE_TIERS = [[10, 250], [50, 1000], [250, 5000]];
 const TIER_NAMES = ['I', 'II', 'III'];
 let wkills = {};
 try { wkills = JSON.parse(localStorage.kh_wkills || '{}'); } catch(e){}
+// migrate pre-v025 generic-name kill counts to the real-world arsenal names
+{
+  const RENAME = { Rifle:'AK-47', SMG:'MP5', Shotgun:'M870', Sniper:'AWP', Pistol:'M1911', LMG:'M249', DMR:'M14', Revolver:'.44 Magnum' };
+  let migrated = false;
+  for(const [oldN, newN] of Object.entries(RENAME)){
+    if(wkills[oldN] !== undefined){ wkills[newN] = (wkills[newN]||0) + wkills[oldN]; delete wkills[oldN]; migrated = true; }
+  }
+  if(migrated) localStorage.kh_wkills = JSON.stringify(wkills);
+}
 function recordWeaponKill(wname){
   wkills[wname] = (wkills[wname] || 0) + 1;
   localStorage.kh_wkills = JSON.stringify(wkills);
@@ -880,29 +889,29 @@ function buildViewmodel(){
   const mat = c => new THREE.MeshLambertMaterial({ color:c });
   const box = (sx,sy,sz,c,x,y,z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), mat(c)); m.position.set(x,y,z); g.add(m); return m; };
   let tipZ;
-  if(w.name==='Rifle'){
+  if(w.type==='rifle'){
     box(0.045,0.05,0.55, w.color, 0,0.01,-0.38);       // barrel
     box(0.06,0.09,0.28,  0x2f3b44, 0,-0.01,-0.05);     // receiver
     box(0.05,0.16,0.06,  0x263238, 0,-0.11,0.02);      // mag
     box(0.05,0.07,0.16,  0x4e342e, 0,-0.02,0.16);      // stock
     tipZ = -0.66;
-  } else if(w.name==='Shotgun'){
+  } else if(w.type==='shotgun'){
     box(0.065,0.075,0.5, w.color, 0,0.01,-0.32);       // barrel
     box(0.075,0.06,0.18, 0x8d6e63, 0,-0.045,-0.28);    // pump
     box(0.07,0.1,0.22,   0x4e342e, 0,-0.02,0.05);      // body/stock
     tipZ = -0.57;
-  } else if(w.name==='SMG'){
+  } else if(w.type==='smg'){
     box(0.04,0.045,0.3,  w.color, 0,0.01,-0.22);       // stubby barrel
     box(0.06,0.08,0.2,   0x37474f, 0,-0.01,-0.02);     // body
     box(0.045,0.14,0.05, 0x263238, 0,-0.1,-0.06);      // mag (forward, SMG-style)
     tipZ = -0.38;
-  } else if(w.name==='Sniper'){
+  } else if(w.type==='sniper'){
     box(0.04,0.045,0.8,  w.color, 0,0.01,-0.5);        // long barrel
     box(0.055,0.08,0.3,  0x2f3b44, 0,-0.01,0.0);       // receiver
     box(0.04,0.05,0.16,  0x111111, 0,0.06,-0.06);      // scope tube
     box(0.05,0.06,0.14,  0x4e342e, 0,-0.02,0.18);      // stock
     tipZ = -0.92;
-  } else if(w.name==='LMG'){
+  } else if(w.type==='lmg'){
     box(0.06,0.065,0.62, w.color, 0,0.01,-0.42);       // heavy barrel
     box(0.09,0.11,0.3,   0x2c363e, 0,-0.01,-0.02);     // receiver
     box(0.12,0.18,0.16,  0x222b31, 0,-0.13,-0.02);     // box mag
@@ -910,14 +919,14 @@ function buildViewmodel(){
     box(0.02,0.12,0.02,  0x263238, -0.03,-0.06,-0.6);  // bipod leg
     box(0.02,0.12,0.02,  0x263238, 0.03,-0.06,-0.6);
     tipZ = -0.75;
-  } else if(w.name==='DMR'){
+  } else if(w.type==='dmr'){
     box(0.045,0.05,0.68, w.color, 0,0.01,-0.44);       // long barrel
     box(0.06,0.085,0.26, 0x3a332a, 0,-0.01,-0.02);     // receiver
     box(0.045,0.05,0.14, 0x14181c, 0,0.065,-0.04);     // low scope
     box(0.05,0.14,0.06,  0x263238, 0,-0.1,0.0);        // mag
     box(0.05,0.06,0.15,  0x4e342e, 0,-0.02,0.16);      // stock
     tipZ = -0.8;
-  } else if(w.name==='Revolver'){
+  } else if(w.type==='revolver'){
     box(0.045,0.06,0.3,  w.color, 0,0.03,-0.14);       // barrel
     box(0.07,0.085,0.12, 0x51565c, 0,0.0,-0.0);        // cylinder
     box(0.045,0.12,0.06, 0x3e2a20, 0,-0.08,0.05);      // wood grip
@@ -939,7 +948,7 @@ function buildViewmodel(){
   const handR = new THREE.Vector3(0.02, -0.065, 0.06);
   limb(new THREE.Vector3(0.18, -0.42, 0.4), handR, 0.085, SLEEVE);
   box(0.1, 0.09, 0.1, SKIN, handR.x, handR.y, handR.z);          // trigger hand
-  if(w.name !== 'Pistol'){
+  if(w.type !== 'pistol'){
     const handL = new THREE.Vector3(-0.02, -0.06, tipZ*0.45);
     limb(new THREE.Vector3(-0.2, -0.44, 0.34), handL, 0.085, SLEEVE);
     box(0.1, 0.09, 0.1, SKIN, handL.x, handL.y, handL.z);        // forend hand
@@ -1899,12 +1908,12 @@ function updatePlayer(dt){
 
   // ADS zoom (right mouse): sniper scopes in, others steady-aim
   const wpn = curW();
-  const targetFov = ads ? (wpn.name==='Sniper' ? 26 : 55) : 75;
+  const targetFov = ads ? (wpn.type==='sniper' ? 26 : 55) : 75;
   if(Math.abs(camera.fov - targetFov) > 0.05){
     camera.fov += (targetFov - camera.fov) * Math.min(1, dt*14);
     camera.updateProjectionMatrix();
   }
-  const scoped = ads && wpn.name==='Sniper' && camera.fov < 42;
+  const scoped = ads && wpn.type==='sniper' && camera.fov < 42;
   el('scope').style.display = scoped ? 'block' : 'none';
   el('crosshair').style.display = scoped ? 'none' : 'block';
   // bloom decay + crosshair gap reflects live spread

@@ -75,7 +75,7 @@ const server = http.createServer((req, res) => {
   info.menuVisible = menuVisible;
   info.consoleErrors = errors;
   console.log(JSON.stringify(info, null, 2));
-  const pass = menuVisible && info.hudShown && !errors.length && info.scoreboardHold && info.weaponSwitch === 'Pistol';
+  const pass = menuVisible && info.hudShown && !errors.length && info.scoreboardHold && info.weaponSwitch === 'M1911';
   console.log(pass ? 'PLAYTEST OK' : 'PLAYTEST FAILED');
   process.exit(pass ? 0 : 1);
 })().catch(e => { console.error('PLAYTEST ERROR:', e.message); server.close(); process.exit(1); });
