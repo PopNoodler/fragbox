@@ -51,6 +51,8 @@
   #respawnmsg { position:absolute; left:50%; top:42%; transform:translateX(-50%); color:#fff; font-size:26px; font-weight:800; text-shadow:0 2px 8px rgba(0,0,0,.8); display:none; text-align:center; }
   #respawnmsg small { font-size:13px; font-weight:600; opacity:.75; letter-spacing:.5px; }
   #respawnmsg small b { color:#ff8a80; }
+  #killcamlabel { position:absolute; left:50%; bottom:14%; transform:translateX(-50%); background:rgba(7,9,18,.85); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:7px 18px; color:#fff; font-size:13px; letter-spacing:.5px; }
+  #killcamlabel b { color:#ff8a80; }
   .dmgnum { position:absolute; color:#ffec8a; font-weight:900; font-size:17px; text-shadow:0 2px 4px rgba(0,0,0,.85); pointer-events:none; transform:translate(-50%,-50%); }
   .dmgnum.hs { color:#ff5252; font-size:22px; }
   #flagbanner { position:absolute; left:50%; top:19%; transform:translateX(-50%); background:rgba(7,9,18,.9); border:1.5px solid #ffca28; border-radius:10px; padding:7px 18px; color:#ffca28; font-size:13px; font-weight:800; letter-spacing:1px; pointer-events:none; }
@@ -204,6 +206,7 @@
   <div id="reloadmsg">RELOADING…</div>
   <div id="callout"></div>
   <div id="respawnmsg"></div>
+  <div id="killcamlabel" style="display:none"></div>
   <div id="killbanner"></div>
   <div id="tutbanner"></div>
   <div id="flagbanner" style="display:none">⚑ YOU HAVE THE FLAG — RETURN TO YOUR BASE</div>
@@ -728,6 +731,11 @@ const SHOT_RECIPES = {
                    setTimeout(()=>tone(52, 0.18, w._v*0.3, 'sine'), 50); },   // thunder
   pistol:   w => { noiseBurst(0.06, w._v, 1900); tone(265, 0.05, w._v*0.45, 'square'); }
 };
+function stepSound(vol, sharp){
+  if(!AC || vol < 0.008) return;
+  noiseBurst(0.04, vol, sharp ? 1300 : 420);
+  if(!sharp) tone(82 + Math.random()*14, 0.035, vol*0.45, 'sine');
+}
 const SFX = {
   shoot(w, vol=1){
     const loud = (w.loud !== undefined ? w.loud : 0.3) * vol;
@@ -2043,6 +2051,8 @@ function damagePlayer(dmg, from){
     player.deaths++; from.kills++;
     stats.deaths++; statsDirty++;
     player.killedBy = { name: from.name, hp: Math.max(1, Math.round(from.hp)) };
+    player.killcam = (from.mesh && from.alive !== false) ? { bot: from } : null;
+    player.killcamA = Math.random() * Math.PI * 2;
     player.respawnT = 3;
     player.streak = 0;
     player.deathRoll = 0;
@@ -2350,6 +2360,15 @@ function updateRemotes(dt){
     while(dy > Math.PI) dy -= Math.PI*2;
     while(dy < -Math.PI) dy += Math.PI*2;
     r.mesh.rotation.y += dy * Math.min(1, dt*20);
+    // audible remote footsteps
+    if(speed > 1.4){
+      r.stepAcc = (r.stepAcc || 0) + dt * speed;
+      if(r.stepAcc >= 2.5){
+        r.stepAcc = 0;
+        const d = r.mesh.position.distanceTo(player.pos);
+        if(d < 26) stepSound(0.12 * (1 - d/26), MAP.ground === 'asphalt');
+      }
+    }
     // crouch visual: squash the whole rig
     const targetSy = r.crouch ? 0.66 : 1;
     r.mesh.scale.y += (targetSy - r.mesh.scale.y) * Math.min(1, dt*10);
@@ -2480,6 +2499,8 @@ function mpConnect(){
       player.shield = 0;
       updateStreakHUD();
       player.killedBy = { name: m.by, hp: m.bhp };
+      player.killcam = m.kid !== undefined ? { rid: m.kid, kw: m.kw } : null;
+      player.killcamA = Math.random() * Math.PI * 2;
       player.respawnT = 3;                       // server respawns us; this drives the countdown text
       player.streak = 0; player.deathRoll = 0; ads = false;
       SFX.die();
@@ -2561,6 +2582,8 @@ function mpConnect(){
       player.alive = true;
       resetLoadout(); buildViewmodel();
       player.hp = player.maxHp;
+      player.killcam = null;
+      el('killcamlabel').style.display = 'none';
       el('respawnmsg').style.display = 'none';
       el('deathpick').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
@@ -2677,6 +2700,7 @@ function showMenu(){
   el('resumebtn').textContent = 'RESUME';
   el('pausemenu').style.display = 'none';
   el('deathpick').style.display = 'none';
+  el('killcamlabel').style.display = 'none';
   el('hud').style.display = 'none';
   el('menu').classList.add('show');
   if(document.pointerLockElement) document.exitPointerLock();
@@ -2724,12 +2748,33 @@ const fwd = new THREE.Vector3(), right = new THREE.Vector3(), wish = new THREE.V
 function updatePlayer(dt){
   if(!player.alive){
     player.respawnT -= dt;
-    // death cam: sink + roll (and un-zoom if we died scoped)
     if(Math.abs(camera.fov - SET.fov) > 0.1){ camera.fov += (SET.fov - camera.fov)*Math.min(1, dt*10); camera.updateProjectionMatrix(); }
-    player.deathRoll = Math.min(0.45, (player.deathRoll||0) + dt*1.1);
-    camera.position.y = Math.max(player.pos.y+0.5, camera.position.y - dt*1.6);
-    camera.rotation.set(0,0,0);
-    camera.rotateY(player.yaw); camera.rotateX(player.pitch); camera.rotateZ(player.deathRoll);
+    // killcam: orbit the killer if we can see them
+    let kcTarget = null;
+    if(player.killcam){
+      if(player.killcam.bot && player.killcam.bot.alive && player.killcam.bot.mesh.visible) kcTarget = player.killcam.bot.mesh.position;
+      else if(player.killcam.rid !== undefined){
+        const r = NET.remotes.get(player.killcam.rid);
+        if(r && r.mesh.visible) kcTarget = r.mesh.position;
+      }
+    }
+    if(kcTarget){
+      player.killcamA += dt * 0.85;
+      const r = 5.2;
+      camera.position.set(kcTarget.x + Math.cos(player.killcamA)*r, kcTarget.y + 3.2, kcTarget.z + Math.sin(player.killcamA)*r);
+      camera.lookAt(kcTarget.x, kcTarget.y + 1.4, kcTarget.z);
+      const kb = player.killedBy || {};
+      const kw = player.killcam.bot && player.killcam.bot.weapon ? ' · ' + player.killcam.bot.weapon.name : (player.killcam.kw ? ' · ' + player.killcam.kw : '');
+      el('killcamlabel').style.display = 'block';
+      el('killcamlabel').innerHTML = 'KILLED BY <b>' + (kb.name || '?') + '</b>' + kw + (kb.hp ? ' · ' + kb.hp + ' HP' : '');
+    } else {
+      el('killcamlabel').style.display = 'none';
+      // classic death cam: sink + roll
+      player.deathRoll = Math.min(0.45, (player.deathRoll||0) + dt*1.1);
+      camera.position.y = Math.max(player.pos.y+0.5, camera.position.y - dt*1.6);
+      camera.rotation.set(0,0,0);
+      camera.rotateY(player.yaw); camera.rotateX(player.pitch); camera.rotateZ(player.deathRoll);
+    }
     el('scope').style.display = 'none';
     el('crosshair').style.display = 'none';   // no crosshair on the death cam
     el('reloadmsg').style.display = 'none';   // died mid-reload
@@ -2743,6 +2788,8 @@ function updatePlayer(dt){
       player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
       resetLoadout(); buildViewmodel();
       player.hp = player.maxHp;
+      player.killcam = null;
+      el('killcamlabel').style.display = 'none';
       el('respawnmsg').style.display = 'none';
       el('deathpick').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
@@ -2822,6 +2869,17 @@ function updatePlayer(dt){
   if(chEl._sz !== chPx){ chEl._sz = chPx; chEl.style.width = chEl.style.height = chPx + 'px'; }
   vmGroup.visible = !scoped;
   if(isTouch) el('adsbtn').classList.toggle('on', ads);
+
+  // footsteps: cadence from speed, silent airborne/sliding, soft crouched
+  const hSpeed = Math.hypot(player.vel.x, player.vel.z);
+  if(player.grounded && !sliding && hSpeed > 1.4){
+    player.stepAcc = (player.stepAcc || 0) + dt * hSpeed;
+    const stride = player.crouch ? 3.6 : 2.5;
+    if(player.stepAcc >= stride){
+      player.stepAcc = 0;
+      stepSound(player.crouch ? 0.04 : 0.11, MAP.ground === 'asphalt');
+    }
+  } else player.stepAcc = 0;
 
   // viewmodel bob & kick
   const moving = wish.lengthSq()>0 && player.grounded;
@@ -2959,8 +3017,17 @@ function updateBot(b, dt){
   }
   b.mesh.position.copy(b.pos);
   b.mesh.rotation.y = b.yaw;
-  // walk cycle
+  // audible footsteps with distance falloff
   const bSp = Math.hypot(b.vel.x, b.vel.z);
+  if(bSp > 1.4 && b.pos.y <= 0.5){
+    b.stepAcc = (b.stepAcc || 0) + dt * bSp;
+    if(b.stepAcc >= 2.5){
+      b.stepAcc = 0;
+      const d = b.pos.distanceTo(player.pos);
+      if(d < 26) stepSound(0.12 * (1 - d/26), MAP.ground === 'asphalt');
+    }
+  }
+  // walk cycle
   b.animT = (b.animT || 0) + dt * (2 + bSp*1.7);
   const bLegs = b.mesh.userData.legs;
   if(bLegs){

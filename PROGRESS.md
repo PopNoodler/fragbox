@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v044** (2026-07-03 ~03:15): FOOTSTEPS + KILLCAM (wave 2 complete). Footsteps: procedural
+  taps (soft thud on grass, sharp on asphalt/concrete per map ground), cadence from horizontal
+  speed via stride accumulator, quieter+slower crouched, silent airborne/sliding; solo bots
+  and MP remotes emit steps with 26u distance falloff — audio intel that pairs with the
+  tactical minimap. Killcam: on death the camera orbits your killer (5.2u ring, auto-tracking)
+  with a label (name · weapon · remaining HP); solo uses the killer bot ref (weapon known),
+  MP via new kid+kw fields on the die msg mapped to remote meshes; falls back to the classic
+  sink+roll cam when the killer is gone; label cleaned on respawn/menu paths. Verified: orbit
+  at 6.1u with "KILLED BY Vex · MP5 · 90 HP". Full suite green. SW → v044.
 - **v043** (2026-07-03 ~02:45): CAREER STATS PAGE (wave 2 #7). 📊 menu button opens CAREER
   overlay: headline grid (level/XP/kills/KD/accuracy/matches/wins/playtime) + per-weapon table
   (kills, accuracy, shots, attachment stars). kh_stats tracks shots (per pellet at trigger

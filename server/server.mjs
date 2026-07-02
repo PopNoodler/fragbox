@@ -262,7 +262,9 @@ wss.on('connection', ws => {
   ws.on('error', () => {});
 });
 
+let lastKillWeapon = '';
 function doFire(shooter, o, nd, w, ads, bloomMult = 1){
+  lastKillWeapon = w.name;
   broadcast({ t:'shot', id:shooter.id, o, d:nd, w:WEAPONS.indexOf(w) }, shooter.id);
   for(let pe=0; pe<w.pellets; pe++){
     const spr = (ads && w.adsSpread !== undefined ? w.adsSpread : w.spread) * bloomMult;
@@ -392,6 +394,7 @@ function stepNade(g, dt){
   if(hitZ) g.vel[2] = -g.vel[2] * NADE.restitution; else g.pos[2] = nz;
 }
 function explodeNade(g){
+  lastKillWeapon = 'Grenade';
   broadcast({ t:'boom', pos: g.pos.map(v=>+v.toFixed(2)) });
   const owner = ents().find(e => e.id === g.owner) || { id:g.owner, name:'Grenade', ws:null, kills:0, team:-1 };
   for(const e of ents()){
@@ -463,7 +466,7 @@ function applyDamage(victim, dmg, attacker, headshot){
       send(attacker.ws, { t:'gg', idx: attacker.gg });
     }
   }
-  send(victim.ws, { t:'die', by:attacker.name, bhp:Math.max(1, Math.round(attacker.hp)) });
+  send(victim.ws, { t:'die', by:attacker.name, bhp:Math.max(1, Math.round(attacker.hp)), kid:attacker.id, kw:lastKillWeapon });
   broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot });
   console.log(`[x] ${attacker.name} killed ${victim.name}${headshot?' (headshot)':''}`);
 }
