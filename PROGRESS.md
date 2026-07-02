@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v028** (2026-07-02 ~20:25): Settings panel (product roadmap #1). Mouse sensitivity
+  (0.3–2.2x), field of view (60–110, live-applied: menu preview immediate, in-game via the
+  existing FOV lerp; ADS steady-aim = min(55, fov−10), AWP scope stays 26), master volume
+  (WebAudio masterGain node — all tone/noiseBurst routed through it). Persisted in kh_set;
+  ⚙ button top-right of menu + ⚙ in pause card; DONE closes. Touch look also scaled by sens.
+  Headless: sliders persist {150,100,40}, FOV 100 in menu + in game, panel opens from both
+  entry points. Full suite green. SW → v028. USER GUIDANCE: when in doubt, reference Kour.io.
 - **v027** (2026-07-02 ~20:10): Class selection fully in-game (user request) + picker restyle
   (user: "clashes horribly with background"). Menu class grid REMOVED; match start (solo +
   MP) opens an in-game CHOOSE YOUR CLASS deploy screen (pause machinery in deployMode: title/
