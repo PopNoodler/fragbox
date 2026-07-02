@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v048** (2026-07-03 ~01:10): KILL EFFECTS + WEATHER (wave 3 complete). Kill FX locker row
+  (kh_killfx): None / Confetti Lv1 (5-color burst) / Skull Lv8 (rising 💀 sprite + smoke) /
+  Lightning Lv15 (sky beam + sparks + crack) — plays at victim position on your kills, solo
+  and MP (victim remote lookup). Weather setting (Auto/Clear/Rain/Snow): rain = 400 recycled
+  line-segment streaks tracking the player + fog ×0.62; snow = 400 drifting sway flakes +
+  fog whitened 35%; Auto rolls per match (30% rain on depot/skyline, 30% snow on meadow).
+  Verified: locker swatches, rain streaks + darkened fog on Depot screenshot, lightning kill.
+  Full suite green. SW → v048.
 - **v047** (2026-07-03 ~00:50): CLASS ABILITIES (wave 3 #11) — every class gets a Q-key
   signature, 20s cooldown, HUD chip w/ countdown next to ammo: Assault FRAG RESTOCK (+1 nade;
   MP server-validated via {t:'ability'} handler w/ 18s server cooldown), Gunner DASH (4s
