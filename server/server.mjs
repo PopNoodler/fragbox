@@ -157,6 +157,11 @@ wss.on('connection', ws => {
     const p = players.get(id);
     if(!p) return;
 
+    if(m.t === 'cls' && Number.isFinite(+m.maxhp)){
+      p.maxHp = Math.max(80, Math.min(120, +m.maxhp));   // applies from next respawn
+      return;
+    }
+
     if(m.t === 'tp' && TEST && Array.isArray(m.pos)){
       p.pos = m.pos.map(Number);
       p.lastMove = Date.now();
@@ -234,9 +239,9 @@ function doFire(shooter, o, nd, w, ads){
 function applyDamage(victim, dmg, attacker, headshot){
   if(!victim.alive) return;
   victim.hp -= dmg;
-  send(attacker.ws, { t:'hitfx', hs:!!headshot });
+  send(attacker.ws, { t:'hitfx', hs:!!headshot, dmg, pos:victim.pos.map(v=>+v.toFixed(1)) });
   if(victim.hp > 0){
-    send(victim.ws, { t:'dmg', hp:victim.hp, from:attacker.name });
+    send(victim.ws, { t:'dmg', hp:victim.hp, from:attacker.name, apos:attacker.pos.map(v=>+v.toFixed(1)) });
     return;
   }
   victim.hp = 0;

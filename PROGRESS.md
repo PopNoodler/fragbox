@@ -18,6 +18,23 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v016** (2026-07-02 ~14:40): Kour-style feedback + in-game class picker + CRITICAL movement
+  fixes (user-reported). BUGS: right-vector was fwd×up flipped → A/D (and touch strafe)
+  inverted since v001 — headless tests only asserted "moved", never direction (lesson: assert
+  signs); pointer-lock movementX spikes clamped ±180 (Windows re-lock glitch = "view teleports");
+  step-up assist snapped from 1.0 below a box top onto it ("position teleports") → 0.35.
+  FEEDBACK: floating damage numbers (world→screen projected divs, headshots red), kill banner
+  "+100 ELIMINATED name"/"+150 HEADSHOT" feeding persistent XP (kh_xp, level=√(xp/150)+1),
+  level badge + XP bar in HUD + menu, LEVEL UP callout re-renders class locks; hit-direction
+  red arrow rotating around crosshair (rel = atan2(dx,dz) − yaw−π); low-HP heartbeat vignette.
+  CLASSES: data-driven cards rendered from CLASSES[] into menu AND death screen; unlock levels
+  (Assault 1 / Gunner 3 / Breacher 5 / Marksman 8), locked = greyed 🔒 Level N; Phantom
+  ★ PREMIUM "coming soon" slot establishes the paywall pattern (classUnlocked() gates).
+  DEATH PICKER: on death (solo+MP) pointer unlocks and CHANGE CLASS panel shows; picking
+  applies on respawn (MP sends {t:'cls'} → server updates maxHp for next spawn). Flow bug
+  fixed: solo lock-release on death was triggering menu — lock-loss→menu now requires alive.
+  Server: hitfx carries dmg+victim pos (damage numbers), dmg carries attacker pos (hit arrow).
+  Full suite + strafe-direction + death-picker functional tests green. SW → v016.
 - **v015** (2026-07-02 ~14:15): Class + loadout system (user request: Kour-style class/gun
   selection). 4 classes — Assault (Rifle, 100hp), Gunner (SMG, 90hp, 1.08x speed), Breacher
   (Shotgun, 115hp, 0.93x), Marksman (Sniper, 90hp) — each with Pistol sidearm. Loadout = 2

@@ -42,6 +42,17 @@
   #callout { position:absolute; left:50%; top:26%; transform:translate(-50%,-50%) scale(1); color:#ffca28; font-size:38px; font-weight:900; letter-spacing:2px; text-shadow:0 3px 10px rgba(0,0,0,.8); opacity:0; transition:opacity .3s, transform .3s; }
   #callout.show { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
   #respawnmsg { position:absolute; left:50%; top:44%; transform:translateX(-50%); color:#fff; font-size:26px; font-weight:800; text-shadow:0 2px 8px rgba(0,0,0,.8); display:none; }
+  .dmgnum { position:absolute; color:#ffec8a; font-weight:900; font-size:17px; text-shadow:0 2px 4px rgba(0,0,0,.85); pointer-events:none; transform:translate(-50%,-50%); }
+  .dmgnum.hs { color:#ff5252; font-size:22px; }
+  #killbanner { position:absolute; left:50%; top:62%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .18s; pointer-events:none; color:#ffca28; font-size:16px; font-weight:800; letter-spacing:1.5px; text-shadow:0 2px 8px rgba(0,0,0,.8); }
+  #hitdir { position:absolute; left:50%; top:50%; width:130px; height:130px; transform:translate(-50%,-50%); opacity:0; transition:opacity .25s; pointer-events:none; }
+  #hitdir span { position:absolute; left:50%; top:-4px; transform:translateX(-50%); width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent; border-bottom:18px solid rgba(244,67,54,.9); filter:drop-shadow(0 0 6px rgba(244,67,54,.7)); }
+  #xpbar { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); display:flex; align-items:center; gap:8px; }
+  #lvlnum { background:linear-gradient(135deg,#ffca28,#ff9800); color:#1a1a2e; font-weight:900; font-size:13px; min-width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  #xpbg { width:170px; height:6px; background:rgba(0,0,0,.5); border-radius:3px; overflow:hidden; }
+  #xpfill { height:100%; width:0%; background:linear-gradient(90deg,#ffca28,#ff9800); border-radius:3px; transition:width .3s; }
+  #dmgvig.lowhp { animation:lowhp 1.1s ease-in-out infinite; }
+  @keyframes lowhp { 0%,100% { box-shadow:inset 0 0 120px rgba(255,0,0,.15); } 50% { box-shadow:inset 0 0 150px rgba(255,0,0,.5); } }
   #scope { position:absolute; inset:0; display:none; }
   #scopering { position:absolute; left:50%; top:50%; width:70vmin; height:70vmin; transform:translate(-50%,-50%); border-radius:50%; box-shadow:0 0 0 9999px rgba(0,0,0,.96), inset 0 0 40px rgba(0,0,0,.8); }
   #scope .sh { position:absolute; left:50%; top:50%; width:70vmin; height:1.5px; transform:translate(-50%,-50%); background:rgba(0,0,0,.85); }
@@ -89,7 +100,10 @@
   .setlabel { opacity:.55; font-size:12px; margin-right:auto; }
   .setbtn { pointer-events:auto; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; padding:6px 0; width:56px; border-radius:6px; font-size:12px; cursor:pointer; }
   .setbtn.active { background:#2196f3; color:#fff; border-color:#2196f3; font-weight:700; }
-  #classrow { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; width:100%; }
+  .classgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); gap:6px; width:100%; }
+  .clscard.locked { opacity:.45; cursor:not-allowed; filter:grayscale(.6); }
+  #deathpick { position:absolute; left:50%; top:56%; transform:translateX(-50%); width:min(520px, 92vw); background:rgba(10,10,25,.85); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px 14px; display:none; pointer-events:auto; }
+  .dptitle { text-align:center; color:#ffca28; font-size:12px; font-weight:800; letter-spacing:2px; margin-bottom:8px; }
   .clscard { pointer-events:auto; background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.13); border-radius:10px; padding:8px 2px; cursor:pointer; display:flex; flex-direction:column; gap:2px; transition:border-color .12s, background .12s; }
   .clscard b { font-size:12.5px; letter-spacing:.3px; }
   .clscard span { font-size:10.5px; opacity:.65; }
@@ -136,6 +150,10 @@
   <div id="reloadmsg">RELOADING…</div>
   <div id="callout"></div>
   <div id="respawnmsg"></div>
+  <div id="killbanner"></div>
+  <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
+  <div id="hitdir"><span></span></div>
+  <div id="xpbar"><div id="lvlnum">1</div><div id="xpbg"><div id="xpfill"></div></div></div>
   <div id="scope"><div id="scopering"></div><span class="sh"></span><span class="sv"></span></div>
   <div id="killfeed"></div>
   <div id="scorepill"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D <span id="timeleft">5:00</span></div>
@@ -157,12 +175,8 @@
     <div class="logo">FRAGBOX</div>
     <div class="tagline">Fast low-poly arena FPS</div>
     <div id="setupcard">
-      <div id="classrow">
-        <div class="clscard" data-c="0"><b>Assault</b><span>Rifle</span><i>100 HP</i></div>
-        <div class="clscard" data-c="1"><b>Gunner</b><span>SMG</span><i>90 HP · fast</i></div>
-        <div class="clscard" data-c="2"><b>Breacher</b><span>Shotgun</span><i>115 HP · slow</i></div>
-        <div class="clscard" data-c="3"><b>Marksman</b><span>Sniper</span><i>90 HP</i></div>
-      </div>
+      <div id="classrow" class="classgrid"></div>
+      <div id="menulvl" style="font-size:11px; opacity:.55"></div>
       <input id="namefield" maxlength="14" placeholder="Your name" autocomplete="off">
       <div id="settings">
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
@@ -508,12 +522,41 @@ const SFX = {
 
 // ---------- Classes (loadout = [primary, sidearm] as WEAPONS indices) ----------
 const CLASSES = [
-  { name:'Assault',  weapons:[0,4], hp:100, speed:1.0,  desc:'Balanced auto rifle' },
-  { name:'Gunner',   weapons:[1,4], hp:90,  speed:1.08, desc:'Fast SMG skirmisher' },
-  { name:'Breacher', weapons:[2,4], hp:115, speed:0.93, desc:'Tanky shotgun brawler' },
-  { name:'Marksman', weapons:[3,4], hp:90,  speed:1.0,  desc:'One-shot precision' }
+  { name:'Assault',  weapons:[0,4], hp:100, speed:1.0,  lvl:1, desc:'Balanced auto rifle' },
+  { name:'Gunner',   weapons:[1,4], hp:90,  speed:1.08, lvl:3, desc:'Fast SMG skirmisher' },
+  { name:'Breacher', weapons:[2,4], hp:115, speed:0.93, lvl:5, desc:'Tanky shotgun brawler' },
+  { name:'Marksman', weapons:[3,4], hp:90,  speed:1.0,  lvl:8, desc:'One-shot precision' },
+  { name:'Phantom',  weapons:[1,4], hp:85,  speed:1.15, lvl:1, premium:true, soon:true, desc:'Coming soon' }
 ];
+function classUnlocked(i){
+  const c = CLASSES[i];
+  if(!c || c.soon || c.premium) return false;   // premium gate flips on when IAP exists
+  return levelOf(xp) >= (c.lvl || 1);
+}
 const curW = () => WEAPONS[player.loadout[player.wIdx]];
+
+// ---------- XP / levels (persisted career progression) ----------
+let xp = +localStorage.kh_xp || 0;
+function levelOf(x){ return Math.floor(Math.sqrt(Math.max(0, x)/150)) + 1; }
+function addXp(pts){
+  const before = levelOf(xp);
+  xp += pts;
+  localStorage.kh_xp = xp;
+  const lv = levelOf(xp);
+  if(lv > before){
+    showCallout('LEVEL UP — ' + lv);
+    SFX.streak();
+    renderClassCards();          // new unlocks may be available
+  }
+  updateXpHUD();
+}
+function updateXpHUD(){
+  const lv = levelOf(xp);
+  const cur = 150*(lv-1)*(lv-1), next = 150*lv*lv;
+  el('lvlnum').textContent = lv;
+  el('xpfill').style.width = Math.min(100, (xp-cur)/(next-cur)*100) + '%';
+  el('menulvl').textContent = 'Level ' + lv + ' · ' + xp + ' XP';
+}
 
 // ---------- Entity helpers ----------
 const PLAYER_R = 0.45, PLAYER_H = 1.8, EYE = 1.62;
@@ -531,7 +574,7 @@ function resolveAABB(pos, vel, dt){
     if(pos.x+r>c.min.x && pos.x-r<c.max.x && pos.z+r>c.min.z && pos.z-r<c.max.z){
       if(pos.y < c.max.y && pos.y+h > c.min.y){
         // came from above → land on top; from below → bonk
-        if(vel.y <= 0 && pos.y > c.max.y - 1.0){ pos.y = c.max.y; vel.y = 0; onGround = true; }
+        if(vel.y <= 0 && pos.y > c.max.y - 0.35){ pos.y = c.max.y; vel.y = 0; onGround = true; }
         else if(vel.y > 0){ pos.y = c.min.y - h; vel.y = 0; }
       }
     }
@@ -709,6 +752,7 @@ const player = {
   ammo: [], res: [], reloadT: 0, fireCd: 0, recoil: 0
 };
 function resetLoadout(){
+  if(!classUnlocked(SET.cls)) SET.cls = 0;      // saved class may be locked on this profile
   const cls = CLASSES[SET.cls] || CLASSES[0];
   player.loadout = cls.weapons.slice();
   player.maxHp = cls.hp;
@@ -891,14 +935,33 @@ let SET = { bots:5, diff:1, len:300, cls:0 };
 try { SET = Object.assign(SET, JSON.parse(localStorage.kh_set||'{}')); } catch(e){}
 let matchT = SET.len;
 
-document.querySelectorAll('.clscard').forEach(card=>{
-  const c = +card.dataset.c;
-  if(SET.cls === c) card.classList.add('active');
-  card.addEventListener('click', ()=>{
-    SET.cls = c; localStorage.kh_set = JSON.stringify(SET);
-    document.querySelectorAll('.clscard').forEach(k=>k.classList.toggle('active', +k.dataset.c === c));
-  });
-});
+function renderClassCards(){
+  const html = CLASSES.map((c,i)=>{
+    const unlocked = classUnlocked(i);
+    const primary = WEAPONS[c.weapons[0]].name;
+    const sub = c.soon ? '★ PREMIUM' : (unlocked ? primary : '🔒 Level ' + c.lvl);
+    const meta = c.soon ? 'coming soon' : c.hp + ' HP' + (c.speed>1 ? ' · fast' : c.speed<1 ? ' · slow' : '');
+    return '<div class="clscard' + (SET.cls===i?' active':'') + (unlocked?'':' locked') + '" data-c="' + i + '">'
+      + '<b>' + c.name + '</b><span>' + sub + '</span><i>' + meta + '</i></div>';
+  }).join('');
+  for(const id of ['classrow','deathclasses']){
+    const box = el(id);
+    if(!box) continue;
+    box.innerHTML = html;
+    box.querySelectorAll('.clscard').forEach(card=>{
+      card.addEventListener('click', ()=>{
+        const i = +card.dataset.c;
+        if(!classUnlocked(i)){ SFX.empty(); return; }
+        SET.cls = i;
+        localStorage.kh_set = JSON.stringify(SET);
+        renderClassCards();
+        if(mode === 'mp' && NET.ws && NET.ws.readyState === 1){
+          NET.ws.send(JSON.stringify({ t:'cls', maxhp: CLASSES[i].hp }));
+        }
+      });
+    });
+  }
+}
 document.querySelectorAll('.setbtn').forEach(btn=>{
   const k = btn.dataset.k, v = +btn.dataset.v;
   if(SET[k]===v) btn.classList.add('active');
@@ -944,15 +1007,17 @@ addEventListener('wheel', e=>{
 addEventListener('mousemove', e=>{
   if(!locked || state!==ST.PLAY) return;
   const s = 0.0022 * (camera.fov/75);       // slower look while zoomed
-  player.yaw -= e.movementX*s;
-  player.pitch -= e.movementY*s;
+  const mx = Math.max(-180, Math.min(180, e.movementX));   // clamp re-lock spikes
+  const my = Math.max(-180, Math.min(180, e.movementY));
+  player.yaw -= mx*s;
+  player.pitch -= my*s;
   player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch));
 });
 document.addEventListener('pointerlockchange', ()=>{
   locked = document.pointerLockElement === document.body;
   // Solo: unlock = pause to menu. MP: stay in the match (alt-tab shouldn't kick you);
   // click re-locks, pressing Esc again opens the menu (= leave match).
-  if(!locked && state===ST.PLAY && mode !== 'mp'){ showMenu(); }
+  if(!locked && state===ST.PLAY && mode !== 'mp' && player.alive){ showMenu(); }   // dead = class-picker time, not menu
 });
 canvas.addEventListener('click', ()=>{
   if(state===ST.PLAY && !locked && !isTouch){ try { document.body.requestPointerLock(); } catch(e){} }
@@ -1124,6 +1189,7 @@ function raySphere(o, d, c, r){
 }
 
 function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = the player
+  if(!attacker) showDmg(new THREE.Vector3(b.pos.x, b.pos.y + 1.8, b.pos.z), dmg, headshot);
   b.hp -= dmg;
   if(b.hp<=0 && b.alive){
     b.alive = false;
@@ -1139,6 +1205,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       player.kills++;
       player.streak++;
       SFX.kill();
+      killBanner(headshot ? 150 : 100, (headshot ? 'HEADSHOT · ' : 'ELIMINATED ') + b.name);
       killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
       if(STREAKS[player.streak]) showCallout(STREAKS[player.streak]);
       else if(headshot) showCallout('HEADSHOT');
@@ -1191,6 +1258,7 @@ function damagePlayer(dmg, from){
   if(!player.alive) return;
   player.hp -= dmg;
   SFX.hurt();
+  showHitDir(from.pos.x, from.pos.z);
   el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,.55)';
   setTimeout(()=>{ el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,0)'; }, 120);
   if(player.hp<=0){
@@ -1201,11 +1269,53 @@ function damagePlayer(dmg, from){
     player.deathRoll = 0;
     ads = false;
     SFX.die();
+    renderClassCards();
+    el('deathpick').style.display = 'block';
+    if(document.pointerLockElement) document.exitPointerLock();
     killfeed(`<b>${from.name}</b> 🔫 <span class="me">You</span>`);
     updateScoreHUD();
     checkMatchEnd();
   }
   updateHpHUD();
+}
+
+// ---------- Player feedback: damage numbers, kill banner, hit direction ----------
+const dmgnums = [];
+const _proj = new THREE.Vector3();
+function showDmg(worldPos, amount, hs){
+  const d = document.createElement('div');
+  d.className = 'dmgnum' + (hs ? ' hs' : '');
+  d.textContent = Math.round(amount);
+  el('hud').appendChild(d);
+  dmgnums.push({ d, p: worldPos.clone(), t: 0.85 });
+}
+function updateDmgNums(dt){
+  for(let i=dmgnums.length-1; i>=0; i--){
+    const m = dmgnums[i];
+    m.t -= dt; m.p.y += dt*1.5;
+    if(m.t <= 0){ m.d.remove(); dmgnums.splice(i,1); continue; }
+    _proj.copy(m.p).project(camera);
+    if(_proj.z > 1){ m.d.style.display = 'none'; continue; }
+    m.d.style.display = 'block';
+    m.d.style.left = (_proj.x*0.5 + 0.5)*innerWidth + 'px';
+    m.d.style.top = (-_proj.y*0.5 + 0.5)*innerHeight + 'px';
+    m.d.style.opacity = Math.min(1, m.t/0.25);
+  }
+}
+let kbTimer = null;
+function killBanner(points, text){
+  el('killbanner').textContent = '+' + points + '  ' + text;
+  el('killbanner').style.opacity = 1;
+  clearTimeout(kbTimer);
+  kbTimer = setTimeout(()=>{ el('killbanner').style.opacity = 0; }, 1400);
+  addXp(points);
+}
+let hitdirT = 0;
+function showHitDir(sx, sz){
+  const rel = Math.atan2(sx - player.pos.x, sz - player.pos.z) - (player.yaw + Math.PI);
+  el('hitdir').style.transform = 'translate(-50%,-50%) rotate(' + rel.toFixed(3) + 'rad)';
+  el('hitdir').style.opacity = 1;
+  hitdirT = 0.7;
 }
 
 // ---------- Kill streaks ----------
@@ -1234,6 +1344,7 @@ function updateHpHUD(){
   el('hpnum').textContent = Math.max(0, Math.ceil(player.hp));
   el('hpfill').style.width = pct + '%';
   el('hpfill').style.background = pct>50 ? 'linear-gradient(90deg,#4caf50,#8bc34a)' : pct>25 ? 'linear-gradient(90deg,#ff9800,#ffc107)' : 'linear-gradient(90deg,#f44336,#ff5722)';
+  el('dmgvig').classList.toggle('lowhp', pct < 30 && pct > 0 && player.alive);
 }
 function updateAmmoHUD(){
   const w = curW();
@@ -1385,10 +1496,14 @@ function mpConnect(){
       SFX.shoot({ loud: Math.max(0.03, 0.3 - dp*0.004) });
       if(r) r.mesh.rotation.y = Math.atan2(d.x, d.z);
     }
-    else if(m.t === 'hitfx'){ SFX.hit(); showHitmarker(); }
+    else if(m.t === 'hitfx'){
+      SFX.hit(); showHitmarker();
+      if(m.pos) showDmg(new THREE.Vector3(m.pos[0], m.pos[1] + 1.8, m.pos[2]), m.dmg || 0, m.hs);
+    }
     else if(m.t === 'dmg'){
       player.hp = m.hp;
       SFX.hurt();
+      if(m.apos) showHitDir(m.apos[0], m.apos[2]);
       el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,.55)';
       setTimeout(()=>{ el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,0)'; }, 120);
       updateHpHUD();
@@ -1398,6 +1513,9 @@ function mpConnect(){
       player.respawnT = 3;                       // server respawns us; this drives the countdown text
       player.streak = 0; player.deathRoll = 0; ads = false;
       SFX.die();
+      renderClassCards();
+      el('deathpick').style.display = 'block';
+      if(document.pointerLockElement) document.exitPointerLock();
       updateHpHUD();
     }
     else if(m.t === 'kill'){
@@ -1405,6 +1523,7 @@ function mpConnect(){
       if(m.killerId === NET.id){
         player.streak++;
         SFX.kill();
+        killBanner(m.hs ? 150 : 100, (m.hs ? 'HEADSHOT · ' : 'ELIMINATED ') + m.victim);
         killfeed(`<span class="me">You</span> ${hsIcon} <b>${m.victim}</b>`);
         if(STREAKS[player.streak]) showCallout(STREAKS[player.streak]);
         else if(m.hs) showCallout('HEADSHOT');
@@ -1422,6 +1541,7 @@ function mpConnect(){
       resetLoadout(); buildViewmodel();
       player.hp = player.maxHp;
       el('respawnmsg').style.display = 'none';
+      el('deathpick').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
     }
   };
@@ -1457,6 +1577,7 @@ function startMatch(){
   // reset
   player.kills = 0; player.deaths = 0; player.alive = true; player.streak = 0;
   el('respawnmsg').style.display = 'none';
+  el('deathpick').style.display = 'none';
   el('scope').style.display = 'none';
   camera.fov = 75; camera.updateProjectionMatrix();
   player.pos.copy(spawnPoint(null)); player.vel.set(0,0,0);
@@ -1479,6 +1600,7 @@ function startMatch(){
 function showMenu(){
   state = ST.MENU;
   ads = false; mouseDown = false;
+  el('deathpick').style.display = 'none';
   el('hud').style.display = 'none';
   el('menu').classList.add('show');
   if(document.pointerLockElement) document.exitPointerLock();
@@ -1527,13 +1649,14 @@ function updatePlayer(dt){
       resetLoadout(); buildViewmodel();
       player.hp = player.maxHp;
       el('respawnmsg').style.display = 'none';
+      el('deathpick').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
     }
     return;
   }
   // movement
   fwd.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-  right.set(fwd.z, 0, -fwd.x);
+  right.set(-fwd.z, 0, fwd.x);   // fwd x up — was flipped, inverting A/D
   wish.set(0,0,0);
   if(keys.KeyW) wish.add(fwd);
   if(keys.KeyS) wish.sub(fwd);
@@ -1757,12 +1880,17 @@ function frame(now){
     updatePlayer(dt);
     for(const b of bots) updateBot(b, dt);
     updatePickups(dt);
+    updateDmgNums(dt);
+    if(hitdirT > 0){ hitdirT -= dt; if(hitdirT <= 0) el('hitdir').style.opacity = 0; }
     if(sbOpen) renderScoreboard();
   }
   updateFX(dt);
   renderer.render(scene, camera);
 }
 requestAnimationFrame(frame);
+
+renderClassCards();
+updateXpHUD();
 
 // Debug hook for automated verification (harmless in production)
 window.__dbg = { player, bots, camera, THREE, colliders, NET, get mode(){ return mode; } };
