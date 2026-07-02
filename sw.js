@@ -1,5 +1,5 @@
-const CACHE = 'kourhero-v006';
-const ASSETS = ['./', './index.html', './lib/three.module.js', './shared/map.mjs', './manifest.json', './icon.svg'];
+const CACHE = 'kourhero-v007';
+const ASSETS = ['./', './index.html', './lib/three.module.js', './shared/map.mjs', './shared/weapons.mjs', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

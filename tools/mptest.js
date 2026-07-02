@@ -10,7 +10,7 @@ const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const PORT = 18790;
 
 (async () => {
-  const srv = spawn('node', [path.resolve(__dirname, '../server/server.mjs'), String(PORT)], { stdio: 'pipe' });
+  const srv = spawn('node', [path.resolve(__dirname, '../server/server.mjs'), String(PORT), '--test'], { stdio: 'pipe' });
   const srvLog = [];
   srv.stdout.on('data', d => srvLog.push(d.toString().trim()));
   srv.stderr.on('data', d => srvLog.push('ERR ' + d.toString().trim()));
@@ -70,6 +70,44 @@ const PORT = 18790;
 
   await B.page.screenshot({ path: path.join(__dirname, 'shots', '5-mp-bob.png') });
 
+  // ---- Combat: teleport A and B 10u apart, Alice aims at Bob and fires ----
+  const tp = (c, x, y, z) => c.page.evaluate((x, y, z) => {
+    const d = window.__dbg;
+    d.player.pos.set(x, y, z); d.player.vel.set(0,0,0);
+    d.NET.ws.send(JSON.stringify({ t:'tp', pos:[x, y, z] }));
+  }, x, y, z);
+  await tp(A, 20, 0, 10);
+  await tp(B, 20, 0, 20);
+  await new Promise(r => setTimeout(r, 400));
+
+  await A.page.bringToFront();
+  // aim Alice at Bob's chest, then hold fire (auto rifle)
+  await A.page.evaluate(() => {
+    const d = window.__dbg;
+    const bob = [...d.NET.remotes.values()][0];
+    const t = bob.target;
+    const eye = d.player.pos.clone(); eye.y += 1.62;
+    const dir = t.clone(); dir.y += 1.0; dir.sub(eye).normalize();
+    d.player.pitch = Math.asin(dir.y);
+    d.player.yaw = Math.atan2(-dir.x, -dir.z);
+  });
+  await A.page.mouse.down();
+  await new Promise(r => setTimeout(r, 1400));   // ~14 rifle shots
+  await A.page.mouse.up();
+  await new Promise(r => setTimeout(r, 700));
+
+  const aFight = await stateOf(A), bFight = await stateOf(B);
+  const bHp = await B.page.evaluate(() => window.__dbg.player.hp);
+  const bAlive = await B.page.evaluate(() => window.__dbg.player.alive);
+  const aScore = await A.page.evaluate(() => ({ k: window.__dbg.player.kills, d: window.__dbg.player.deaths }));
+  const bScore = await B.page.evaluate(() => ({ k: window.__dbg.player.kills, d: window.__dbg.player.deaths }));
+  const bKillfeed = await B.page.evaluate(() => document.getElementById('killfeed').innerText);
+
+  // Bob should respawn ~3s after dying
+  await new Promise(r => setTimeout(r, 3500));
+  const bAfter = await B.page.evaluate(() => ({ hp: window.__dbg.player.hp, alive: window.__dbg.player.alive,
+    pos: window.__dbg.player.pos.toArray().map(v=>+v.toFixed(0)) }));
+
   // Disconnect A → B should drop the remote
   await A.page.close();
   await new Promise(r => setTimeout(r, 900));
@@ -84,13 +122,17 @@ const PORT = 18790;
     aliceMovedLocally: +aliceMovedLocally.toFixed(1),
     aliceMovedRemotely: +aliceMovedRemotely.toFixed(1),
     remoteVsLocalGap: +posMatch.toFixed(1),
+    combat: { bobHpAfterFire: bHp, bobDied: !bAlive, aliceKills: aScore.k, bobDeaths: bScore.d,
+      bobKillfeedSawKill: /Alice/.test(bKillfeed), bobRespawned: bAfter.alive && bAfter.hp === 100 },
     remoteRemovedOnLeave: !b3.remotes.find(r => r.name === 'Alice'),
     errors: [...A.errors, ...B.errors],
     serverLog: srvLog
   };
   console.log(JSON.stringify(result, null, 2));
+  const c = result.combat;
   const pass = result.aMode === 'mp' && result.bMode === 'mp' && result.bSeesAliceInitially &&
     aliceMovedLocally > 3 && aliceMovedRemotely > 3 && posMatch < 2 &&
+    c.bobDied && c.aliceKills >= 1 && c.bobDeaths >= 1 && c.bobKillfeedSawKill && c.bobRespawned &&
     result.remoteRemovedOnLeave && !result.errors.length;
   console.log(pass ? 'MPTEST OK' : 'MPTEST FAILED');
   process.exit(pass ? 0 : 1);

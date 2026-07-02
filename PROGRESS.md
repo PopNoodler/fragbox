@@ -16,11 +16,21 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 ## Backlog (roughly ordered)
 - [ ] ADS/scope for touch devices (currently desktop RMB only)
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
-- [ ] Phase 2b: MP combat — server-authoritative fire/hit/hp/kills, killfeed + scoreboard from server
 - [ ] Phase 2c: server-side bots to fill MP lobbies; match timer + rounds on server
 - [ ] MP polish: interpolation buffer (currently rate-lerp), remote anim (walk bob), join/leave sounds
 
 ## Releases (newest first)
+- **v007** (2026-07-02 ~04:30): Phase 2b — server-authoritative MP combat. Weapons →
+  `shared/weapons.mjs` (+HITBOX spec). Server: `fire` msg validated (rate cap 0.7x interval,
+  origin within 3u of known pos, finite checks), slab-method ray-vs-AABB world occlusion +
+  head/body sphere hit tests against all players, damage/kill/respawn state machine (3s dead,
+  spawn furthest), events: shot (relayed for tracers/sound), hitfx (shooter), dmg (victim),
+  die, kill (broadcast, names+ids+hs), spawn. Client: MP fire sends origin+aim+ads; snap syncs
+  server-authoritative k/d and hides dead remotes; kill events drive killfeed/streak callouts;
+  die/spawn drive death cam + server respawn; MP scoreboard from remote k/d; pickups disabled
+  in MP (server doesn't own them yet). `--test` server flag enables tp for automated tests.
+  mptest combat scenario: Alice tp'd 10u from Bob, aimed via yaw/pitch math, 14 rifle shots →
+  Bob hp 0, died, killfeed correct, respawned hp100, Alice kills=1 server-verified. SW → v007.
 - **v006** (2026-07-02 ~04:20): Phase 2a — multiplayer foundation. Map extracted to
   `shared/map.mjs` (boxes/spawns/pads/pickups/phys consts; client builds meshes from it, solo
   playtest confirmed identical). `server/server.mjs`: static hosting + ws (same port), join/leave
