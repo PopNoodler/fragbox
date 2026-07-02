@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v015** (2026-07-02 ~14:15): Class + loadout system (user request: Kour-style class/gun
+  selection). 4 classes — Assault (Rifle, 100hp), Gunner (SMG, 90hp, 1.08x speed), Breacher
+  (Shotgun, 115hp, 0.93x), Marksman (Sniper, 90hp) — each with Pistol sidearm. Loadout = 2
+  slots (keys 1/2, scroll/swap cycles); `player.loadout` maps slots → WEAPONS indices, all
+  weapon lookups via curW(); ammo/reserves per slot; ammo pickup refills loadout only. Class
+  hp/speed applied everywhere hp=100 used to be (player.maxHp, HUD bar shows %, heal caps).
+  MP: join sends maxhp (server clamps 80–120, owns it through respawns/round resets); fire
+  msg sends global weapon index. Menu: class card grid (active highlight, persisted in
+  kh_set.cls). Headless: Marksman→Sniper/90hp, Breacher→Shotgun/115hp/0.93x, slot switch,
+  menu return; playtest expectation Digit2→Pistol; full suite green. SW → v015.
 - **v014** (2026-07-02 ~13:55, after machine slept overnight): Visual polish round 2.
   First-person arms: olive sleeves + skin hands on every viewmodel (trigger hand always,
   forend hand except pistol; positions derived from tipZ). Bullet impact decals: radial-splat

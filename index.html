@@ -89,6 +89,12 @@
   .setlabel { opacity:.55; font-size:12px; margin-right:auto; }
   .setbtn { pointer-events:auto; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; padding:6px 0; width:56px; border-radius:6px; font-size:12px; cursor:pointer; }
   .setbtn.active { background:#2196f3; color:#fff; border-color:#2196f3; font-weight:700; }
+  #classrow { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; width:100%; }
+  .clscard { pointer-events:auto; background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.13); border-radius:10px; padding:8px 2px; cursor:pointer; display:flex; flex-direction:column; gap:2px; transition:border-color .12s, background .12s; }
+  .clscard b { font-size:12.5px; letter-spacing:.3px; }
+  .clscard span { font-size:10.5px; opacity:.65; }
+  .clscard i { font-size:9px; opacity:.45; font-style:normal; }
+  .clscard.active { border-color:#4fc3f7; background:rgba(79,195,247,.16); }
   #btnrow { display:flex; gap:10px; justify-content:center; }
   #btnrow .bigbtn { flex:1; max-width:200px; }
   #filewarn { position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; background:#0d0d1a; color:#fff; text-align:center; padding:24px; }
@@ -151,6 +157,12 @@
     <div class="logo">FRAGBOX</div>
     <div class="tagline">Fast low-poly arena FPS</div>
     <div id="setupcard">
+      <div id="classrow">
+        <div class="clscard" data-c="0"><b>Assault</b><span>Rifle</span><i>100 HP</i></div>
+        <div class="clscard" data-c="1"><b>Gunner</b><span>SMG</span><i>90 HP · fast</i></div>
+        <div class="clscard" data-c="2"><b>Breacher</b><span>Shotgun</span><i>115 HP · slow</i></div>
+        <div class="clscard" data-c="3"><b>Marksman</b><span>Sniper</span><i>90 HP</i></div>
+      </div>
       <input id="namefield" maxlength="14" placeholder="Your name" autocomplete="off">
       <div id="settings">
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
@@ -165,7 +177,7 @@
     <div id="mphint" style="margin-top:8px; font-size:12px; opacity:.6"></div>
     <div class="hint">
       <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim/scope · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>
-      <kbd>R</kbd> reload · <kbd>1–5</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
+      <kbd>R</kbd> reload · <kbd>1 2</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
     </div>
   </div>
 </div>
@@ -494,6 +506,15 @@ const SFX = {
 // ---------- Weapons ----------
 // WEAPONS imported from shared/weapons.mjs (single source of truth with the server)
 
+// ---------- Classes (loadout = [primary, sidearm] as WEAPONS indices) ----------
+const CLASSES = [
+  { name:'Assault',  weapons:[0,4], hp:100, speed:1.0,  desc:'Balanced auto rifle' },
+  { name:'Gunner',   weapons:[1,4], hp:90,  speed:1.08, desc:'Fast SMG skirmisher' },
+  { name:'Breacher', weapons:[2,4], hp:115, speed:0.93, desc:'Tanky shotgun brawler' },
+  { name:'Marksman', weapons:[3,4], hp:90,  speed:1.0,  desc:'One-shot precision' }
+];
+const curW = () => WEAPONS[player.loadout[player.wIdx]];
+
 // ---------- Entity helpers ----------
 const PLAYER_R = 0.45, PLAYER_H = 1.8, EYE = 1.62;
 const GRAV = 24, JUMP_V = 9.0, WALK = 7, SPRINT = 10.4, AIR_CTRL = 0.35;
@@ -684,11 +705,16 @@ const player = {
   pos: new THREE.Vector3(0,0,30), vel: new THREE.Vector3(),
   yaw: Math.PI, pitch: 0, hp: 100, alive: true,
   kills: 0, deaths: 0, respawnT: 0,
-  wIdx: 0, ammo: [], res: [], reloadT: 0, fireCd: 0, recoil: 0
+  wIdx: 0, loadout: [0,4], maxHp: 100, speedMul: 1,
+  ammo: [], res: [], reloadT: 0, fireCd: 0, recoil: 0
 };
 function resetLoadout(){
-  player.ammo = WEAPONS.map(w=>w.mag);
-  player.res = WEAPONS.map(w=>w.reserve);
+  const cls = CLASSES[SET.cls] || CLASSES[0];
+  player.loadout = cls.weapons.slice();
+  player.maxHp = cls.hp;
+  player.speedMul = cls.speed;
+  player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
+  player.res = player.loadout.map(i=>WEAPONS[i].reserve);
   player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
 }
 
@@ -699,7 +725,7 @@ let vmMesh = null;
 let vmFlash = null, vmFlashT = 0;
 function buildViewmodel(){
   if(vmMesh){ vmGroup.remove(vmMesh); }
-  const w = WEAPONS[player.wIdx];
+  const w = curW();
   const g = new THREE.Group();
   const mat = c => new THREE.MeshLambertMaterial({ color:c });
   const box = (sx,sy,sz,c,x,y,z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), mat(c)); m.position.set(x,y,z); g.add(m); return m; };
@@ -838,15 +864,18 @@ function tryCollect(p, pos, isPlayer, bot){
   if(dx*dx + dz*dz > 1.4*1.4 || Math.abs(dy) > 1.8) return false;
   if(p.kind==='hp'){
     if(isPlayer){
-      if(player.hp >= 100) return false;
-      player.hp = Math.min(100, player.hp + 40);
+      if(player.hp >= player.maxHp) return false;
+      player.hp = Math.min(player.maxHp, player.hp + 40);
       updateHpHUD(); SFX.pickup();
     } else {
       bot.hp = Math.min(100, bot.hp + 40);
     }
   } else {
     if(!isPlayer) return false;
-    for(let i=0;i<WEAPONS.length;i++) player.res[i] = Math.min(WEAPONS[i].reserve*2, player.res[i] + WEAPONS[i].mag);
+    for(let i=0;i<player.loadout.length;i++){
+      const w = WEAPONS[player.loadout[i]];
+      player.res[i] = Math.min(w.reserve*2, player.res[i] + w.mag);
+    }
     updateAmmoHUD(); SFX.pickup();
   }
   p.taken = true; p.respawnT = 15; p.g.visible = false;
@@ -858,10 +887,18 @@ const ST = { MENU:0, PLAY:1, OVER:2 };
 let state = ST.MENU;
 const KILL_TARGET = 25;
 const DIFFS = [ { skill:0.4, dmg:0.7 }, { skill:0.6, dmg:1.0 }, { skill:0.78, dmg:1.3 } ];
-let SET = { bots:5, diff:1, len:300 };
+let SET = { bots:5, diff:1, len:300, cls:0 };
 try { SET = Object.assign(SET, JSON.parse(localStorage.kh_set||'{}')); } catch(e){}
 let matchT = SET.len;
 
+document.querySelectorAll('.clscard').forEach(card=>{
+  const c = +card.dataset.c;
+  if(SET.cls === c) card.classList.add('active');
+  card.addEventListener('click', ()=>{
+    SET.cls = c; localStorage.kh_set = JSON.stringify(SET);
+    document.querySelectorAll('.clscard').forEach(k=>k.classList.toggle('active', +k.dataset.c === c));
+  });
+});
 document.querySelectorAll('.setbtn').forEach(btn=>{
   const k = btn.dataset.k, v = +btn.dataset.v;
   if(SET[k]===v) btn.classList.add('active');
@@ -883,9 +920,6 @@ addEventListener('keydown', e=>{
   if(e.code==='KeyR') tryReload();
   if(e.code==='Digit1') switchWeapon(0);
   if(e.code==='Digit2') switchWeapon(1);
-  if(e.code==='Digit3') switchWeapon(2);
-  if(e.code==='Digit4') switchWeapon(3);
-  if(e.code==='Digit5') switchWeapon(4);
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
   if(e.code==='Escape' && !document.pointerLockElement) showMenu();   // MP: 2nd Esc leaves match
@@ -905,7 +939,7 @@ addEventListener('mouseup', e=>{
 });
 addEventListener('wheel', e=>{
   if(state!==ST.PLAY) return;
-  switchWeapon((player.wIdx + (e.deltaY>0?1:WEAPONS.length-1)) % WEAPONS.length);
+  switchWeapon((player.wIdx + 1) % player.loadout.length);
 });
 addEventListener('mousemove', e=>{
   if(!locked || state!==ST.PLAY) return;
@@ -993,7 +1027,7 @@ let touchJump = false;
   };
   bindBtn('firebtn', ()=>{ mouseDown = true; }, ()=>{ mouseDown = false; });
   bindBtn('jumpbtn', ()=>{ touchJump = true; }, ()=>{ touchJump = false; });
-  bindBtn('swapbtn', ()=>switchWeapon((player.wIdx+1)%WEAPONS.length));
+  bindBtn('swapbtn', ()=>switchWeapon((player.wIdx+1)%player.loadout.length));
   bindBtn('adsbtn', ()=>{ ads = !ads; });
   bindBtn('relbtn', ()=>tryReload());
   bindBtn('pausebtn', ()=>showMenu());
@@ -1001,12 +1035,12 @@ let touchJump = false;
 }
 
 function switchWeapon(i){
-  if(i===player.wIdx || i>=WEAPONS.length) return;
+  if(i===player.wIdx || i>=player.loadout.length) return;
   player.wIdx = i; player.reloadT = 0; player.fireCd = Math.max(player.fireCd, 0.25); ads = false;
   buildViewmodel(); SFX.swap(); updateAmmoHUD();
 }
 function tryReload(){
-  const w = WEAPONS[player.wIdx];
+  const w = curW();
   if(player.reloadT>0 || player.ammo[player.wIdx]>=w.mag || player.res[player.wIdx]<=0) return;
   player.reloadT = w.reload; SFX.reload();
   el('reloadmsg').style.display = 'block';
@@ -1025,7 +1059,7 @@ function fireDir(spread){
 }
 
 function playerShoot(){
-  const w = WEAPONS[player.wIdx];
+  const w = curW();
   if(player.fireCd>0 || player.reloadT>0) return;
   if(player.ammo[player.wIdx]<=0){ SFX.empty(); tryReload(); player.fireCd = 0.25; return; }
   player.ammo[player.wIdx]--;
@@ -1074,7 +1108,7 @@ function playerShoot(){
     NET.ws.send(JSON.stringify({ t:'fire',
       o:[+eye.x.toFixed(2), +eye.y.toFixed(2), +eye.z.toFixed(2)],
       d:[+aim.x.toFixed(4), +aim.y.toFixed(4), +aim.z.toFixed(4)],
-      w:player.wIdx, ads }));
+      w:player.loadout[player.wIdx], ads }));
   }
   if(player.ammo[player.wIdx]<=0) tryReload();
   updateAmmoHUD();
@@ -1196,12 +1230,13 @@ function killfeed(html){
   setTimeout(()=>{ if(div.parentNode) div.parentNode.removeChild(div); }, 4500);
 }
 function updateHpHUD(){
+  const pct = Math.max(0, player.hp) / (player.maxHp || 100) * 100;
   el('hpnum').textContent = Math.max(0, Math.ceil(player.hp));
-  el('hpfill').style.width = Math.max(0, player.hp) + '%';
-  el('hpfill').style.background = player.hp>50 ? 'linear-gradient(90deg,#4caf50,#8bc34a)' : player.hp>25 ? 'linear-gradient(90deg,#ff9800,#ffc107)' : 'linear-gradient(90deg,#f44336,#ff5722)';
+  el('hpfill').style.width = pct + '%';
+  el('hpfill').style.background = pct>50 ? 'linear-gradient(90deg,#4caf50,#8bc34a)' : pct>25 ? 'linear-gradient(90deg,#ff9800,#ffc107)' : 'linear-gradient(90deg,#f44336,#ff5722)';
 }
 function updateAmmoHUD(){
-  const w = WEAPONS[player.wIdx];
+  const w = curW();
   el('wname').textContent = w.name;
   el('ammonum').textContent = player.ammo[player.wIdx];
   el('ammores').textContent = '/ ' + player.res[player.wIdx];
@@ -1293,7 +1328,8 @@ function mpConnect(){
   const failT = setTimeout(()=>{ if(ws.readyState !== 1){ try{ws.close();}catch(e){} mpFail(); } }, 3000);
   ws.onopen = ()=>{
     clearTimeout(failT);
-    ws.send(JSON.stringify({ t:'join', name: myName() }));
+    const cls = CLASSES[SET.cls] || CLASSES[0];
+    ws.send(JSON.stringify({ t:'join', name: myName(), maxhp: cls.hp }));
   };
   ws.onmessage = ev=>{
     let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
@@ -1382,8 +1418,9 @@ function mpConnect(){
       player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
       player.vel.set(0,0,0);
       player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
-      player.alive = true; player.hp = 100;
+      player.alive = true;
       resetLoadout(); buildViewmodel();
+      player.hp = player.maxHp;
       el('respawnmsg').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
     }
@@ -1418,13 +1455,14 @@ el('namefield').addEventListener('change', ()=>myName());
 // ---------- Match flow ----------
 function startMatch(){
   // reset
-  player.kills = 0; player.deaths = 0; player.hp = 100; player.alive = true; player.streak = 0;
+  player.kills = 0; player.deaths = 0; player.alive = true; player.streak = 0;
   el('respawnmsg').style.display = 'none';
   el('scope').style.display = 'none';
   camera.fov = 75; camera.updateProjectionMatrix();
   player.pos.copy(spawnPoint(null)); player.vel.set(0,0,0);
   player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
   resetLoadout(); buildViewmodel();
+  player.hp = player.maxHp;
   matchT = SET.len;
   for(const b of bots){ scene.remove(b.mesh); }
   bots.length = 0;
@@ -1483,10 +1521,11 @@ function updatePlayer(dt){
     el('respawnmsg').style.display = 'block';
     el('respawnmsg').textContent = 'Respawning in ' + Math.max(1, Math.ceil(player.respawnT)) + '…';
     if(player.respawnT<=0 && mode !== 'mp'){    // MP: the server's 'spawn' message respawns us
-      player.alive = true; player.hp = 100;
+      player.alive = true;
       player.pos.copy(spawnPoint(player.pos)); player.vel.set(0,0,0);
       player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
       resetLoadout(); buildViewmodel();
+      player.hp = player.maxHp;
       el('respawnmsg').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
     }
@@ -1502,7 +1541,7 @@ function updatePlayer(dt){
   if(keys.KeyD) wish.add(right);
   if(stick.on){ wish.addScaledVector(fwd, -stick.dy).addScaledVector(right, stick.dx); }
   const sprinting = (keys.ShiftLeft && keys.KeyW) || (stick.on && Math.hypot(stick.dx, stick.dy) > 0.92);
-  const speed = sprinting ? SPRINT : WALK;
+  const speed = (sprinting ? SPRINT : WALK) * (player.speedMul || 1);
   if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
 
   const wasGrounded = player.grounded;
@@ -1523,7 +1562,7 @@ function updatePlayer(dt){
   camera.rotateX(Math.min(1.55, player.pitch + player.recoil));
 
   // ADS zoom (right mouse): sniper scopes in, others steady-aim
-  const wpn = WEAPONS[player.wIdx];
+  const wpn = curW();
   const targetFov = ads ? (wpn.name==='Sniper' ? 26 : 55) : 75;
   if(Math.abs(camera.fov - targetFov) > 0.05){
     camera.fov += (targetFov - camera.fov) * Math.min(1, dt*14);
@@ -1553,7 +1592,7 @@ function updatePlayer(dt){
   if(player.reloadT>0){
     player.reloadT -= dt;
     if(player.reloadT<=0){
-      const w = WEAPONS[player.wIdx];
+      const w = curW();
       const need = w.mag - player.ammo[player.wIdx];
       const take = Math.min(need, player.res[player.wIdx]);
       player.ammo[player.wIdx] += take; player.res[player.wIdx] -= take;
@@ -1561,7 +1600,7 @@ function updatePlayer(dt){
       updateAmmoHUD();
     }
   }
-  const w = WEAPONS[player.wIdx];
+  const w = curW();
   if(mouseDown && (w.auto || player.fireCd<=-0.0001 || player.fireCd<=0) ){
     if(w.auto || !player._heldFired) { playerShoot(); player._heldFired = true; }
   } else if(!mouseDown){ player._heldFired = false; }

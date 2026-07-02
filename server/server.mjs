@@ -137,11 +137,13 @@ wss.on('connection', ws => {
         id, ws,
         name: String(m.name || 'Player').slice(0, 14),
         color: COLORS[id % COLORS.length],
+        maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
         pos: spawnPos(), yaw: 0, pitch: 0,
         hp: 100, kills: 0, deaths: 0,
         alive: true, deadUntil: 0, lastFire: 0,
         lastMove: Date.now()
       };
+      p.hp = p.maxHp;
       players.set(id, p);
       if(players.size === 1) roundEnd = Date.now() + ROUND_LEN;   // first human starts the round
       balanceBots();
@@ -357,7 +359,7 @@ setInterval(() => {
     console.log(`[◷] round over — winner: ${standings[0] ? standings[0].name : '—'}`);
     for(const e of ents()){
       e.kills = 0; e.deaths = 0;
-      e.hp = 100; e.alive = true; e.deadUntil = 0;
+      e.hp = e.maxHp || 100; e.alive = true; e.deadUntil = 0;
       e.pos = spawnPos();
       if(e.isBot){ e.enemy = null; e.target = null; e.seeT = 0; }
       send(e.ws, { t:'spawn', pos:e.pos });
@@ -368,7 +370,7 @@ setInterval(() => {
   for(const b of bots) tickBot(b, dt);
   for(const p of ents()){
     if(!p.alive && now >= p.deadUntil){
-      p.alive = true; p.hp = 100;
+      p.alive = true; p.hp = p.maxHp || 100;
       p.pos = spawnPos();
       p.lastMove = now;
       if(p.isBot){ p.enemy = null; p.target = null; p.seeT = 0; }
