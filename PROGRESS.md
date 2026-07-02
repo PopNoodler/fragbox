@@ -16,10 +16,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 ## Backlog (roughly ordered)
 - [ ] ADS/scope for touch devices (currently desktop RMB only)
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
-- [ ] Phase 2c: server-side bots to fill MP lobbies; match timer + rounds on server
+- [ ] Server match timer + rounds (MP is currently open-ended FFA)
 - [ ] MP polish: interpolation buffer (currently rate-lerp), remote anim (walk bob), join/leave sounds
 
 ## Releases (newest first)
+- **v008** (2026-07-02 ~04:38): Phase 2c — lobby bots. Server keeps population at TARGET_POP=6
+  (`--pop=N` to override): bots join when humans are short, leave when humans arrive, all gone
+  when server empties. Bot entities share the player pipeline (same snapshot/kill/spawn paths,
+  send() now null-safe for socketless bots). Server AI @20Hz: nearest-visible-enemy targeting
+  (ray-vs-AABB LOS), combat strafe, waypoint roam with per-axis AABB collision, reaction window,
+  fires rifles via the same authoritative doFire() as humans. Test run: 1 human → 5 bots, all 5
+  roamed, 11 shot events reached the client, 2 bot-vs-bot kills in 8s, bots interleave with the
+  human duel (combat test isolated via --pop=0). ORIGINAL SPEC NOW COMPLETE (Phase 1 + Phase 2).
+  SW → v008 (no client asset changes beyond shot counter).
 - **v007** (2026-07-02 ~04:30): Phase 2b — server-authoritative MP combat. Weapons →
   `shared/weapons.mjs` (+HITBOX spec). Server: `fire` msg validated (rate cap 0.7x interval,
   origin within 3u of known pos, finite checks), slab-method ray-vs-AABB world occlusion +

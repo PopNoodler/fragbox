@@ -10,7 +10,8 @@ const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const PORT = 18790;
 
 (async () => {
-  const srv = spawn('node', [path.resolve(__dirname, '../server/server.mjs'), String(PORT), '--test'], { stdio: 'pipe' });
+  // combat server: no lobby bots, so the duel is deterministic
+  const srv = spawn('node', [path.resolve(__dirname, '../server/server.mjs'), String(PORT), '--test', '--pop=0'], { stdio: 'pipe' });
   const srvLog = [];
   srv.stdout.on('data', d => srvLog.push(d.toString().trim()));
   srv.stderr.on('data', d => srvLog.push('ERR ' + d.toString().trim()));
@@ -113,8 +114,43 @@ const PORT = 18790;
   await new Promise(r => setTimeout(r, 900));
   const b3 = await stateOf(B);
 
-  await browser.close();
   srv.kill();
+
+  // ---- Lobby bots: fresh server with default pop=6, one human joins ----
+  const srv2 = spawn('node', [path.resolve(__dirname, '../server/server.mjs'), '18792'], { stdio: 'pipe' });
+  srv2.stdout.on('data', d => srvLog.push('S2: ' + d.toString().trim()));
+  await new Promise(r => setTimeout(r, 1000));
+  const C = await (async () => {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1024, height: 600 });
+    const errors = [];
+    page.on('pageerror', e => errors.push('Cara: ' + e.message));
+    await page.goto('http://127.0.0.1:18792/', { waitUntil: 'domcontentloaded' });
+    await new Promise(r => setTimeout(r, 2200));
+    await page.evaluate(() => { localStorage.kh_name = 'Cara'; });
+    await page.click('#mpbtn');
+    await new Promise(r => setTimeout(r, 1500));
+    return { page, errors };
+  })();
+  const botInfo1 = await C.page.evaluate(() => ({
+    n: window.__dbg.NET.remotes.size,
+    pos: [...window.__dbg.NET.remotes.values()].map(r => r.target.toArray().map(v=>+v.toFixed(1)))
+  }));
+  await new Promise(r => setTimeout(r, 8000));   // let bots roam and fight
+  const botInfo2 = await C.page.evaluate(() => ({
+    n: window.__dbg.NET.remotes.size,
+    pos: [...window.__dbg.NET.remotes.values()].map(r => r.target.toArray().map(v=>+v.toFixed(1))),
+    shotsSeen: window.__dbg.NET.shotsSeen || 0,
+    botKills: [...window.__dbg.NET.remotes.values()].reduce((s,r)=>s+(r.k||0), 0),
+    kf: document.getElementById('killfeed').innerText
+  }));
+  const botsMoved = botInfo1.pos.length === botInfo2.pos.length
+    ? botInfo1.pos.filter((p,i)=>Math.hypot(p[0]-botInfo2.pos[i][0], p[2]-botInfo2.pos[i][2]) > 2).length
+    : -1;
+  await C.page.screenshot({ path: path.join(__dirname, 'shots', '6-mp-bots.png') });
+
+  await browser.close();
+  srv2.kill();
 
   const result = {
     aMode: a2.mode, bMode: b2.mode,
@@ -125,14 +161,17 @@ const PORT = 18790;
     combat: { bobHpAfterFire: bHp, bobDied: !bAlive, aliceKills: aScore.k, bobDeaths: bScore.d,
       bobKillfeedSawKill: /Alice/.test(bKillfeed), bobRespawned: bAfter.alive && bAfter.hp === 100 },
     remoteRemovedOnLeave: !b3.remotes.find(r => r.name === 'Alice'),
-    errors: [...A.errors, ...B.errors],
+    lobbyBots: { count: botInfo2.n, moved: botsMoved, shotsSeen: botInfo2.shotsSeen, botKills: botInfo2.botKills },
+    errors: [...A.errors, ...B.errors, ...C.errors],
     serverLog: srvLog
   };
   console.log(JSON.stringify(result, null, 2));
   const c = result.combat;
+  const lb = result.lobbyBots;
   const pass = result.aMode === 'mp' && result.bMode === 'mp' && result.bSeesAliceInitially &&
     aliceMovedLocally > 3 && aliceMovedRemotely > 3 && posMatch < 2 &&
     c.bobDied && c.aliceKills >= 1 && c.bobDeaths >= 1 && c.bobKillfeedSawKill && c.bobRespawned &&
+    lb.count === 5 && lb.moved >= 3 && lb.shotsSeen > 0 &&
     result.remoteRemovedOnLeave && !result.errors.length;
   console.log(pass ? 'MPTEST OK' : 'MPTEST FAILED');
   process.exit(pass ? 0 : 1);
