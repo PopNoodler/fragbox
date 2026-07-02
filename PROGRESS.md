@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v014** (2026-07-02 ~13:55, after machine slept overnight): Visual polish round 2.
+  First-person arms: olive sleeves + skin hands on every viewmodel (trigger hand always,
+  forend hand except pistol; positions derived from tipZ). Bullet impact decals: radial-splat
+  canvas texture on tiny planes at castWorldHit() point+normal (world boxes are unrotated so
+  object normal == world normal), polygonOffset to avoid z-fighting, 14s life with 2s fade,
+  45 cap. Jump pads: emissive pulse (sin fxTime), hovering glow ring that bobs and jumps with
+  the pad pulse (NOTE: spinning a torus is invisible — bob it instead). Pickups: emissive
+  cross/shells + warm hovering glow ring under each item. Folder rename to FragBox still
+  blocked by an external lock. Full suite green. SW → v014.
 - **v013** (2026-07-02 ~05:45): Graphics fidelity pass (user request: match Kour.io polish).
   ACES filmic tone mapping (exposure 1.15) + stronger sun/hemi + shadow bias. Gradient sky dome
   (shader, BackSide sphere), 10 drifting cloud sprites (radial-gradient canvas), low-poly
