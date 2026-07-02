@@ -18,6 +18,17 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v030** (2026-07-02 ~21:05): Team Deathmatch (roadmap #3, Kour reference). Server
+  --mode=tdm: balanced team assignment on join (humans + lobby bots, pickTeam counts both),
+  team colors override skins (red 0xe53935 / blue 0x2196f3), spawnPos avoids only ENEMIES in
+  TDM, no friendly fire (doFire skips teammates), bot AI never targets teammates, kills
+  increment teamScores (broadcast in snap ts + round-over msg, reset per round). Client:
+  NET.gameMode/team from welcome; dual-layout score pill (static FFA K/D + TDM RED·BLUE
+  spans toggled — NOTE: never innerHTML-destroy elements other code looks up by id, and the
+  static verifier regexes ids inside JS strings too); minimap teammates green/enemies red;
+  scoreboard team dots; round-over announces RED/BLUE TEAM WINS (VICTORY prefix if yours).
+  Gotcha: mid-template rep broke a literal — verify caught it. TDM functional test: 3v3
+  balance, cross-team kill scored, pill "RED 0 · 1 BLUE", 0 errors. Full suite green. SW → v030.
 - **v029** (2026-07-02 ~20:45): Second map "Depot" + multi-map system (roadmap #2, Kour
   reference: multiple maps). shared/map.mjs → MAPS registry (meadow, depot) + getMap();
   each map carries BOXES/SPAWNS/PADS/PICKUPS + theme (ground tex, fog/outer colors, deco set).

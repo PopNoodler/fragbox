@@ -200,7 +200,7 @@
   <div id="scope"><div id="scopering"></div><span class="sh"></span><span class="sv"></span></div>
   <canvas id="minimap" width="150" height="150"></canvas>
   <div id="killfeed"></div>
-  <div id="scorepill"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D <span id="timeleft">5:00</span></div>
+  <div id="scorepill"><span id="ffascore"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D</span><span id="tdmscore" style="display:none"><span style="color:#ff8a80">RED <b id="tred">0</b></span> &nbsp;·&nbsp; <span style="color:#82b1ff"><b id="tblue">0</b> BLUE</span></span> <span id="timeleft">5:00</span></div>
   <div id="touchui">
     <div id="lookzone"></div>
     <div id="stickzone"><div id="stickbase"><div id="sticknub"></div></div></div>
@@ -1661,7 +1661,9 @@ function updateAmmoHUD(){
   el('ammores').textContent = '/ ' + player.res[player.wIdx];
 }
 function updateScoreHUD(){
-  el('scorepill').querySelector('.k').textContent = player.kills;
+  const k = el('scorepill').querySelector('.k');
+  if(!k) return;                     // TDM pill layout has no K/D spans
+  k.textContent = player.kills;
   el('scorepill').querySelector('.d').textContent = player.deaths;
 }
 function showHitmarker(){
@@ -1671,9 +1673,9 @@ function showHitmarker(){
 }
 function renderScoreboard(){
   const others = mode === 'mp'
-    ? [...NET.remotes.values()].map(r=>({ name:r.name, kills:r.k||0, deaths:r.d||0, lvl:r.lvl||1 }))
+    ? [...NET.remotes.values()].map(r=>({ name:r.name, kills:r.k||0, deaths:r.d||0, lvl:r.lvl||1, team:r.team }))
     : bots.map(b=>({ name:b.name, kills:b.kills, deaths:b.deaths, lvl:b.lvl||1 }));
-  const rows = [{ name:'You', kills:player.kills, deaths:player.deaths, lvl:levelOf(xp), self:true }, ...others]
+  const rows = [{ name:'You', kills:player.kills, deaths:player.deaths, lvl:levelOf(xp), team:NET.team, self:true }, ...others]
     .sort((a,b)=>b.kills-a.kills || a.deaths-b.deaths);
   el('sbmode').textContent = mode === 'mp'
     ? 'ONLINE FFA · round resets every 5:00'
@@ -1681,7 +1683,8 @@ function renderScoreboard(){
   el('sbbody').innerHTML = rows.map((r,i)=>{
     const kd = r.deaths ? (r.kills/r.deaths).toFixed(1) : r.kills.toFixed(1);
     const crown = (i===0 && r.kills>0) ? '👑 ' : '';
-    return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${crown}${r.name}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
+    const dot = (mode==='mp' && NET.gameMode==='tdm' && r.team>=0) ? `<span style="color:${r.team===0?'#ff8a80':'#82b1ff'}">●</span> ` : '';
+    return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${dot}${crown}${r.name}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
   }).join('');
 }
 
@@ -1712,7 +1715,7 @@ function addRemote(q){
   mesh.add(makeNameTag(q.name));
   mesh.position.set(q.pos[0], q.pos[1], q.pos[2]);
   scene.add(mesh);
-  NET.remotes.set(q.id, { mesh, name:q.name, lvl:q.lvl||1, buf:[],
+  NET.remotes.set(q.id, { mesh, name:q.name, lvl:q.lvl||1, team:q.team, buf:[],
     target:new THREE.Vector3(q.pos[0], q.pos[1], q.pos[2]), yaw:q.yaw||0 });
 }
 function removeRemote(id){
@@ -1780,6 +1783,8 @@ function mpConnect(){
     if(m.t === 'welcome'){
       NET.id = m.id;
       mode = 'mp';
+      NET.gameMode = m.mode || 'ffa';
+      NET.team = m.team;
       if(m.map && m.map !== MAP.id) buildWorld(m.map);
       el('mphint').textContent = '';
       startMatch();
@@ -1797,14 +1802,21 @@ function mpConnect(){
     }
     else if(m.t === 'over'){
       NET.lastOver = m.top;
-      const winner = m.top && m.top[0] ? m.top[0].name : '—';
-      showCallout(winner === localStorage.kh_name ? 'YOU WIN THE ROUND!' : `${winner.toUpperCase()} WINS`);
+      if(m.ts){
+        const msg = m.ts[0] === m.ts[1] ? 'ROUND DRAW' : (m.ts[0] > m.ts[1] ? 'RED TEAM WINS' : 'BLUE TEAM WINS');
+        const won = NET.team >= 0 && ((m.ts[0] > m.ts[1]) === (NET.team === 0)) && m.ts[0] !== m.ts[1];
+        showCallout(won ? 'VICTORY — ' + msg : msg);
+      } else {
+        const winner = m.top && m.top[0] ? m.top[0].name : '—';
+        showCallout(winner === localStorage.kh_name ? 'YOU WIN THE ROUND!' : `${winner.toUpperCase()} WINS`);
+      }
       renderScoreboard();
       el('scoreboard').style.display = 'block';
       setTimeout(()=>{ if(!sbOpen) el('scoreboard').style.display = 'none'; }, 4000);
     }
     else if(m.t === 'snap'){
       NET.roundT = m.rt;
+      if(m.ts) NET.ts = m.ts;
       for(const q of m.players){
         if(q.id === NET.id){
           player.kills = q.k; player.deaths = q.d;   // server-authoritative score
@@ -1966,6 +1978,8 @@ function startMatch(){
   for(const b of bots){ scene.remove(b.mesh); }
   bots.length = 0;
   if(mode !== 'mp') for(let i=0;i<SET.bots;i++) makeBot(i);
+  el('tdmscore').style.display = 'none';
+  el('ffascore').style.display = '';
   for(const p of pickups){ p.taken = false; p.respawnT = 0; p.g.visible = (mode !== 'mp'); }
   el('killfeed').innerHTML = '';
   updateHpHUD(); updateAmmoHUD(); updateScoreHUD();
@@ -2271,12 +2285,19 @@ function drawMinimap(){
       mmc.beginPath(); mmc.arc(px(p.g.position.x), px(p.g.position.z), 2.2, 0, 7); mmc.fill();
     }
   }
-  mmc.fillStyle = '#ff5252';
-  const foes = mode === 'mp'
-    ? [...NET.remotes.values()].filter(r=>r.mesh.visible).map(r=>r.mesh.position)
-    : bots.filter(b=>b.alive).map(b=>b.pos);
-  for(const p of foes){
-    mmc.beginPath(); mmc.arc(px(p.x), px(p.z), 3, 0, 7); mmc.fill();
+  if(mode === 'mp'){
+    for(const r of NET.remotes.values()){
+      if(!r.mesh.visible) continue;
+      const mate = NET.gameMode === 'tdm' && r.team === NET.team;
+      mmc.fillStyle = mate ? '#69f0ae' : '#ff5252';
+      mmc.beginPath(); mmc.arc(px(r.mesh.position.x), px(r.mesh.position.z), 3, 0, 7); mmc.fill();
+    }
+  } else {
+    mmc.fillStyle = '#ff5252';
+    for(const b of bots){
+      if(!b.alive) continue;
+      mmc.beginPath(); mmc.arc(px(b.pos.x), px(b.pos.z), 3, 0, 7); mmc.fill();
+    }
   }
   mmc.save();
   mmc.translate(px(player.pos.x), px(player.pos.z));
@@ -2299,6 +2320,10 @@ function frame(now){
 
   if(state===ST.PLAY){
     if(mode === 'mp'){
+      const tdm = NET.gameMode === 'tdm' && NET.ts;
+      el('tdmscore').style.display = tdm ? '' : 'none';
+      el('ffascore').style.display = tdm ? 'none' : '';
+      if(tdm){ el('tred').textContent = NET.ts[0]; el('tblue').textContent = NET.ts[1]; }
       el('timeleft').textContent = NET.roundT !== undefined ? fmtTime(NET.roundT) : 'ONLINE';
       updateRemotes(dt);
     } else if(!paused){

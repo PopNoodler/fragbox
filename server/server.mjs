@@ -9,6 +9,14 @@ import { WebSocketServer } from 'ws';
 import { getMap, PHYS } from '../shared/map.mjs';
 const mapArg = (process.argv.find(a => a.startsWith('--map=')) || '').split('=')[1];
 const MAP = getMap(mapArg);
+const MODE = ((process.argv.find(a => a.startsWith('--mode=')) || '').split('=')[1]) === 'tdm' ? 'tdm' : 'ffa';
+const TEAM_COLORS = [0xe53935, 0x2196f3];   // red, blue
+const teamScores = [0, 0];
+function pickTeam(){
+  let a = 0, b = 0;
+  for(const e of ents()){ if(e.team === 0) a++; else if(e.team === 1) b++; }
+  return a <= b ? 0 : 1;
+}
 const ARENA = MAP.ARENA, BOXES = MAP.BOXES, SPAWNS = MAP.SPAWNS;
 import { WEAPONS, HITBOX } from '../shared/weapons.mjs';
 import { SKINS } from '../shared/cosmetics.mjs';
@@ -73,12 +81,16 @@ let nextId = 1;
 
 const COLORS = [0xe53935, 0x8e24aa, 0xfb8c00, 0x00897b, 0x3949ab, 0xc0ca33, 0xd81b60, 0x00acc1];
 
-function spawnPos(){
-  // furthest from every living entity
+function spawnPos(team){
+  // furthest from living threats (in TDM: only the enemy team counts)
   let best = SPAWNS[0], bestScore = -1;
   for(const s of SPAWNS){
     let d = 1000;
-    for(const p of ents()) if(p.alive) d = Math.min(d, Math.hypot(s[0]-p.pos[0], s[1]-p.pos[2]));
+    for(const p of ents()){
+      if(!p.alive) continue;
+      if(MODE === 'tdm' && team !== undefined && p.team === team) continue;
+      d = Math.min(d, Math.hypot(s[0]-p.pos[0], s[1]-p.pos[2]));
+    }
     d += Math.random()*8;
     if(d > bestScore){ bestScore = d; best = s; }
   }
@@ -105,18 +117,19 @@ function ents(){ return [...players.values(), ...bots]; }
 
 function addBot(){
   const id = nextId++;
+  const team = MODE === 'tdm' ? pickTeam() : -1;
   const b = {
-    id, ws:null, isBot:true,
+    id, ws:null, isBot:true, team,
     name: BOT_NAMES[botIdx++ % BOT_NAMES.length],
-    color: COLORS[id % COLORS.length],
-    pos: spawnPos(), yaw: 0, pitch: 0,
+    color: MODE === 'tdm' ? TEAM_COLORS[team] : COLORS[id % COLORS.length],
+    pos: spawnPos(team), yaw: 0, pitch: 0,
     hp: 100, kills: 0, deaths: 0, alive: true, deadUntil: 0, lastFire: 0,
     lvl: 1 + Math.floor(Math.random()*15),
     target: null, enemy: null, thinkT: Math.random(), fireT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
     skill: 0.45 + Math.random()*0.3
   };
   bots.push(b);
-  broadcast({ t:'joined', id, name:b.name, color:b.color, pos:b.pos });
+  broadcast({ t:'joined', id, name:b.name, color:b.color, pos:b.pos, team:b.team });
 }
 function removeBot(){
   const b = bots.pop();
@@ -142,6 +155,7 @@ wss.on('connection', ws => {
       const p = {
         id, ws,
         name: String(m.name || 'Player').slice(0, 14),
+        team: MODE === 'tdm' ? pickTeam() : -1,
         color: SKIN_COLORS.has(+m.skin) ? +m.skin : COLORS[id % COLORS.length],
         maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
         lvl: Math.max(1, Math.min(99, (+m.lvl|0) || 1)),
@@ -150,13 +164,15 @@ wss.on('connection', ws => {
         alive: true, deadUntil: 0, lastFire: 0,
         lastMove: Date.now()
       };
+      if(MODE === 'tdm') p.color = TEAM_COLORS[p.team];
+      p.pos = spawnPos(p.team);
       p.hp = p.maxHp;
       players.set(id, p);
       if(players.size === 1) roundEnd = Date.now() + ROUND_LEN;   // first human starts the round
       balanceBots();
-      send(ws, { t:'welcome', id, pos:p.pos, color:p.color, map: MAP.id,
-        roster: ents().map(q=>({ id:q.id, name:q.name, color:q.color, pos:q.pos, yaw:q.yaw, lvl:q.lvl })) });
-      broadcast({ t:'joined', id, name:p.name, color:p.color, pos:p.pos }, id);
+      send(ws, { t:'welcome', id, pos:p.pos, color:p.color, map: MAP.id, mode: MODE, team: p.team,
+        roster: ents().map(q=>({ id:q.id, name:q.name, color:q.color, pos:q.pos, yaw:q.yaw, lvl:q.lvl, team:q.team })) });
+      broadcast({ t:'joined', id, name:p.name, color:p.color, pos:p.pos, team:p.team }, id);
       console.log(`[+] ${p.name} (#${id}) joined — ${players.size} human(s), ${bots.length} bot(s)`);
       return;
     }
@@ -234,6 +250,7 @@ function doFire(shooter, o, nd, w, ads, bloomMult = 1){
     let victim = null, hitT = wallT, headshot = false;
     for(const q of ents()){
       if(q.id === shooter.id || !q.alive) continue;
+      if(MODE === 'tdm' && q.team === shooter.team) continue;   // no friendly fire
       const tH = raySphere(o, d, [q.pos[0], q.pos[1]+HITBOX.headY, q.pos[2]], HITBOX.headR);
       const tB = raySphere(o, d, [q.pos[0], q.pos[1]+HITBOX.bodyY, q.pos[2]], HITBOX.bodyR);
       let t = Infinity, hs = false;
@@ -258,6 +275,7 @@ function applyDamage(victim, dmg, attacker, headshot){
   victim.deaths++;
   victim.deadUntil = Date.now() + 3000;
   attacker.kills++;
+  if(MODE === 'tdm' && attacker.team >= 0) teamScores[attacker.team]++;
   send(victim.ws, { t:'die', by:attacker.name, bhp:Math.max(1, Math.round(attacker.hp)) });
   broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot });
   console.log(`[x] ${attacker.name} killed ${victim.name}${headshot?' (headshot)':''}`);
@@ -313,6 +331,7 @@ function tickBot(b, dt){
     let best = null, bestD = Infinity;
     for(const e of ents()){
       if(e.id === b.id || !e.alive) continue;
+      if(MODE === 'tdm' && e.team === b.team) continue;
       const d = canSee(b, e);
       if(d && d < bestD){ best = e; bestD = d; }
     }
@@ -369,15 +388,16 @@ setInterval(() => {
   if(now >= roundEnd){
     const standings = ents().slice().sort((a,b)=>b.kills-a.kills || a.deaths-b.deaths)
       .map(e => ({ name:e.name, k:e.kills, d:e.deaths }));
-    broadcast({ t:'over', top: standings.slice(0, 10) });
+    broadcast({ t:'over', top: standings.slice(0, 10), ts: MODE === 'tdm' ? [...teamScores] : undefined });
     console.log(`[◷] round over — winner: ${standings[0] ? standings[0].name : '—'}`);
     for(const e of ents()){
       e.kills = 0; e.deaths = 0;
       e.hp = e.maxHp || 100; e.alive = true; e.deadUntil = 0;
-      e.pos = spawnPos();
+      e.pos = spawnPos(e.team);
       if(e.isBot){ e.enemy = null; e.target = null; e.seeT = 0; }
       send(e.ws, { t:'spawn', pos:e.pos });
     }
+    teamScores[0] = 0; teamScores[1] = 0;
     roundEnd = now + ROUND_LEN;
   }
 
@@ -385,7 +405,7 @@ setInterval(() => {
   for(const p of ents()){
     if(!p.alive && now >= p.deadUntil){
       p.alive = true; p.hp = p.maxHp || 100;
-      p.pos = spawnPos();
+      p.pos = spawnPos(p.team);
       p.lastMove = now;
       if(p.isBot){ p.enemy = null; p.target = null; p.seeT = 0; }
       send(p.ws, { t:'spawn', pos:p.pos });
@@ -394,6 +414,7 @@ setInterval(() => {
   const snap = {
     t:'snap',
     rt: Math.max(0, Math.ceil((roundEnd - now)/1000)),
+    ts: MODE === 'tdm' ? [teamScores[0], teamScores[1]] : undefined,
     players: ents().map(p => ({
       id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl
     }))
