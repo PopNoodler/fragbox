@@ -1113,6 +1113,12 @@ function recordWeaponKill(wname){
     updateAmmoHUD();
     renderClassCards();
   }
+  const cm = CAMOS.find(c => c.n === k);
+  if(cm){
+    setTimeout(() => { showCallout('CAMO UNLOCKED: ' + wname.toUpperCase() + ' ' + cm.name); SFX.streak(); }, 2600);
+    if(curW().name === wname) buildViewmodel();   // reskin in hand immediately
+    renderClassCards();
+  }
   updateChallengesUI();
 }
 // ---------- Class abilities (Q, 20s cooldown) ----------
@@ -1615,6 +1621,49 @@ const vmGroup = new THREE.Group();
 camera.add(vmGroup); scene.add(camera);
 let vmMesh = null;
 let vmFlash = null, vmFlashT = 0;
+// ---------- Weapon camos (per-gun kill tiers past attachments) ----------
+const CAMOS = [
+  { id:'forest',  n:50,  name:'FOREST'  },
+  { id:'digital', n:150, name:'DIGITAL' },
+  { id:'gold',    n:400, name:'GOLD'    }
+];
+function camoFor(wname){
+  const k = wkills[wname] || 0;
+  let best = null;
+  for(const c of CAMOS) if(k >= c.n) best = c;
+  return best;
+}
+const camoTexCache = {};
+function camoMaterial(camo){
+  if(camo.id === 'gold'){
+    return new THREE.MeshLambertMaterial({ color: 0xffc107, emissive: 0x8d6a00, emissiveIntensity: 0.4 });
+  }
+  if(!camoTexCache[camo.id]){
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    if(camo.id === 'forest'){
+      c.fillStyle = '#4a5d33'; c.fillRect(0, 0, 64, 64);
+      const cols = ['#33691e', '#26401a', '#6b7a4a', '#1b5e20'];
+      for(let i = 0; i < 26; i++){
+        c.fillStyle = cols[i % cols.length];
+        c.beginPath();
+        c.ellipse(Math.random()*64, Math.random()*64, 5 + Math.random()*9, 3 + Math.random()*6, Math.random()*3, 0, 7);
+        c.fill();
+      }
+    } else {
+      c.fillStyle = '#546e7a'; c.fillRect(0, 0, 64, 64);
+      const cols = ['#90a4ae', '#37474f', '#78909c', '#263238'];
+      for(let y = 0; y < 64; y += 6) for(let x = 0; x < 64; x += 6){
+        if(Math.random() < 0.55){ c.fillStyle = cols[Math.floor(Math.random()*cols.length)]; c.fillRect(x, y, 6, 6); }
+      }
+    }
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    camoTexCache[camo.id] = t;
+  }
+  return new THREE.MeshLambertMaterial({ map: camoTexCache[camo.id] });
+}
+
 function buildViewmodel(){
   if(vmMesh){ vmGroup.remove(vmMesh); }
   const w = curW();
@@ -1684,6 +1733,13 @@ function buildViewmodel(){
     box(0.05,0.07,0.26,  w.color, 0,0.02,-0.1);        // slide
     box(0.045,0.13,0.07, 0x2b2b2b, 0,-0.07,0.02);      // grip
     tipZ = -0.23;
+  }
+  // camo: reskin the furniture (body/wood/metal) if this gun has one earned
+  const camoNow = camoFor(w.name);
+  if(camoNow){
+    const bodyCols = new Set([w.color, 0x2a3238, 0x8a5a2b, 0x5d3a1a]);
+    const cmMat = camoMaterial(camoNow);
+    g.traverse(o => { if(o.isMesh && o.material.color && bodyCols.has(o.material.color.getHex())) o.material = cmMat; });
   }
   // first-person arms + hands: limbs run exactly shoulder → hand (sleeves = your skin color)
   const SLEEVE = new THREE.Color(currentSkin().color).multiplyScalar(0.65).getHex(), SKIN = 0xf5d0a9;
@@ -1875,7 +1931,9 @@ function renderClassCards(){
     const unlocked = classUnlocked(i);
     const primary = WEAPONS[c.weapons[0]].name;
     const ab = ABILITIES[c.name];
-    const abLine = ab && !c.soon ? '<div style="font-size:9px;color:#80deea;margin-top:2px">Q: ' + ab.name + '</div>' : '';
+    const cmo = camoFor(primary);
+    const cmoTag = cmo ? ' <span style="color:' + (cmo.id === 'gold' ? '#ffc107' : cmo.id === 'digital' ? '#90a4ae' : '#8bc34a') + '">[' + cmo.name + ']</span>' : '';
+    const abLine = (ab && !c.soon ? '<div style="font-size:9px;color:#80deea;margin-top:2px">Q: ' + ab.name + cmoTag + '</div>' : '');
     const sub = (c.soon ? '★ PREMIUM' : (unlocked ? primary + attachStars(primary) : '🔒 Level ' + c.lvl)) + abLine;
     const meta = c.soon ? 'coming soon' : c.hp + ' HP' + (c.speed>1 ? ' · fast' : c.speed<1 ? ' · slow' : '');
     return '<div class="clscard' + (SET.cls===i?' active':'') + (unlocked?'':' locked') + '" data-c="' + i + '">'

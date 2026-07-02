@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v050** (2026-07-03 ~02:00): WEAPON CAMOS (wave 4 #15). Per-gun kill tiers past attachments:
+  50 = FOREST (blotch canvas texture), 150 = DIGITAL (pixel grid), 400 = GOLD (emissive shine).
+  Auto-equips best earned; applied to viewmodel furniture (receiver/wood/body — barrel and mag
+  stay black for contrast) via material swap in buildViewmodel; live reskin the moment the
+  threshold kill lands; CAMO UNLOCKED callouts; camo tag on deploy cards ([GOLD] colored).
+  Verified: gold AK (3 emissive parts) + digital M1911 (textured), screenshots. Full suite
+  green. SW → v050.
 - **v049** (2026-07-03 ~01:35): DAILY CHALLENGES (wave 4 #14) — the come-back-tomorrow hook.
   3 challenges rolled per calendar day from a 12-entry pool (kills, headshots, grenade kills,
   crouched kills, 5-streak, win, captures, and per-weapon-type: smg/sniper/shotgun/pistol/
