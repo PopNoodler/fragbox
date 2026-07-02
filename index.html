@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>KourHero — Low-Poly Arena FPS</title>
+<title>FragBox — Low-Poly Arena FPS</title>
 <meta name="description" content="Fast low-poly arena FPS. Fight AI bots in your browser.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -67,24 +67,32 @@
   #sbtable tr.self td { color:#4fc3f7; font-weight:700; }
 
   /* ---------- Menus ---------- */
-  .overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:radial-gradient(ellipse at center,#1a1a2e 0%,#0d0d1a 100%); z-index:10; }
+  .overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:radial-gradient(ellipse at center,#1a1a2e 0%,#0d0d1a 100%); z-index:10; overflow:auto; }
   .overlay.show { display:flex; }
-  .panel { text-align:center; color:#fff; max-width:520px; padding:24px; }
-  .logo { font-size:56px; font-weight:900; letter-spacing:3px; background:linear-gradient(90deg,#4fc3f7,#ffca28); -webkit-background-clip:text; background-clip:text; color:transparent; margin-bottom:4px; }
-  .tagline { opacity:.7; margin-bottom:28px; font-size:15px; }
-  .bigbtn { pointer-events:auto; display:inline-block; background:linear-gradient(135deg,#4fc3f7,#2196f3); color:#fff; border:none; font-size:20px; font-weight:800; padding:14px 52px; border-radius:8px; cursor:pointer; letter-spacing:1px; box-shadow:0 4px 20px rgba(33,150,243,.4); transition:transform .1s; }
-  .bigbtn:hover { transform:scale(1.05); }
-  .hint { margin-top:22px; opacity:.55; font-size:13px; line-height:1.8; }
-  kbd { background:rgba(255,255,255,.12); border-radius:4px; padding:1px 7px; font-family:inherit; font-size:12px; }
+  .panel { text-align:center; color:#fff; max-width:460px; padding:20px; margin:auto; }
+  .logo { font-size:44px; font-weight:900; letter-spacing:4px; background:linear-gradient(90deg,#4fc3f7,#ffca28); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .tagline { opacity:.6; margin:2px 0 16px; font-size:13px; }
+  .bigbtn { pointer-events:auto; display:inline-block; background:linear-gradient(135deg,#4fc3f7,#2196f3); color:#fff; border:none; font-size:18px; font-weight:800; padding:13px 40px; border-radius:10px; cursor:pointer; letter-spacing:1px; box-shadow:0 4px 20px rgba(33,150,243,.4); transition:transform .1s; }
+  .bigbtn:hover { transform:scale(1.04); }
+  .hint { margin-top:16px; opacity:.45; font-size:11.5px; line-height:1.9; }
+  kbd { background:rgba(255,255,255,.12); border-radius:4px; padding:1px 6px; font-family:inherit; font-size:11px; }
   #overstats { font-size:18px; margin-bottom:18px; line-height:1.7; }
   #overtitle { font-size:42px; font-weight:900; margin-bottom:10px; }
 
-  /* ---------- Match settings ---------- */
-  #settings { margin:6px 0 20px; display:flex; flex-direction:column; gap:8px; align-items:center; }
-  .setrow { display:flex; align-items:center; gap:6px; }
-  .setlabel { opacity:.6; font-size:13px; width:76px; text-align:right; }
-  .setbtn { pointer-events:auto; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer; }
+  /* ---------- Setup card (name + match settings) ---------- */
+  #setupcard { margin:0 auto 18px; padding:14px 16px; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.09); border-radius:14px; display:flex; flex-direction:column; gap:10px; max-width:340px; }
+  #namefield { pointer-events:auto; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.18); color:#fff; padding:9px 12px; border-radius:8px; font-size:15px; text-align:center; width:100%; outline:none; }
+  #namefield:focus { border-color:#4fc3f7; }
+  #settings { display:flex; flex-direction:column; gap:7px; }
+  .setrow { display:flex; align-items:center; gap:5px; }
+  .setlabel { opacity:.55; font-size:12px; margin-right:auto; }
+  .setbtn { pointer-events:auto; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; padding:6px 0; width:56px; border-radius:6px; font-size:12px; cursor:pointer; }
   .setbtn.active { background:#2196f3; color:#fff; border-color:#2196f3; font-weight:700; }
+  #btnrow { display:flex; gap:10px; justify-content:center; }
+  #btnrow .bigbtn { flex:1; max-width:200px; }
+  #filewarn { position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; background:#0d0d1a; color:#fff; text-align:center; padding:24px; }
+  #filewarn .fw { max-width:460px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:28px; line-height:1.8; }
+  #filewarn code { background:rgba(255,255,255,.12); padding:2px 8px; border-radius:5px; }
 
   /* ---------- Touch controls ---------- */
   #touchui { display:none; }
@@ -138,26 +146,34 @@
 
 <div id="menu" class="overlay show">
   <div class="panel">
-    <div class="logo">KOURHERO</div>
-    <div class="tagline">Low-poly arena FPS — free-for-all vs bots</div>
-    <div style="margin-bottom:14px">
-      <input id="namefield" maxlength="14" placeholder="Your name" autocomplete="off"
-        style="pointer-events:auto; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.25); color:#fff; padding:9px 14px; border-radius:8px; font-size:15px; text-align:center; width:220px; outline:none">
+    <div class="logo">FRAGBOX</div>
+    <div class="tagline">Fast low-poly arena FPS</div>
+    <div id="setupcard">
+      <input id="namefield" maxlength="14" placeholder="Your name" autocomplete="off">
+      <div id="settings">
+        <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
+        <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
+        <div class="setrow"><span class="setlabel">Match time</span><button class="setbtn" data-k="len" data-v="180">3m</button><button class="setbtn" data-k="len" data-v="300">5m</button><button class="setbtn" data-k="len" data-v="600">10m</button></div>
+      </div>
     </div>
-    <div id="settings">
-      <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
-      <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
-      <div class="setrow"><span class="setlabel">Time</span><button class="setbtn" data-k="len" data-v="180">3m</button><button class="setbtn" data-k="len" data-v="300">5m</button><button class="setbtn" data-k="len" data-v="600">10m</button></div>
-    </div>
-    <button id="playbtn" class="bigbtn">PLAY</button>
-    <div style="margin-top:12px">
-      <button id="mpbtn" class="bigbtn" style="font-size:15px; padding:10px 30px; background:linear-gradient(135deg,#7e57c2,#5e35b1); box-shadow:0 4px 20px rgba(94,53,177,.4)">MULTIPLAYER</button>
+    <div id="btnrow">
+      <button id="playbtn" class="bigbtn">PLAY</button>
+      <button id="mpbtn" class="bigbtn" style="background:linear-gradient(135deg,#7e57c2,#5e35b1); box-shadow:0 4px 20px rgba(94,53,177,.4)">ONLINE</button>
     </div>
     <div id="mphint" style="margin-top:8px; font-size:12px; opacity:.6"></div>
     <div class="hint">
       <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim/scope · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>
       <kbd>R</kbd> reload · <kbd>1–5</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
     </div>
+  </div>
+</div>
+
+<div id="filewarn">
+  <div class="fw">
+    <div style="font-size:26px; font-weight:900; margin-bottom:10px">🎮 Almost there!</div>
+    FragBox can't run when opened as a plain file — browsers block its modules.<br><br>
+    <b>Double-click <code>PLAY.bat</code></b> in the game folder instead.<br>
+    <span style="opacity:.6; font-size:13px">(It starts the game — multiplayer included — and opens your browser.)</span>
   </div>
 </div>
 
@@ -169,6 +185,14 @@
   </div>
 </div>
 
+<script>
+// Classic script (runs even where modules can't): explain file:// instead of failing silently.
+if (location.protocol === 'file:') {
+  addEventListener('DOMContentLoaded', function(){
+    document.getElementById('filewarn').style.display = 'flex';
+  });
+}
+</script>
 <script type="importmap">{ "imports": { "three": "./lib/three.module.js" } }</script>
 <script type="module">
 import * as THREE from 'three';
@@ -176,7 +200,7 @@ import { ARENA, BOXES, SPAWNS as SPAWN_XZ, PADS as PAD_DEFS, PICKUPS as PICKUP_D
 import { WEAPONS } from './shared/weapons.mjs';
 
 /* =============================================================
-   KourHero — single-file low-poly arena FPS vs bots
+   FragBox — single-file low-poly arena FPS vs bots
    ============================================================= */
 
 const el = id => document.getElementById(id);

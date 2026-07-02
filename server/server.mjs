@@ -1,4 +1,4 @@
-// KourHero multiplayer server — static hosting + WebSocket state sync.
+// FragBox multiplayer server — static hosting + WebSocket state sync.
 // Usage: node server/server.mjs [port]   (default 8080)
 // Iteration scope: join/leave + validated movement sync @20Hz. Combat next.
 import http from 'http';
@@ -385,4 +385,4 @@ setInterval(() => {
   broadcast(snap);
 }, TICK);
 
-server.listen(PORT, () => console.log(`KourHero server on http://localhost:${PORT} (ws same port)`));
+server.listen(PORT, () => console.log(`FragBox server on http://localhost:${PORT} (ws same port)`));

@@ -1,6 +1,6 @@
 {
-  "name": "KourHero",
-  "short_name": "KourHero",
+  "name": "FragBox",
+  "short_name": "FragBox",
   "description": "Low-poly arena FPS — fight AI bots in your browser",
   "start_url": "./",
   "display": "fullscreen",

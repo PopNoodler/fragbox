@@ -30,7 +30,7 @@ fs.unlinkSync('.v.mjs');
 
 // SW cache version must exist
 const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-const ver = sw.match(/CACHE = 'kourhero-v(\d+)'/);
+const ver = sw.match(/CACHE = 'fragbox-v(\d+)'/);
 if (!ver) { console.error('FAIL: sw.js cache version missing'); ok = false; }
 else console.log('sw cache version:', ver[1]);
 

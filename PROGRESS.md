@@ -1,4 +1,4 @@
-# KourHero — Progress Log
+# FragBox — Progress Log
 
 Kour.io-inspired low-poly browser arena FPS. Single-file `index.html` + vendored Three.js r160
 (`lib/three.module.js`, offline-capable PWA). Built on the process in `C:\Users\adamt\GAME_DEV_PLAYBOOK.md`.

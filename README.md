@@ -1,11 +1,15 @@
-# KourHero
+# FragBox
 
-A low-poly browser arena FPS inspired by Kour.io. Single `index.html` + vendored Three.js r160,
+A fast low-poly browser arena FPS. Single `index.html` + vendored Three.js r160,
 installable as an offline PWA, with an optional Node WebSocket server for real multiplayer.
 
-## Play (single-player)
+## Play
 
-Serve the folder with any static server and open it:
+**Windows: double-click `PLAY.bat`.** It starts the local server (multiplayer included) and
+opens your browser. Don't open `index.html` directly — browsers block module scripts on
+`file://`, so the menu can't work there (the page shows a notice instead of failing silently).
+
+Single-player also works from any static server:
 
 ```
 npx serve .        # or: python -m http.server
