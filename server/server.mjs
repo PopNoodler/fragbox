@@ -6,7 +6,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
-import { ARENA, BOXES, SPAWNS, PHYS } from '../shared/map.mjs';
+import { getMap, PHYS } from '../shared/map.mjs';
+const mapArg = (process.argv.find(a => a.startsWith('--map=')) || '').split('=')[1];
+const MAP = getMap(mapArg);
+const ARENA = MAP.ARENA, BOXES = MAP.BOXES, SPAWNS = MAP.SPAWNS;
 import { WEAPONS, HITBOX } from '../shared/weapons.mjs';
 import { SKINS } from '../shared/cosmetics.mjs';
 const SKIN_COLORS = new Set(SKINS.filter(s => !s.premium).map(s => s.color));
@@ -151,7 +154,7 @@ wss.on('connection', ws => {
       players.set(id, p);
       if(players.size === 1) roundEnd = Date.now() + ROUND_LEN;   // first human starts the round
       balanceBots();
-      send(ws, { t:'welcome', id, pos:p.pos, color:p.color,
+      send(ws, { t:'welcome', id, pos:p.pos, color:p.color, map: MAP.id,
         roster: ents().map(q=>({ id:q.id, name:q.name, color:q.color, pos:q.pos, yaw:q.yaw, lvl:q.lvl })) });
       broadcast({ t:'joined', id, name:p.name, color:p.color, pos:p.pos }, id);
       console.log(`[+] ${p.name} (#${id}) joined — ${players.size} human(s), ${bots.length} bot(s)`);
@@ -398,4 +401,4 @@ setInterval(() => {
   broadcast(snap);
 }, TICK);
 
-server.listen(PORT, () => console.log(`FragBox server on http://localhost:${PORT} (ws same port)`));
+server.listen(PORT, () => console.log(`FragBox server on http://localhost:${PORT} (ws same port) — map: ${MAP.name}`));

@@ -225,6 +225,7 @@
       <div id="lockerrow"></div>
       <div id="chalrow"></div>
       <div id="settings">
+        <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button></div>
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
         <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
         <div class="setrow"><span class="setlabel">Match time</span><button class="setbtn" data-k="len" data-v="180">3m</button><button class="setbtn" data-k="len" data-v="300">5m</button><button class="setbtn" data-k="len" data-v="600">10m</button></div>
@@ -280,7 +281,7 @@ if (location.protocol === 'file:') {
 <script type="importmap">{ "imports": { "three": "./lib/three.module.js" } }</script>
 <script type="module">
 import * as THREE from 'three';
-import { ARENA, BOXES, SPAWNS as SPAWN_XZ, PADS as PAD_DEFS, PICKUPS as PICKUP_DEFS } from './shared/map.mjs';
+import { getMap, MAPS } from './shared/map.mjs';
 import { WEAPONS } from './shared/weapons.mjs';
 import { SKINS } from './shared/cosmetics.mjs';
 
@@ -298,6 +299,9 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
+
+let MAP = getMap((()=>{ try { return JSON.parse(localStorage.kh_set||'{}').map; } catch(e){ return null; } })());
+let ARENA = MAP.ARENA;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xa9c8de);
@@ -433,6 +437,22 @@ const TEX = {
       c.beginPath(); c.arc(x, y, 3, 0, 7); c.fill();                  // rivets
     }
   }),
+  asphalt: makeTex((c,s)=>{
+    c.fillStyle = '#6a6e73'; c.fillRect(0,0,s,s);
+    speckle(c, s, ['#64686d','#71757a','#5d6166'], 300, 1.5, 3.5);
+    c.strokeStyle = 'rgba(210,190,90,.5)'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(0, s-6); c.lineTo(s, s-6); c.stroke();   // painted line
+    speckle(c, s, ['#54585d'], 40, 0.5, 1.2);
+  }),
+  container: makeTex((c,s)=>{
+    c.fillStyle = '#c9c9c9'; c.fillRect(0,0,s,s);
+    for(let x=0; x<s; x+=16){                        // corrugated ribs (tinted by material color)
+      c.fillStyle = 'rgba(90,90,90,.35)'; c.fillRect(x, 0, 6, s);
+      c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(x+6, 0, 3, s);
+    }
+    c.strokeStyle = 'rgba(40,40,40,.6)'; c.lineWidth = 5; c.strokeRect(0,0,s,s);
+    speckle(c, s, ['rgba(70,50,40,.25)'], 30, 2, 6);  // grime
+  }),
   green: makeTex((c,s)=>{
     c.fillStyle = '#5b8a57'; c.fillRect(0,0,s,s);
     speckle(c, s, ['#548150','#62915e','#4d7749'], 170, 1.5, 4);
@@ -444,20 +464,22 @@ const TEX = {
 // map box base-colors (from shared/map.mjs) to a textured material
 function matFor(color, sx, sy, sz){
   const pick = { 0xc98f4e:['crate',2.5,2.5], 0x9aa7b0:['wall',4,3], 0x7d8ca3:['metal',4,4],
-                 0x6b7a91:['metal',4,4], 0x5e8d5a:['green',5,3] }[color];
+                 0x6b7a91:['metal',4,4], 0x5e8d5a:['green',5,3], 0x8a8f96:['wall',4,3],
+                 0xb5452e:['container',3,1], 0x2e6f9e:['container',3,1], 0xc9a13b:['container',3,1] }[color];
   if(!pick) return new THREE.MeshLambertMaterial({ color });
   const t = TEX[pick[0]].clone(); t.needsUpdate = true;
   t.repeat.set(Math.max(1, Math.round(Math.max(sx,sz)/pick[1])), Math.max(1, Math.round(sy/pick[2])));
-  const tint = color === 0x6b7a91 ? 0xd6dde6 : 0xffffff;
+  const CONTAINERS = { 0xb5452e:1, 0x2e6f9e:1, 0xc9a13b:1 };
+  const tint = CONTAINERS[color] ? color : (color === 0x6b7a91 ? 0xd6dde6 : 0xffffff);
   return new THREE.MeshLambertMaterial({ map: t, color: tint });
 }
 
-// ---------- Arena (layout data lives in shared/map.mjs) ----------
+// ---------- Arena (rebuildable per map — layouts in shared/map.mjs) ----------
 const colliders = [];             // {min:Vector3, max:Vector3} AABBs
+const worldGroup = new THREE.Group(); scene.add(worldGroup);
 
-const grassTex = TEX.grass.clone(); grassTex.needsUpdate = true; grassTex.repeat.set(26, 26);
-const matGround = new THREE.MeshLambertMaterial({ map: grassTex });
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(ARENA*2+40, ARENA*2+40), matGround);
+const matGround = new THREE.MeshLambertMaterial();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), matGround);
 ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
 // darker outer ground ring so the world doesn't end at a hard edge
 const outer = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshLambertMaterial({ color: 0x74854e }));
@@ -466,7 +488,7 @@ outer.rotation.x = -Math.PI/2; outer.position.y = -0.05; scene.add(outer);
 function addBox(x, y, z, sx, sy, sz, color, solid=true){
   const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), matFor(color, sx, sy, sz));
   m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
-  scene.add(m);
+  worldGroup.add(m);
   if(solid) colliders.push({
     min: new THREE.Vector3(x-sx/2, y-sy/2, z-sz/2),
     max: new THREE.Vector3(x+sx/2, y+sy/2, z+sz/2), mesh:m
@@ -474,23 +496,21 @@ function addBox(x, y, z, sx, sy, sz, color, solid=true){
   return m;
 }
 
-// Build all solid geometry from the shared map definition
-for(const b of BOXES) addBox(b.x, b.y, b.z, b.sx, b.sy, b.sz, b.color, b.solid);
-
 // Jump pads: launch anything standing on them
 const PADS = [];
-PAD_DEFS.map(p=>[p.x,p.z,p.v]).forEach(([x,z,v])=>{
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.25, 12),
-    new THREE.MeshLambertMaterial({ color:0x2fb8f0, emissive:0x1565c0, emissiveIntensity:0.9 }));
-  m.position.set(x, 0.125, z); m.receiveShadow = true; scene.add(m);
-  // slowly spinning glow ring above the pad
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.05, 6, 24),
-    new THREE.MeshBasicMaterial({ color:0x9be6ff, transparent:true, opacity:0.7 }));
-  ring.rotation.x = Math.PI/2;
-  ring.position.set(x, 0.42, z);
-  scene.add(ring);
-  PADS.push({ x, z, v, m, ring, pulse: 0 });
-});
+function buildPads(defs){
+  defs.forEach(({x, z, v})=>{
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.25, 12),
+      new THREE.MeshLambertMaterial({ color:0x2fb8f0, emissive:0x1565c0, emissiveIntensity:0.9 }));
+    m.position.set(x, 0.125, z); m.receiveShadow = true; worldGroup.add(m);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.05, 6, 24),
+      new THREE.MeshBasicMaterial({ color:0x9be6ff, transparent:true, opacity:0.7 }));
+    ring.rotation.x = Math.PI/2;
+    ring.position.set(x, 0.42, z);
+    worldGroup.add(ring);
+    PADS.push({ x, z, v, m, ring, pulse: 0 });
+  });
+}
 function checkPad(pos, vel, isPlayer){
   for(const p of PADS){
     const dx = pos.x-p.x, dz = pos.z-p.z;
@@ -503,8 +523,8 @@ function checkPad(pos, vel, isPlayer){
   return false;
 }
 
-// Decorative low-poly pines + rocks outside the walls (non-solid, sells the world)
-{
+// Decorative props per map theme (non-solid, sells the world)
+function buildMeadowDeco(){
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x6d4c33 });
   const rockMat = new THREE.MeshLambertMaterial({ color: 0x8b8f94, flatShading: true });
   const pineMats = [0x3e7a3e, 0x356e35, 0x468446].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
@@ -523,7 +543,7 @@ function checkPad(pos, vel, isPlayer){
     g.scale.setScalar(scale);
     g.position.set(x, 0, z);
     g.rotation.y = i*1.7;
-    scene.add(g);
+    worldGroup.add(g);
   }
   for(let i=0;i<10;i++){
     const a = (i/10)*Math.PI*2 + 0.3, r = ARENA + 5 + (i%3)*9;
@@ -531,11 +551,35 @@ function checkPad(pos, vel, isPlayer){
     rock.position.set(Math.cos(a)*r, 0.35, Math.sin(a)*r);
     rock.rotation.set(i, i*2, i*0.7);
     rock.castShadow = true;
-    scene.add(rock);
+    worldGroup.add(rock);
+  }
+}
+function buildDepotDeco(){
+  // light poles with warm lamps + stacked pallets outside the walls
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0x3c4248 });
+  const lampMat = new THREE.MeshLambertMaterial({ color: 0xffd27a, emissive: 0xcc8f2a, emissiveIntensity: 0.9 });
+  for(let i=0;i<8;i++){
+    const a = i/8*Math.PI*2 + 0.4, r = ARENA + 6 + (i%2)*6;
+    const g = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 8, 6), poleMat);
+    pole.position.y = 4; pole.castShadow = true; g.add(pole);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.3, 0.5), lampMat);
+    lamp.position.y = 8; g.add(lamp);
+    g.position.set(Math.cos(a)*r, 0, Math.sin(a)*r);
+    worldGroup.add(g);
+  }
+  const palletMat = new THREE.MeshLambertMaterial({ color: 0x9a7748 });
+  for(let i=0;i<7;i++){
+    const a = i/7*Math.PI*2 + 1.1, r = ARENA + 5 + (i%3)*7;
+    const p = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5 + (i%3)*0.4, 2.2), palletMat);
+    p.position.set(Math.cos(a)*r, 0.3, Math.sin(a)*r);
+    p.rotation.y = i*0.8;
+    p.castShadow = true;
+    worldGroup.add(p);
   }
 }
 
-const SPAWNS = SPAWN_XZ.map(([x,z])=>new THREE.Vector3(x, 0, z));
+let SPAWNS = [];
 
 // ---------- Audio (procedural WebAudio, no assets) ----------
 let AC = null, masterGain = null;
@@ -747,7 +791,7 @@ function resolveAABB(pos, vel, dt){
 const UP = new THREE.Vector3(0,1,0);
 
 // Raycast vs world geometry (for bullets & bot LOS)
-const worldMeshes = colliders.map(c=>c.mesh);
+const worldMeshes = [];   // repopulated by buildWorld
 const raycaster = new THREE.Raycaster();
 function castWorld(origin, dir, maxDist){
   raycaster.set(origin, dir); raycaster.far = maxDist;
@@ -1064,10 +1108,40 @@ function makePickup(x, z, kind, y=0.7){
   g.add(ring);
   g.traverse(m=>{ if(m.isMesh) m.castShadow = true; });
   g.position.set(x, y, z);
-  scene.add(g);
+  worldGroup.add(g);
   pickups.push({ g, kind, homeY:y, taken:false, respawnT:0, spin:Math.random()*6 });
 }
-for(const p of PICKUP_DEFS) makePickup(p.x, p.z, p.kind, p.y !== undefined ? p.y : 0.7);
+// ---------- World builder (initial + map switches) ----------
+function buildWorld(mapId){
+  MAP = getMap(mapId);
+  ARENA = MAP.ARENA;
+  // tear down previous world
+  while(worldGroup.children.length){
+    const c = worldGroup.children[worldGroup.children.length-1];
+    worldGroup.remove(c);
+  }
+  colliders.length = 0;
+  worldMeshes.length = 0;
+  PADS.length = 0;
+  pickups.length = 0;
+  SPAWNS = MAP.SPAWNS.map(([x,z])=>new THREE.Vector3(x, 0, z));
+  for(const d of decals){ scene.remove(d.m); d.m.material.dispose(); } decals.length = 0;
+  for(const t of tracers){ scene.remove(t.line); } tracers.length = 0;
+  for(const p of puffs){ scene.remove(p.m); } puffs.length = 0;
+  // theme
+  scene.fog.color.setHex(MAP.fog);
+  scene.background.setHex(MAP.fog);
+  outer.material.color.setHex(MAP.outer);
+  const gt = TEX[MAP.ground].clone(); gt.needsUpdate = true; gt.repeat.set(26, 26);
+  matGround.map = gt; matGround.needsUpdate = true;
+  // geometry
+  for(const b of MAP.BOXES) addBox(b.x, b.y, b.z, b.sx, b.sy, b.sz, b.color, b.solid);
+  worldMeshes.push(...colliders.map(c=>c.mesh));
+  buildPads(MAP.PADS);
+  for(const p of MAP.PICKUPS) makePickup(p.x, p.z, p.kind, p.y !== undefined ? p.y : 0.7);
+  if(MAP.deco === 'meadow') buildMeadowDeco(); else buildDepotDeco();
+}
+buildWorld(MAP.id);
 
 function updatePickups(dt){
   if(mode === 'mp') return;   // pickups are solo-only until the server owns them
@@ -1119,7 +1193,7 @@ const ST = { MENU:0, PLAY:1, OVER:2 };
 let state = ST.MENU;
 const KILL_TARGET = 25;
 const DIFFS = [ { skill:0.4, dmg:0.7 }, { skill:0.6, dmg:1.0 }, { skill:0.78, dmg:1.3 } ];
-let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100 };
+let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow' };
 try { SET = Object.assign(SET, JSON.parse(localStorage.kh_set||'{}')); } catch(e){}
 let matchT = SET.len;
 
@@ -1170,11 +1244,15 @@ el('gearbtn2').addEventListener('click', ()=>openSettings());
 el('setclose').addEventListener('click', ()=>{ el('settingspanel').style.display = 'none'; });
 
 document.querySelectorAll('.setbtn').forEach(btn=>{
-  const k = btn.dataset.k, v = +btn.dataset.v;
+  const k = btn.dataset.k;
+  const v = isNaN(+btn.dataset.v) ? btn.dataset.v : +btn.dataset.v;
   if(SET[k]===v) btn.classList.add('active');
   btn.addEventListener('click', ()=>{
     SET[k] = v; localStorage.kh_set = JSON.stringify(SET);
-    document.querySelectorAll(`.setbtn[data-k="${k}"]`).forEach(b=>b.classList.toggle('active', +b.dataset.v===v));
+    document.querySelectorAll(`.setbtn[data-k="${k}"]`).forEach(b=>{
+      const bv = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v;
+      b.classList.toggle('active', bv===v);
+    });
   });
 });
 
@@ -1702,6 +1780,7 @@ function mpConnect(){
     if(m.t === 'welcome'){
       NET.id = m.id;
       mode = 'mp';
+      if(m.map && m.map !== MAP.id) buildWorld(m.map);
       el('mphint').textContent = '';
       startMatch();
       player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
@@ -1877,6 +1956,7 @@ function startMatch(){
   el('deathpick').style.display = 'none';
   el('scope').style.display = 'none';
   camera.fov = SET.fov; camera.updateProjectionMatrix();
+  if(mode !== 'mp' && MAP.id !== (SET.map || 'meadow')) buildWorld(SET.map || 'meadow');
   player.pos.copy(spawnPoint(null)); player.vel.set(0,0,0);
   player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
   resetLoadout(); buildViewmodel();

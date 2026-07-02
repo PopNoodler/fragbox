@@ -18,6 +18,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v029** (2026-07-02 ~20:45): Second map "Depot" + multi-map system (roadmap #2, Kour
+  reference: multiple maps). shared/map.mjs → MAPS registry (meadow, depot) + getMap();
+  each map carries BOXES/SPAWNS/PADS/PICKUPS + theme (ground tex, fog/outer colors, deco set).
+  Depot: 40-half tighter industrial arena — corrugated shipping containers (rust/blue/yellow,
+  new ribbed container texture tinted by material color, some stacked), central concrete
+  loading platform + rust hut, yellow barriers, catwalk blocks, asphalt ground w/ painted
+  lines, grayer fog, light-pole + pallet decorations. Client world is now REBUILDABLE:
+  worldGroup + buildWorld(mapId) tears down colliders/worldMeshes/pads/pickups/decals/tracers/
+  puffs and rebuilds; ground material texture-swaps; SPAWNS/ARENA are live bindings. Menu Map
+  row (Meadow/Depot, persisted kh_set.map — setbtn wiring now string-safe); solo applies at
+  match start; MP obeys server (--map=depot flag, map id in welcome). Verified: depot 25
+  colliders / meadow 26 both directions, server --map=depot pushes depot to clients, screenshots,
+  full suite green. SW → v029.
 - **v028** (2026-07-02 ~20:25): Settings panel (product roadmap #1). Mouse sensitivity
   (0.3–2.2x), field of view (60–110, live-applied: menu preview immediate, in-game via the
   existing FOV lerp; ADS steady-aim = min(55, fov−10), AWP scope stays 26), master volume
