@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v041** (2026-07-03 ~01:50): WEAPON ATTACHMENTS (max-grind #5 — queue complete). Per-gun
+  kill milestones auto-unlock: 25 kills = EXTENDED MAG (+50% mag, flows through resetLoadout/
+  reload/gungame paths via wMag()), 100 kills = LASER (hip spread ×0.85 + bloom accumulation
+  ×0.7 — client-side stat mods; MP-safe since bl multiplier only ever adds spread server-side).
+  Stars everywhere: deploy cards ("AK-47 ★"), slot pills ("M1911 ★★"), unlock callouts at the
+  25/100 thresholds. Fixtures verified: 45-round AK mag at 30 kills, tier-2 pistol 18 rounds +
+  measurably tighter crosshair. Full suite green. SW → v041.
 - **v040** (2026-07-03 ~01:25): THIRD MAP "SKYLINE" — vertical dusk cityscape (max-grind #4).
   Five buildings (6-9 stories of blocks: 4 corner blocks + centre tower), two rooftop bridges,
   walkable stair runs to terraces, 8 jump pads incl. direct street→tower-crown chains (v21.5),

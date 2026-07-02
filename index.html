@@ -900,8 +900,26 @@ function recordWeaponKill(wname){
     setTimeout(() => { showCallout(wname.toUpperCase() + ' ' + TIER_NAMES[tier] + ' COMPLETE  +' + bonus); SFX.streak(); }, 900);
     addXp(bonus);
   }
+  const at = ATTACH.find(a => a[0] === k);
+  if(at){
+    setTimeout(() => { showCallout('ATTACHMENT: ' + wname.toUpperCase() + ' ' + at[1]); SFX.streak(); }, 1800);
+    updateAmmoHUD();
+    renderClassCards();
+  }
   updateChallengesUI();
 }
+// ---------- Weapon attachments (earned by per-gun kills) ----------
+const ATTACH = [ [25, 'EXTENDED MAG'], [100, 'LASER'] ];
+function attachTier(wname){
+  const k = wkills[wname] || 0;
+  return k >= 100 ? 2 : k >= 25 ? 1 : 0;
+}
+function attachStars(wname){
+  const t = attachTier(wname);
+  return t === 2 ? ' ★★' : t === 1 ? ' ★' : '';
+}
+function wMag(w){ return attachTier(w.name) >= 1 ? Math.round(w.mag * 1.5) : w.mag; }
+
 function updateChallengesUI(){
   const box = el('chalrow');
   if(!box) return;
@@ -1269,7 +1287,7 @@ function resetLoadout(){
     player.loadout = [wi];
     player.maxHp = 100;
     player.speedMul = 1;
-    player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
+    player.ammo = player.loadout.map(i=>wMag(WEAPONS[i]));
     player.res = player.loadout.map(i=>WEAPONS[i].reserve);
     player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
     player.nades = NADE.perLife;
@@ -1283,7 +1301,7 @@ function resetLoadout(){
   player.loadout = cls.weapons.slice();
   player.maxHp = cls.hp;
   player.speedMul = cls.speed;
-  player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
+  player.ammo = player.loadout.map(i=>wMag(WEAPONS[i]));
   player.res = player.loadout.map(i=>WEAPONS[i].reserve);
   player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
   player.nades = NADE.perLife;
@@ -1558,7 +1576,7 @@ function renderClassCards(){
   const html = CLASSES.map((c,i)=>{
     const unlocked = classUnlocked(i);
     const primary = WEAPONS[c.weapons[0]].name;
-    const sub = c.soon ? '★ PREMIUM' : (unlocked ? primary : '🔒 Level ' + c.lvl);
+    const sub = c.soon ? '★ PREMIUM' : (unlocked ? primary + attachStars(primary) : '🔒 Level ' + c.lvl);
     const meta = c.soon ? 'coming soon' : c.hp + ' HP' + (c.speed>1 ? ' · fast' : c.speed<1 ? ' · slow' : '');
     return '<div class="clscard' + (SET.cls===i?' active':'') + (unlocked?'':' locked') + '" data-c="' + i + '">'
       + '<b>' + c.name + '</b><span>' + sub + '</span><i>' + meta + '</i></div>';
@@ -1773,7 +1791,7 @@ function switchWeapon(i){
 }
 function tryReload(){
   const w = curW();
-  if(player.reloadT>0 || player.ammo[player.wIdx]>=w.mag || player.res[player.wIdx]<=0) return;
+  if(player.reloadT>0 || player.ammo[player.wIdx]>=wMag(w) || player.res[player.wIdx]<=0) return;
   player.reloadT = w.reload; SFX.reload();
   el('reloadmsg').style.display = 'block';
 }
@@ -1782,7 +1800,8 @@ function tryReload(){
 // ---------- Bloom: dynamic spread from sustained fire + movement ----------
 let bloom = 0;   // 0..1, decays over time, grows per shot
 function currentSpread(w){
-  const base = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
+  const laser = attachTier(w.name) >= 2 ? 0.85 : 1;
+  const base = (ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread) * laser;
   let mult = 1 + bloom*2.2;
   if(!player.grounded) mult += 1.3;               // airborne
   else if(player.slideT > 0) mult += 0.7;         // sliding
@@ -1821,7 +1840,7 @@ function playerShoot(){
   let hitSomething = false;
   const spr = currentSpread(w);
   const sprBase = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
-  bloom = Math.min(1, bloom + (w.bloom || 0.1));
+  bloom = Math.min(1, bloom + (w.bloom || 0.1) * (attachTier(w.name) >= 2 ? 0.7 : 1));
   for(let p=0; p<w.pellets; p++){
     const dir = fireDir(spr).clone();
     const wallHit = castWorldHit(eye, dir, 200);
@@ -2135,7 +2154,7 @@ function updateHpHUD(){
 function updateAmmoHUD(){
   const w = curW();
   el('slots').innerHTML = player.loadout.map((wi,i)=>
-    `<span class="slotpill${i===player.wIdx?' on':''}">${i+1} ${WEAPONS[wi].name.toUpperCase()}</span>`).join('');
+    `<span class="slotpill${i===player.wIdx?' on':''}">${i+1} ${WEAPONS[wi].name.toUpperCase()}${attachStars(WEAPONS[wi].name)}</span>`).join('');
   el('wname').textContent = w.name;
   el('ammonum').textContent = player.ammo[player.wIdx];
   el('ammores').textContent = '/ ' + player.res[player.wIdx];
@@ -2410,7 +2429,7 @@ function mpConnect(){
       const wi = GG_LADDER[Math.min(NET.gg, GG_LADDER.length - 1)];
       player.loadout = [wi];
       player.wIdx = 0;
-      player.ammo = [WEAPONS[wi].mag];
+      player.ammo = [wMag(WEAPONS[wi])];
       player.res = [WEAPONS[wi].reserve];
       player.reloadT = 0; ads = false;
       buildViewmodel();
@@ -2697,7 +2716,7 @@ function updatePlayer(dt){
     player.reloadT -= dt;
     if(player.reloadT<=0){
       const w = curW();
-      const need = w.mag - player.ammo[player.wIdx];
+      const need = wMag(w) - player.ammo[player.wIdx];
       const take = Math.min(need, player.res[player.wIdx]);
       player.ammo[player.wIdx] += take; player.res[player.wIdx] -= take;
       el('reloadmsg').style.display = 'none';
