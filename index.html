@@ -38,6 +38,13 @@
   #ammores { font-size:16px; opacity:.75; }
   #wname { font-size:14px; opacity:.85; letter-spacing:1px; text-transform:uppercase; }
   #reloadmsg { position:absolute; left:50%; top:58%; transform:translateX(-50%); color:#ffca28; font-size:16px; font-weight:700; text-shadow:0 2px 4px rgba(0,0,0,.7); display:none; }
+  #callout { position:absolute; left:50%; top:26%; transform:translate(-50%,-50%) scale(1); color:#ffca28; font-size:38px; font-weight:900; letter-spacing:2px; text-shadow:0 3px 10px rgba(0,0,0,.8); opacity:0; transition:opacity .3s, transform .3s; }
+  #callout.show { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
+  #respawnmsg { position:absolute; left:50%; top:44%; transform:translateX(-50%); color:#fff; font-size:26px; font-weight:800; text-shadow:0 2px 8px rgba(0,0,0,.8); display:none; }
+  #scope { position:absolute; inset:0; display:none; }
+  #scopering { position:absolute; left:50%; top:50%; width:70vmin; height:70vmin; transform:translate(-50%,-50%); border-radius:50%; box-shadow:0 0 0 9999px rgba(0,0,0,.96), inset 0 0 40px rgba(0,0,0,.8); }
+  #scope .sh { position:absolute; left:50%; top:50%; width:70vmin; height:1.5px; transform:translate(-50%,-50%); background:rgba(0,0,0,.85); }
+  #scope .sv { position:absolute; left:50%; top:50%; width:1.5px; height:70vmin; transform:translate(-50%,-50%); background:rgba(0,0,0,.85); }
 
   #killfeed { position:absolute; right:16px; top:16px; display:flex; flex-direction:column; gap:4px; align-items:flex-end; }
   .kf { background:rgba(0,0,0,.55); color:#fff; padding:4px 10px; border-radius:4px; font-size:13px; animation:kfin .2s; }
@@ -109,6 +116,9 @@
   <div id="healthbar"><div id="hpnum">100</div><div id="hpbg"><div id="hpfill"></div></div></div>
   <div id="ammobox"><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div></div>
   <div id="reloadmsg">RELOADING…</div>
+  <div id="callout"></div>
+  <div id="respawnmsg"></div>
+  <div id="scope"><div id="scopering"></div><span class="sh"></span><span class="sv"></span></div>
   <div id="killfeed"></div>
   <div id="scorepill"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D <span id="timeleft">5:00</span></div>
   <div id="touchui">
@@ -134,8 +144,8 @@
     </div>
     <button id="playbtn" class="bigbtn">PLAY</button>
     <div class="hint">
-      <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> aim/shoot · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>
-      <kbd>R</kbd> reload · <kbd>1 2 3</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
+      <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim/scope · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>
+      <kbd>R</kbd> reload · <kbd>1–5</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
     </div>
   </div>
 </div>
@@ -298,15 +308,18 @@ const SFX = {
   die(){ noiseBurst(0.4, 0.3, 500); tone(90, 0.4, 0.3, 'sawtooth'); },
   empty(){ tone(180, 0.05, 0.1, 'square'); },
   swap(){ tone(500, 0.04, 0.1, 'square'); },
+  streak(){ tone(523, 0.08, 0.18, 'square'); setTimeout(()=>tone(659, 0.08, 0.18, 'square'), 70); setTimeout(()=>tone(784, 0.14, 0.2, 'square'), 140); },
   pickup(){ tone(660, 0.07, 0.15, 'square'); setTimeout(()=>tone(990, 0.1, 0.15, 'square'), 70); },
   boing(){ tone(180, 0.05, 0.2, 'sine'); setTimeout(()=>tone(420, 0.18, 0.22, 'sine'), 40); }
 };
 
 // ---------- Weapons ----------
 const WEAPONS = [
-  { name:'Rifle',   dmg:22, rpm:600, mag:30, reserve:90, reload:1.6, spread:0.012, pellets:1, auto:true,  loud:0.35, color:0x37474f, len:0.9,  kick:0.011 },
-  { name:'Shotgun', dmg:12, rpm:75,  mag:6,  reserve:24, reload:2.2, spread:0.06,  pellets:7, auto:false, loud:0.5,  color:0x5d4037, len:0.8,  kick:0.035 },
-  { name:'Pistol',  dmg:30, rpm:220, mag:12, reserve:48, reload:1.2, spread:0.02,  pellets:1, auto:false, loud:0.3,  color:0x455a64, len:0.45, kick:0.018 }
+  { name:'Rifle',   dmg:22, rpm:600, mag:30, reserve:90,  reload:1.6, spread:0.012, pellets:1, auto:true,  loud:0.35, color:0x37474f, len:0.9,  kick:0.011 },
+  { name:'SMG',     dmg:13, rpm:900, mag:35, reserve:105, reload:1.4, spread:0.028, pellets:1, auto:true,  loud:0.26, color:0x546e7a, len:0.55, kick:0.007 },
+  { name:'Shotgun', dmg:12, rpm:75,  mag:6,  reserve:24,  reload:2.2, spread:0.06,  pellets:7, auto:false, loud:0.5,  color:0x5d4037, len:0.8,  kick:0.035 },
+  { name:'Sniper',  dmg:90, rpm:40,  mag:5,  reserve:15,  reload:2.5, spread:0.045, adsSpread:0.001, pellets:1, auto:false, loud:0.6, color:0x33691e, len:1.25, kick:0.05 },
+  { name:'Pistol',  dmg:30, rpm:220, mag:12, reserve:48,  reload:1.2, spread:0.02,  pellets:1, auto:false, loud:0.3,  color:0x455a64, len:0.45, kick:0.018 }
 ];
 
 // ---------- Entity helpers ----------
@@ -473,6 +486,17 @@ function buildViewmodel(){
     box(0.075,0.06,0.18, 0x8d6e63, 0,-0.045,-0.28);    // pump
     box(0.07,0.1,0.22,   0x4e342e, 0,-0.02,0.05);      // body/stock
     tipZ = -0.57;
+  } else if(w.name==='SMG'){
+    box(0.04,0.045,0.3,  w.color, 0,0.01,-0.22);       // stubby barrel
+    box(0.06,0.08,0.2,   0x37474f, 0,-0.01,-0.02);     // body
+    box(0.045,0.14,0.05, 0x263238, 0,-0.1,-0.06);      // mag (forward, SMG-style)
+    tipZ = -0.38;
+  } else if(w.name==='Sniper'){
+    box(0.04,0.045,0.8,  w.color, 0,0.01,-0.5);        // long barrel
+    box(0.055,0.08,0.3,  0x2f3b44, 0,-0.01,0.0);       // receiver
+    box(0.04,0.05,0.16,  0x111111, 0,0.06,-0.06);      // scope tube
+    box(0.05,0.06,0.14,  0x4e342e, 0,-0.02,0.18);      // stock
+    tipZ = -0.92;
   } else { // Pistol
     box(0.05,0.07,0.26,  w.color, 0,0.02,-0.1);        // slide
     box(0.045,0.13,0.07, 0x2b2b2b, 0,-0.07,0.02);      // grip
@@ -612,6 +636,8 @@ addEventListener('keydown', e=>{
   if(e.code==='Digit1') switchWeapon(0);
   if(e.code==='Digit2') switchWeapon(1);
   if(e.code==='Digit3') switchWeapon(2);
+  if(e.code==='Digit4') switchWeapon(3);
+  if(e.code==='Digit5') switchWeapon(4);
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
 });
@@ -619,15 +645,22 @@ addEventListener('keyup', e=>{
   keys[e.code] = false;
   if(e.code==='Tab'){ sbOpen = false; el('scoreboard').style.display='none'; }
 });
-addEventListener('mousedown', e=>{ if(e.button===0) mouseDown = true; });
-addEventListener('mouseup', e=>{ if(e.button===0) mouseDown = false; });
+let ads = false;
+addEventListener('mousedown', e=>{
+  if(e.button===0) mouseDown = true;
+  if(e.button===2 && state===ST.PLAY) ads = true;
+});
+addEventListener('mouseup', e=>{
+  if(e.button===0) mouseDown = false;
+  if(e.button===2) ads = false;
+});
 addEventListener('wheel', e=>{
   if(state!==ST.PLAY) return;
   switchWeapon((player.wIdx + (e.deltaY>0?1:WEAPONS.length-1)) % WEAPONS.length);
 });
 addEventListener('mousemove', e=>{
   if(!locked || state!==ST.PLAY) return;
-  const s = 0.0022;
+  const s = 0.0022 * (camera.fov/75);       // slower look while zoomed
   player.yaw -= e.movementX*s;
   player.pitch -= e.movementY*s;
   player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch));
@@ -714,7 +747,7 @@ let touchJump = false;
 
 function switchWeapon(i){
   if(i===player.wIdx || i>=WEAPONS.length) return;
-  player.wIdx = i; player.reloadT = 0; player.fireCd = Math.max(player.fireCd, 0.25);
+  player.wIdx = i; player.reloadT = 0; player.fireCd = Math.max(player.fireCd, 0.25); ads = false;
   buildViewmodel(); SFX.swap(); updateAmmoHUD();
 }
 function tryReload(){
@@ -751,8 +784,9 @@ function playerShoot(){
 
   const eye = playerEye().clone();
   let hitSomething = false;
+  const spr = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
   for(let p=0; p<w.pellets; p++){
-    const dir = fireDir(w.spread).clone();
+    const dir = fireDir(spr).clone();
     const wallDist = castWorld(eye, dir, 200);
     // vs bots — simple sphere tests (body + head)
     let hitBot = null, hitDist = wallDist, headshot = false;
@@ -805,8 +839,11 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       killfeed(`<b>${attacker.name}</b> 🔫 <b>${b.name}</b>`);
     } else {
       player.kills++;
+      player.streak++;
       SFX.kill();
       killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
+      if(STREAKS[player.streak]) showCallout(STREAKS[player.streak]);
+      else if(headshot) showCallout('HEADSHOT');
       updateScoreHUD();
     }
     checkMatchEnd();
@@ -862,12 +899,27 @@ function damagePlayer(dmg, from){
     player.hp = 0; player.alive = false;
     player.deaths++; from.kills++;
     player.respawnT = 3;
+    player.streak = 0;
+    player.deathRoll = 0;
+    ads = false;
     SFX.die();
     killfeed(`<b>${from.name}</b> 🔫 <span class="me">You</span>`);
     updateScoreHUD();
     checkMatchEnd();
   }
   updateHpHUD();
+}
+
+// ---------- Kill streaks ----------
+const STREAKS = { 2:'DOUBLE KILL', 3:'TRIPLE KILL', 4:'QUAD KILL', 5:'RAMPAGE!', 8:'UNSTOPPABLE!' };
+let calloutTimer = null;
+function showCallout(text){
+  const c = el('callout');
+  c.textContent = text;
+  c.classList.add('show');
+  clearTimeout(calloutTimer);
+  calloutTimer = setTimeout(()=>c.classList.remove('show'), 1400);
+  SFX.streak();
 }
 
 // ---------- Kill feed / HUD ----------
@@ -910,7 +962,10 @@ function renderScoreboard(){
 // ---------- Match flow ----------
 function startMatch(){
   // reset
-  player.kills = 0; player.deaths = 0; player.hp = 100; player.alive = true;
+  player.kills = 0; player.deaths = 0; player.hp = 100; player.alive = true; player.streak = 0;
+  el('respawnmsg').style.display = 'none';
+  el('scope').style.display = 'none';
+  camera.fov = 75; camera.updateProjectionMatrix();
   player.pos.copy(spawnPoint(null)); player.vel.set(0,0,0);
   player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
   resetLoadout(); buildViewmodel();
@@ -959,11 +1014,20 @@ const fwd = new THREE.Vector3(), right = new THREE.Vector3(), wish = new THREE.V
 function updatePlayer(dt){
   if(!player.alive){
     player.respawnT -= dt;
+    // death cam: sink + roll
+    player.deathRoll = Math.min(0.45, (player.deathRoll||0) + dt*1.1);
+    camera.position.y = Math.max(player.pos.y+0.5, camera.position.y - dt*1.6);
+    camera.rotation.set(0,0,0);
+    camera.rotateY(player.yaw); camera.rotateX(player.pitch); camera.rotateZ(player.deathRoll);
+    el('scope').style.display = 'none';
+    el('respawnmsg').style.display = 'block';
+    el('respawnmsg').textContent = 'Respawning in ' + Math.max(1, Math.ceil(player.respawnT)) + '…';
     if(player.respawnT<=0){
       player.alive = true; player.hp = 100;
       player.pos.copy(spawnPoint(player.pos)); player.vel.set(0,0,0);
       player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
       resetLoadout(); buildViewmodel();
+      el('respawnmsg').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
     }
     return;
@@ -997,6 +1061,18 @@ function updatePlayer(dt){
   camera.rotation.set(0,0,0);
   camera.rotateY(player.yaw);
   camera.rotateX(Math.min(1.55, player.pitch + player.recoil));
+
+  // ADS zoom (right mouse): sniper scopes in, others steady-aim
+  const wpn = WEAPONS[player.wIdx];
+  const targetFov = ads ? (wpn.name==='Sniper' ? 26 : 55) : 75;
+  if(Math.abs(camera.fov - targetFov) > 0.05){
+    camera.fov += (targetFov - camera.fov) * Math.min(1, dt*14);
+    camera.updateProjectionMatrix();
+  }
+  const scoped = ads && wpn.name==='Sniper' && camera.fov < 42;
+  el('scope').style.display = scoped ? 'block' : 'none';
+  el('crosshair').style.display = scoped ? 'none' : 'block';
+  vmGroup.visible = !scoped;
 
   // viewmodel bob & kick
   const moving = wish.lengthSq()>0 && player.grounded;

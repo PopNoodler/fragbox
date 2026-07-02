@@ -14,12 +14,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - Every release: bump `CACHE` in `sw.js` (currently v001) + commit.
 
 ## Backlog (roughly ordered)
-- [ ] Sniper + SMG weapons, weapon pickup spots (Kour-style)
-- [ ] Kill streak callouts, better death cam
+- [ ] ADS/scope for touch devices (currently desktop RMB only)
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
 - [ ] Phase 2: Node WS server (`server/`), authoritative movement+hits, client prediction, bots server-side
 
 ## Releases (newest first)
+- **v005** (2026-07-02 ~04:09): 5-weapon roster + ADS + streaks + death cam. New SMG (13dmg/
+  900rpm/35mag) and Sniper (90dmg = 2-body/1-head, 5mag, huge hip spread 0.045, adsSpread 0.001).
+  Right-mouse ADS: sniper → FOV 26 + full scope overlay (crosshair+viewmodel hidden, slower look
+  scaled by fov/75), other weapons → FOV 55 steady-aim with 0.4x spread. Kill streak callouts
+  (DOUBLE/TRIPLE/QUAD/RAMPAGE/UNSTOPPABLE + HEADSHOT) with rising jingle; streak resets on death.
+  Death cam: camera sinks + rolls 0.45rad, "Respawning in N…" countdown. Weapon keys 1–5.
+  Gotcha: ADS block needed its own WEAPONS lookup (`wpn`) — `const w` later in updatePlayer = TDZ.
+  Headless: ADS fov 26/75 + scope show/hide + death/respawn cycle asserted, 0 errors. SW → v005.
 - **v004** (2026-07-02 ~04:03): Mobile touch controls + match settings. Touch: floating left
   stick (move; >0.92 deflection = sprint), right-zone look drag, FIRE/JUMP/swap/reload/pause
   buttons, touch-specific HUD layout (`body.touch` CSS, not width media query — 900px landscape
