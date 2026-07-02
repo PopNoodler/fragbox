@@ -18,6 +18,18 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v036** (2026-07-02 ~23:40): GRENADES — first big core-combat expansion (user: "bigger
+  changes… more everything"). Shared NADE constants; client: G key / 🧨 touch button, 2 per
+  life (+1 from ammo pickups), thrown from eye with arc, full bounce physics (ground + axis-
+  wise AABB reflection + top bounces, restitution 0.45, rolling friction), accelerating fuse
+  blink, explosion = orange/smoke/spark particle burst + transient point light + scorch decal
+  + distance-scaled camera shake + deep boom SFX. Solo damage: bots full (LOS-checked radial
+  falloff 95→12 over 7u), self half ("killed by your own grenade"). MP: server-authoritative —
+  {t:'nade'} validated (count/origin/speed caps), server steps identical physics at 20Hz and
+  applies blast damage (no self-damage, no TDM team damage, walls block via rayWorld);
+  nadeSpawn broadcast animates remote grenades (own throw renders instantly locally), boom
+  syncs fx and reaps stray local visuals. HUD 🧨 counter. Verified: solo bot+self damage,
+  MP point-blank 100→18 with thrower safe. Full suite green. SW → v036.
 - **v035** (2026-07-02 ~22:35): Deploy packaging (roadmap #8 — ROADMAP COMPLETE).
   tools/build-portal.mjs stages client files and Compress-Archives dist/fragbox-portal.zip
   (203 KB, 8 files; SW self-gates so portal iframes are safe). README "Hosting / shipping"

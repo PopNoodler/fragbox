@@ -19,7 +19,7 @@ function pickTeam(){
   return a <= b ? 0 : 1;
 }
 const ARENA = MAP.ARENA, BOXES = MAP.BOXES, SPAWNS = MAP.SPAWNS;
-import { WEAPONS, HITBOX, GG_LADDER } from '../shared/weapons.mjs';
+import { WEAPONS, HITBOX, GG_LADDER, NADE } from '../shared/weapons.mjs';
 import { SKINS } from '../shared/cosmetics.mjs';
 const SKIN_COLORS = new Set(SKINS.filter(s => !s.premium).map(s => s.color));
 
@@ -157,7 +157,7 @@ wss.on('connection', ws => {
         id, ws,
         name: String(m.name || 'Player').slice(0, 14),
         team: MODE === 'tdm' ? pickTeam() : -1,
-        gg: 0,
+        gg: 0, nades: NADE.perLife,
         color: SKIN_COLORS.has(+m.skin) ? +m.skin : COLORS[id % COLORS.length],
         maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
         lvl: Math.max(1, Math.min(99, (+m.lvl|0) || 1)),
@@ -192,6 +192,19 @@ wss.on('connection', ws => {
     if(m.t === 'tp' && TEST && Array.isArray(m.pos)){
       p.pos = m.pos.map(Number);
       p.lastMove = Date.now();
+      return;
+    }
+
+    if(m.t === 'nade' && p.alive && Array.isArray(m.o) && Array.isArray(m.v) && m.o.length === 3){
+      if((p.nades|0) <= 0) return;
+      const o = m.o.map(Number), v = m.v.map(Number);
+      if(![...o, ...v].every(Number.isFinite)) return;
+      if(Math.hypot(o[0]-p.pos[0], o[1]-(p.pos[1]+PHYS.EYE), o[2]-p.pos[2]) > 4) return;
+      const sp = Math.hypot(...v);
+      if(sp > NADE.speed + NADE.up + 4) return;          // speed cap
+      p.nades--;
+      liveNades.push({ pos:[...o], vel:[...v], t: 0, owner: p.id });
+      broadcast({ t:'nadeSpawn', owner: p.id, o, v });
       return;
     }
 
@@ -261,6 +274,48 @@ function doFire(shooter, o, nd, w, ads, bloomMult = 1){
       if(t < hitT){ hitT = t; victim = q; headshot = hs; }
     }
     if(victim) applyDamage(victim, headshot ? w.dmg*2 : w.dmg, shooter, headshot);
+  }
+}
+
+const liveNades = [];
+function stepNade(g, dt){
+  g.vel[1] -= PHYS.GRAV * 0.85 * dt;
+  const nx = g.pos[0] + g.vel[0]*dt, ny = g.pos[1] + g.vel[1]*dt, nz = g.pos[2] + g.vel[2]*dt;
+  if(ny <= 0.13 && g.vel[1] < 0){
+    g.pos[1] = 0.13;
+    g.vel[1] = -g.vel[1] * NADE.restitution;
+    g.vel[0] *= 0.75; g.vel[2] *= 0.75;
+    if(Math.abs(g.vel[1]) < 1.2) g.vel[1] = 0;
+  } else g.pos[1] = ny;
+  let hitX = false, hitZ = false;
+  for(const c of AABBS){
+    if(g.pos[1] > c.max[1] + 0.13 || g.pos[1] < c.min[1] - 0.13) continue;
+    const inZ = g.pos[2] > c.min[2] - 0.13 && g.pos[2] < c.max[2] + 0.13;
+    const inX = g.pos[0] > c.min[0] - 0.13 && g.pos[0] < c.max[0] + 0.13;
+    if(inZ && nx > c.min[0] - 0.13 && nx < c.max[0] + 0.13 && !inX) hitX = true;
+    if(inX && nz > c.min[2] - 0.13 && nz < c.max[2] + 0.13 && !inZ) hitZ = true;
+    if(inX && inZ && g.vel[1] < 0 && g.pos[1] >= c.max[1] - 0.2 && ny <= c.max[1] + 0.13){
+      g.pos[1] = c.max[1] + 0.13;
+      g.vel[1] = -g.vel[1] * NADE.restitution;
+      g.vel[0] *= 0.75; g.vel[2] *= 0.75;
+    }
+  }
+  if(hitX) g.vel[0] = -g.vel[0] * NADE.restitution; else g.pos[0] = nx;
+  if(hitZ) g.vel[2] = -g.vel[2] * NADE.restitution; else g.pos[2] = nz;
+}
+function explodeNade(g){
+  broadcast({ t:'boom', pos: g.pos.map(v=>+v.toFixed(2)) });
+  const owner = ents().find(e => e.id === g.owner) || { id:g.owner, name:'Grenade', ws:null, kills:0, team:-1 };
+  for(const e of ents()){
+    if(!e.alive || e.id === g.owner) continue;                       // no MP self-damage
+    if(MODE === 'tdm' && owner.team >= 0 && e.team === owner.team) continue;
+    const c = [e.pos[0], e.pos[1]+1, e.pos[2]];
+    const dx = c[0]-g.pos[0], dy = c[1]-g.pos[1], dz = c[2]-g.pos[2];
+    const dist = Math.hypot(dx, dy, dz);
+    if(dist > NADE.radius) continue;
+    const d = [dx/(dist||1), dy/(dist||1), dz/(dist||1)];
+    if(rayWorld(g.pos, d) < dist - 0.3) continue;                     // wall blocks blast
+    applyDamage(e, Math.round(Math.max(NADE.minDmg, NADE.dmg * (1 - dist/NADE.radius))), owner, false);
   }
 }
 
@@ -429,10 +484,17 @@ setInterval(() => {
     roundEnd = now + ROUND_LEN;
   }
 
+  for(let i = liveNades.length-1; i >= 0; i--){
+    const g = liveNades[i];
+    g.t += dt;
+    stepNade(g, dt);
+    if(g.t >= NADE.fuse){ liveNades.splice(i, 1); explodeNade(g); }
+  }
   for(const b of bots) tickBot(b, dt);
   for(const p of ents()){
     if(!p.alive && now >= p.deadUntil){
       p.alive = true; p.hp = p.maxHp || 100;
+      p.nades = NADE.perLife;
       p.pos = spawnPos(p.team);
       p.lastMove = now;
       if(p.isBot){ p.enemy = null; p.target = null; p.seeT = 0; }

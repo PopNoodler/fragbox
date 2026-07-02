@@ -38,6 +38,7 @@
   #ammonum { font-size:32px; font-weight:800; }
   #ammores { font-size:16px; opacity:.75; }
   #wname { font-size:14px; opacity:.85; letter-spacing:1px; text-transform:uppercase; }
+  #nadehud { font-size:15px; margin-top:3px; opacity:.9; }
   #slots { display:flex; gap:5px; justify-content:flex-end; margin-bottom:5px; }
   .slotpill { background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.18); color:#90a4ae; border-radius:5px; padding:2px 8px; font-size:10.5px; letter-spacing:.5px; }
   .slotpill.on { background:rgba(79,195,247,.25); border-color:#4fc3f7; color:#fff; font-weight:700; }
@@ -165,6 +166,7 @@
   #adsbtn { right:160px; bottom:210px; width:56px; height:56px; font-size:22px; }
   .tbtn.on { background:rgba(79,195,247,.55); border-color:#4fc3f7; }
   #relbtn  { right:160px; bottom:130px; width:56px; height:56px; }
+  #nadebtn { right:250px; bottom:80px; width:56px; height:56px; font-size:20px; }
   #pausebtn { left:14px; top:14px; width:44px; height:44px; border-radius:10px; }
   body.touch #healthbar { left:12px; bottom:200px; width:150px; }
   body.touch #hpnum { font-size:20px; }
@@ -181,7 +183,7 @@
   <div id="crosshair"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="hitmarker"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="healthbar"><div id="hpnum">100</div><div id="hpbg"><div id="hpfill"></div></div></div>
-  <div id="ammobox"><div id="slots"></div><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div></div>
+  <div id="ammobox"><div id="slots"></div><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div><div id="nadehud">🧨 2</div></div>
   <div id="reloadmsg">RELOADING…</div>
   <div id="callout"></div>
   <div id="respawnmsg"></div>
@@ -214,6 +216,7 @@
     <div id="swapbtn" class="tbtn">⇄</div>
     <div id="adsbtn" class="tbtn">⊕</div>
     <div id="relbtn" class="tbtn">R</div>
+    <div id="nadebtn" class="tbtn">🧨</div>
     <div id="pausebtn" class="tbtn">☰</div>
   </div>
   <div id="scoreboard"><h3>SCOREBOARD</h3><div id="sbmode"></div><table id="sbtable"><thead><tr><th>LV</th><th>PLAYER</th><th class="num">KILLS</th><th class="num">DEATHS</th><th class="num">K/D</th></tr></thead><tbody id="sbbody"></tbody></table></div>
@@ -302,7 +305,7 @@ if (location.protocol === 'file:') {
 <script type="module">
 import * as THREE from 'three';
 import { getMap, MAPS } from './shared/map.mjs';
-import { WEAPONS, GG_LADDER } from './shared/weapons.mjs';
+import { WEAPONS, GG_LADDER, NADE } from './shared/weapons.mjs';
 import { SKINS } from './shared/cosmetics.mjs';
 
 /* =============================================================
@@ -663,6 +666,7 @@ const SFX = {
   swap(){ tone(500, 0.04, 0.1, 'square'); },
   streak(){ tone(523, 0.08, 0.18, 'square'); setTimeout(()=>tone(659, 0.08, 0.18, 'square'), 70); setTimeout(()=>tone(784, 0.14, 0.2, 'square'), 140); },
   pickup(){ tone(660, 0.07, 0.15, 'square'); setTimeout(()=>tone(990, 0.1, 0.15, 'square'), 70); },
+  boom(v=1){ noiseBurst(0.5, 0.7*v, 350); tone(45, 0.5, 0.5*v, 'sawtooth'); setTimeout(()=>noiseBurst(0.35, 0.25*v, 180), 90); },
   boing(){ tone(180, 0.05, 0.2, 'sine'); setTimeout(()=>tone(420, 0.18, 0.22, 'sine'), 40); }
 };
 
@@ -869,6 +873,7 @@ function updateXpHUD(){
 // ---------- Entity helpers ----------
 const PLAYER_R = 0.45, PLAYER_H = 1.8, EYE = 1.62;
 const GRAV = 24, JUMP_V = 9.0, WALK = 7, SPRINT = 10.4, AIR_CTRL = 0.35;
+const PHYS_GRAV = GRAV;
 
 function resolveAABB(pos, vel, dt){
   // pos = feet position. Move axis-by-axis against colliders + ground + arena bounds.
@@ -924,6 +929,120 @@ function castWorldHit(origin, dir, maxDist){   // full hit info (point + normal)
   raycaster.set(origin, dir); raycaster.far = maxDist;
   const hits = raycaster.intersectObjects(worldMeshes, false);
   return hits.length ? hits[0] : null;
+}
+
+// ---------- Grenades ----------
+const nades = [];
+const nadeGeo = new THREE.SphereGeometry(0.13, 8, 8);
+let camShake = 0;
+function spawnNadeVisual(o, v, owner, doDamage){
+  const mesh = new THREE.Mesh(nadeGeo, new THREE.MeshLambertMaterial({ color:0x2e4436, emissive:0x8bff5a, emissiveIntensity:0 }));
+  mesh.position.copy(o);
+  mesh.castShadow = true;
+  scene.add(mesh);
+  nades.push({ mesh, pos:o.clone(), vel:v.clone(), t:0, owner, doDamage });
+}
+function throwNade(){
+  if(state !== ST.PLAY || !player.alive || paused || (player.nades|0) <= 0) return;
+  player.nades--;
+  updateNadeHUD();
+  SFX.swap();
+  const dir = camera.getWorldDirection(new THREE.Vector3());
+  const o = playerEye().clone().add(dir.clone().multiplyScalar(0.5));
+  const v = dir.multiplyScalar(NADE.speed);
+  v.y += NADE.up;
+  if(mode === 'mp'){
+    if(NET.ws && NET.ws.readyState === 1){
+      NET.ws.send(JSON.stringify({ t:'nade', o:[+o.x.toFixed(2), +o.y.toFixed(2), +o.z.toFixed(2)],
+        v:[+v.x.toFixed(2), +v.y.toFixed(2), +v.z.toFixed(2)] }));
+    }
+    spawnNadeVisual(o, v, NET.id, false);      // instant local visual; server owns damage
+  } else {
+    spawnNadeVisual(o, v, -1, true);
+  }
+}
+function nadeStep(g, dt){
+  g.vel.y -= PHYS_GRAV * 0.85 * dt;
+  const nx = g.pos.x + g.vel.x*dt, ny = g.pos.y + g.vel.y*dt, nz = g.pos.z + g.vel.z*dt;
+  // ground
+  if(ny <= 0.13 && g.vel.y < 0){
+    g.pos.y = 0.13;
+    g.vel.y = -g.vel.y * NADE.restitution;
+    g.vel.x *= 0.75; g.vel.z *= 0.75;
+    if(Math.abs(g.vel.y) < 1.2) g.vel.y = 0;
+  } else g.pos.y = ny;
+  // walls/boxes: axis-wise reflect (grenade as point vs expanded AABB)
+  let hitX = false, hitZ = false;
+  for(const c of colliders){
+    if(g.pos.y > c.max.y + 0.13 || g.pos.y < c.min.y - 0.13) continue;
+    const inZ = g.pos.z > c.min.z - 0.13 && g.pos.z < c.max.z + 0.13;
+    const inX = g.pos.x > c.min.x - 0.13 && g.pos.x < c.max.x + 0.13;
+    if(inZ && nx > c.min.x - 0.13 && nx < c.max.x + 0.13 && !inX) hitX = true;
+    if(inX && nz > c.min.z - 0.13 && nz < c.max.z + 0.13 && !inZ) hitZ = true;
+    // top bounce
+    if(inX && inZ && g.vel.y < 0 && g.pos.y >= c.max.y - 0.2 && ny <= c.max.y + 0.13){
+      g.pos.y = c.max.y + 0.13;
+      g.vel.y = -g.vel.y * NADE.restitution;
+      g.vel.x *= 0.75; g.vel.z *= 0.75;
+    }
+  }
+  if(hitX) g.vel.x = -g.vel.x * NADE.restitution; else g.pos.x = nx;
+  if(hitZ) g.vel.z = -g.vel.z * NADE.restitution; else g.pos.z = nz;
+}
+function explodeFx(pos){
+  addPuff(pos, 0xffa726, 22, 9);
+  addPuff(pos, 0x8d8d8d, 18, 5);
+  addPuff(pos, 0xfff176, 8, 12);
+  const boomLight = new THREE.PointLight(0xffb74d, 6, 18);
+  boomLight.position.copy(pos).add(new THREE.Vector3(0, 0.5, 0));
+  scene.add(boomLight);
+  setTimeout(()=>scene.remove(boomLight), 120);
+  const d = pos.distanceTo(player.pos);
+  camShake = Math.max(camShake, Math.max(0, 0.06 - d*0.0035));
+  SFX.boom(Math.max(0.12, 1 - d*0.012));
+  for(const c of colliders){ /* decal on nearest ground */ }
+  addDecal(new THREE.Vector3(pos.x, 0.01, pos.z), new THREE.Vector3(0, 1, 0));
+}
+function updateNades(dt){
+  for(let i = nades.length-1; i >= 0; i--){
+    const g = nades[i];
+    g.t += dt;
+    nadeStep(g, dt);
+    g.mesh.position.copy(g.pos);
+    g.mesh.material.emissiveIntensity = 0.4 + Math.sin(g.t * (6 + g.t*10)) * 0.4;   // accelerating blink
+    if(g.t >= NADE.fuse){
+      const at = g.pos.clone();
+      scene.remove(g.mesh);
+      nades.splice(i, 1);
+      explodeFx(at);
+      if(g.doDamage){
+        // solo: hurt bots (full) and self (half), LOS-checked
+        for(const b of bots){
+          if(!b.alive) continue;
+          const c = new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z);
+          const dist = at.distanceTo(c);
+          if(dist > NADE.radius) continue;
+          const dir = c.clone().sub(at); const L = dir.length()||1; dir.divideScalar(L);
+          if(castWorld(at, dir, L) < L - 0.3) continue;
+          damageBot(b, Math.max(NADE.minDmg, NADE.dmg * (1 - dist/NADE.radius)), false);
+        }
+        if(player.alive){
+          const pc = new THREE.Vector3(player.pos.x, player.pos.y+1, player.pos.z);
+          const dist = at.distanceTo(pc);
+          if(dist <= NADE.radius){
+            const dir = pc.clone().sub(at); const L = dir.length()||1; dir.divideScalar(L);
+            if(!(castWorld(at, dir, L) < L - 0.3)){
+              damagePlayer(Math.max(6, NADE.dmg * 0.5 * (1 - dist/NADE.radius)), { name:'your own grenade', pos:at, kills:0 });
+            }
+          }
+        }
+      }
+    }
+  }
+}
+function updateNadeHUD(){
+  el('nadehud').textContent = '🧨 ' + (player.nades|0);
+  el('nadehud').style.opacity = (player.nades|0) > 0 ? 0.9 : 0.35;
 }
 
 // ---------- Bullet impact decals ----------
@@ -1069,8 +1188,10 @@ function resetLoadout(){
     player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
     player.res = player.loadout.map(i=>WEAPONS[i].reserve);
     player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
+    player.nades = NADE.perLife;
     bloom = 0;
     el('reloadmsg').style.display = 'none';
+    updateNadeHUD();
     return;
   }
   if(!classUnlocked(SET.cls)) SET.cls = 0;      // saved class may be locked on this profile
@@ -1081,8 +1202,10 @@ function resetLoadout(){
   player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
   player.res = player.loadout.map(i=>WEAPONS[i].reserve);
   player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
+  player.nades = NADE.perLife;
   bloom = 0;                                 // fresh spawn, fresh accuracy
   el('reloadmsg').style.display = 'none';
+  updateNadeHUD();
 }
 
 // ---------- Viewmodel (first-person gun) ----------
@@ -1316,6 +1439,8 @@ function tryCollect(p, pos, isPlayer, bot){
       const w = WEAPONS[player.loadout[i]];
       player.res[i] = Math.min(w.reserve*2, player.res[i] + w.mag);
     }
+    player.nades = Math.min(NADE.perLife, (player.nades|0) + 1);
+    updateNadeHUD();
     updateAmmoHUD(); SFX.pickup();
   }
   p.taken = true; p.respawnT = 15; p.g.visible = false;
@@ -1418,6 +1543,7 @@ addEventListener('keydown', e=>{
   if(e.code==='KeyR') tryReload();
   if(e.code==='Digit1') switchWeapon(0);
   if(e.code==='Digit2') switchWeapon(1);
+  if(e.code==='KeyG' && !e.repeat) throwNade();
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
   if(e.code==='Escape' && !document.pointerLockElement){
@@ -1534,6 +1660,7 @@ let touchJump = false;
   bindBtn('swapbtn', ()=>switchWeapon((player.wIdx+1)%player.loadout.length));
   bindBtn('adsbtn', ()=>{ ads = !ads; });
   bindBtn('relbtn', ()=>tryReload());
+  bindBtn('nadebtn', ()=>throwNade());
   bindBtn('pausebtn', ()=>{ if(paused) closePause(false); else openPause(); });
   addEventListener('contextmenu', e=>{ if(state===ST.PLAY) e.preventDefault(); });
 }
@@ -2086,6 +2213,19 @@ function mpConnect(){
         killfeed(`<b>${m.killer}</b> ${hsIcon} <b>${m.victim}</b>`);
       }
     }
+    else if(m.t === 'nadeSpawn'){
+      if(m.owner !== NET.id){
+        spawnNadeVisual(new THREE.Vector3(m.o[0], m.o[1], m.o[2]), new THREE.Vector3(m.v[0], m.v[1], m.v[2]), m.owner, false);
+      }
+    }
+    else if(m.t === 'boom'){
+      // server explosion is authoritative for damage; sync any lingering local visual
+      const at = new THREE.Vector3(m.pos[0], m.pos[1], m.pos[2]);
+      for(let i = nades.length-1; i >= 0; i--){
+        if(nades[i].pos.distanceTo(at) < 3){ scene.remove(nades[i].mesh); nades.splice(i, 1); break; }
+      }
+      explodeFx(at);
+    }
     else if(m.t === 'gg'){
       NET.gg = m.idx;
       const wi = GG_LADDER[Math.min(NET.gg, GG_LADDER.length - 1)];
@@ -2316,6 +2456,11 @@ function updatePlayer(dt){
   camera.rotation.set(0,0,0);
   camera.rotateY(player.yaw);
   camera.rotateX(Math.min(1.55, player.pitch + player.recoil));
+  if(camShake > 0.0005){
+    camera.rotateZ((Math.random()-0.5) * camShake);
+    camera.rotateX((Math.random()-0.5) * camShake);
+    camShake *= Math.pow(0.001, dt);   // fast decay
+  }
 
   // ADS zoom (right mouse): sniper scopes in, others steady-aim
   const wpn = curW();
@@ -2572,6 +2717,7 @@ function frame(now){
     if(!(paused && mode !== 'mp')){
       for(const b of bots) updateBot(b, dt);
       updatePickups(dt);
+      updateNades(dt);
       if(mode !== 'mp') updateTut(dt);
     }
     updateDmgNums(dt);

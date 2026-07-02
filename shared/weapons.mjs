@@ -17,5 +17,9 @@ export const WEAPONS = [
 // .44 Magnum tier to win the round)
 export const GG_LADDER = [0, 1, 2, 5, 6, 3, 4, 7];
 
+// Frag grenade — same constants drive the client visual sim and the server's
+// authoritative sim (bounce physics + AoE damage with LOS)
+export const NADE = { speed:17, up:4.5, fuse:2.2, radius:7, dmg:95, minDmg:12, restitution:0.45, perLife:2 };
+
 // Hitbox spec shared by server hit tests and (later) client prediction
 export const HITBOX = { bodyY:1.0, bodyR:0.55, headY:1.66, headR:0.3 };
