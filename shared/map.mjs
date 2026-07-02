@@ -94,7 +94,74 @@ const DEPOT = {
   ]
 };
 
-export const MAPS = { meadow: MEADOW, depot: DEPOT };
+// stair-run generator: walkable via the 0.35 step assist (steps 0.3 high)
+function stairs(x, z, dx, dz, count, w = 2.6){
+  const out = [];
+  for(let i = 0; i < count; i++){
+    const h = 0.3 * (i + 1);
+    out.push({
+      x: x + dx * i * 1.1, y: h - 0.15, z: z + dz * i * 1.1,
+      sx: dz ? w : 1.1, sy: 0.3 + i * 0, sz: dx ? w : 1.1,
+      color: 0x8a8f96, solid: true, _step: true
+    });
+  }
+  return out;
+}
+
+const FACADE = 0x3a4652, ROOFC = 0x565a5f;
+
+function building(x, z, sx, h, sz){
+  return { x, y: h/2, z, sx, sy: h, sz, color: FACADE, solid: true };
+}
+
+const SKYLINE = {
+  id:'skyline', name:'Skyline', ARENA:42,
+  ground:'asphalt', outer:0x23262e, fog:0x2e3a52, deco:'skyline',
+  sky: { top:0x0d1b3a, mid:0x35406b, bot:0xd97a4a },       // dusk gradient
+  sun: { color:0xffab66, intensity:1.1, hemi:0.55 },
+  BOXES: [
+    ...walls(42, 8),
+    // city blocks
+    building(-22, -18, 16, 6, 14),      // B1 roof y6
+    building(20, -20, 14, 8, 12),       // B2 roof y8
+    building(-20, 20, 14, 6, 12),       // B3 roof y6
+    building(22, 18, 16, 8, 14),        // B4 roof y8
+    building(0, 0, 10, 9, 10),          // center tower roof y9
+    // bridges between matched rooftops
+    { x:21, y:8.15, z:-1, sx:3, sy:0.3, sz:26, color:CONC, solid:true },
+    { x:-21, y:6.15, z:1, sx:3, sy:0.3, sz:26, color:CONC, solid:true },
+    // street cover: cars + kiosks + planters
+    { x:-6, y:0.7, z:-12, sx:2.2, sy:1.4, sz:4.6, color:0x7a2f2f, solid:true },
+    { x:8, y:0.7, z:12, sx:2.2, sy:1.4, sz:4.6, color:0x2f4b7a, solid:true },
+    { x:12, y:0.7, z:-9, sx:4.6, sy:1.4, sz:2.2, color:0x3d5c3a, solid:true },
+    { x:-12, y:1.1, z:9, sx:3, sy:2.2, sz:3, color:CYELLOW, solid:true },
+    { x:0, y:0.6, z:-24, sx:5, sy:1.2, sz:1.6, color:CONC, solid:true },
+    { x:0, y:0.6, z:24, sx:5, sy:1.2, sz:1.6, color:CONC, solid:true },
+    // terraces + stair runs up to them
+    { x:-13, y:1.2, z:-10, sx:3, sy:2.4, sz:4, color:CONC, solid:true },
+    ...stairs(-13, -3.6, 0, -1, 8, 3),
+    { x:13, y:1.2, z:12, sx:3, sy:2.4, sz:4, color:CONC, solid:true },
+    ...stairs(13, 5.6, 0, 1, 8, 3)
+  ],
+  SPAWNS: [
+    [-36,-36],[36,36],[-36,36],[36,-36],[0,-36],[0,36],[-36,0],[36,0],
+    [-22,-18,6],[20,-20,8],[-20,20,6],[0,0,9]
+  ],
+  PADS: [
+    { x:-10, z:-24, v:19 }, { x:10, z:24, v:19 },        // street → B1/B3-height roofs
+    { x:-30, z:0, v:19 }, { x:30, z:0, v:20.5 },         // street → bridge / B2 roofs
+    { x:6, z:-6, v:21.5 }, { x:-6, z:6, v:21.5 },        // street → centre tower top
+    { x:-22, z:-18, v:14 }, { x:22, z:18, v:14 }          // roof hops
+  ],
+  PICKUPS: [
+    { x:0, z:0, kind:'hp', y:9.7 },                       // tower crown prize
+    { x:20, z:-20, kind:'hp', y:8.7 },
+    { x:-22, z:-18, kind:'ammo', y:6.7 },
+    { x:0, z:-18, kind:'ammo' }, { x:0, z:18, kind:'hp' }
+  ]
+};
+
+export const MAPS = { meadow: MEADOW, depot: DEPOT, skyline: SKYLINE };
 export function getMap(id){ return MAPS[id] || MEADOW; }
 
 export const PHYS = { GRAV:24, JUMP_V:9.0, WALK:7, SPRINT:10.4, PLAYER_R:0.45, PLAYER_H:1.8, EYE:1.62 };

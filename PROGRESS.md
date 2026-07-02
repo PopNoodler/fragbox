@@ -18,6 +18,18 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v040** (2026-07-03 ~01:25): THIRD MAP "SKYLINE" — vertical dusk cityscape (max-grind #4).
+  Five buildings (6-9 stories of blocks: 4 corner blocks + centre tower), two rooftop bridges,
+  walkable stair runs to terraces, 8 jump pads incl. direct street→tower-crown chains (v21.5),
+  rooftop hp/ammo as high-value spots (tower crown hp at y9.7), street cover (cars, kiosk,
+  planters, jersey barriers). ENGINE ADDITIONS: true walk-up steps (X/Z collision passes now
+  step-up ≤0.36 instead of blocking — players AND solo bots climb stairs; the old assist only
+  worked falling onto ledges), elevated spawns ([x,z,y] third element, client+server), per-map
+  sky gradients + sun/hemi config (Skyline = deep-night top, ember horizon, amber dim sun),
+  per-face building materials (lit-window facade texture on sides, dark gravel roof — box
+  material arrays). Deco: roof antennas w/ red beacons, AC units, distant black tower
+  silhouettes. Verified: stairs climbed (y+1.5 walking), pad chain reached y8.2 toward tower,
+  35 colliders, street/roof screenshots. Full suite green. SW → v040.
 - **v039** (2026-07-03 ~00:55): BOT AI OVERHAUL (max-grind #3). Solo bots now play classes:
   random class per bot (weapon/hp/speed from CLASSES — Breacher shotgunners tank at 115hp,
   Gunners rush at 1.08x, Marksmen run AWPs), per-weapon combat model (auto weapons fire 3-5

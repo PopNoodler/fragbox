@@ -238,7 +238,7 @@
       <div id="lockerrow"></div>
       <div id="chalrow"></div>
       <div id="settings">
-        <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button></div>
+        <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button><button class="setbtn" data-k="map" data-v="skyline">Skyline</button></div>
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
         <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
         <div class="setrow"><span class="setlabel">Match time</span><button class="setbtn" data-k="len" data-v="180">3m</button><button class="setbtn" data-k="len" data-v="300">5m</button><button class="setbtn" data-k="len" data-v="600">10m</button></div>
@@ -357,8 +357,9 @@ sun.shadow.bias = -0.0004;
 scene.add(sun);
 
 // ---------- Sky dome, clouds, distant mountains ----------
+let skyMat = null;
 {
-  const skyMat = new THREE.ShaderMaterial({
+  skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: {
       top: { value: new THREE.Color(0x3d78b8) },
@@ -373,6 +374,7 @@ scene.add(sun);
         gl_FragColor = vec4(c, 1.0);
       }`
   });
+  skyMat.userData.defaults = { top:0x3d78b8, mid:0x8cb8de, bot:0xdcebf5 };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(240, 20, 12), skyMat);
   sky.renderOrder = -10;
   scene.add(sky);
@@ -481,6 +483,19 @@ const TEX = {
     c.strokeStyle = 'rgba(40,40,40,.6)'; c.lineWidth = 5; c.strokeRect(0,0,s,s);
     speckle(c, s, ['rgba(70,50,40,.25)'], 30, 2, 6);  // grime
   }),
+  building: makeTex((c,s)=>{
+    c.fillStyle = '#39434e'; c.fillRect(0,0,s,s);
+    for(let y=8; y<s-6; y+=22){
+      for(let x=8; x<s-10; x+=18){
+        const lit = Math.random() < 0.35;
+        c.fillStyle = lit ? (Math.random()<0.5 ? '#ffd27a' : '#ffe9b8') : '#1d242c';
+        c.fillRect(x, y, 10, 13);
+        c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = 1.5;
+        c.strokeRect(x, y, 10, 13);
+      }
+    }
+    c.strokeStyle = 'rgba(20,26,32,.8)'; c.lineWidth = 4; c.strokeRect(0,0,s,s);
+  }),
   green: makeTex((c,s)=>{
     c.fillStyle = '#5b8a57'; c.fillRect(0,0,s,s);
     speckle(c, s, ['#548150','#62915e','#4d7749'], 170, 1.5, 4);
@@ -493,13 +508,20 @@ const TEX = {
 function matFor(color, sx, sy, sz){
   const pick = { 0xc98f4e:['crate',2.5,2.5], 0x9aa7b0:['wall',4,3], 0x7d8ca3:['metal',4,4],
                  0x6b7a91:['metal',4,4], 0x5e8d5a:['green',5,3], 0x8a8f96:['wall',4,3],
+                 0x3a4652:['building',3,3],
                  0xb5452e:['container',3,1], 0x2e6f9e:['container',3,1], 0xc9a13b:['container',3,1] }[color];
   if(!pick) return new THREE.MeshLambertMaterial({ color });
   const t = TEX[pick[0]].clone(); t.needsUpdate = true;
   t.repeat.set(Math.max(1, Math.round(Math.max(sx,sz)/pick[1])), Math.max(1, Math.round(sy/pick[2])));
   const CONTAINERS = { 0xb5452e:1, 0x2e6f9e:1, 0xc9a13b:1 };
   const tint = CONTAINERS[color] ? color : (color === 0x6b7a91 ? 0xd6dde6 : 0xffffff);
-  return new THREE.MeshLambertMaterial({ map: t, color: tint });
+  const sideMat = new THREE.MeshLambertMaterial({ map: t, color: tint });
+  if(pick[0] === 'building'){
+    // windows on the sides only — plain dark gravel roof/underside
+    const roofMat = new THREE.MeshLambertMaterial({ color: 0x2b3038 });
+    return [sideMat, sideMat, roofMat, roofMat, sideMat, sideMat];
+  }
+  return sideMat;
 }
 
 // ---------- Arena (rebuildable per map — layouts in shared/map.mjs) ----------
@@ -580,6 +602,34 @@ function buildMeadowDeco(){
     rock.rotation.set(i, i*2, i*0.7);
     rock.castShadow = true;
     worldGroup.add(rock);
+  }
+}
+function buildSkylineDeco(){
+  const darkMat = new THREE.MeshLambertMaterial({ color: 0x20262e });
+  const acMat = new THREE.MeshLambertMaterial({ color: 0x4a545e });
+  const glowMat = new THREE.MeshLambertMaterial({ color: 0xff5252, emissive: 0xb71c1c, emissiveIntensity: 1 });
+  // antennas + AC units on the rooftops
+  const roofs = [[-22,-18,6],[20,-20,8],[-20,20,6],[22,18,8],[0,0,9]];
+  for(const [x, z, h] of roofs){
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 3, 5), darkMat);
+    mast.position.set(x + 3, h + 1.5, z + 3);
+    worldGroup.add(mast);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 6), glowMat);
+    beacon.position.set(x + 3, h + 3.1, z + 3);
+    worldGroup.add(beacon);
+    const ac = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 1.1), acMat);
+    ac.position.set(x - 3, h + 0.4, z - 2);
+    ac.castShadow = true;
+    worldGroup.add(ac);
+  }
+  // distant unlit tower silhouettes outside the walls
+  const silMat = new THREE.MeshLambertMaterial({ color: 0x171c26 });
+  for(let i = 0; i < 14; i++){
+    const a = i/14*Math.PI*2 + 0.2, r = ARENA + 14 + (i % 4) * 8;
+    const h = 10 + (i * 7) % 18;
+    const t = new THREE.Mesh(new THREE.BoxGeometry(5 + i % 4, h, 5 + (i * 3) % 4), silMat);
+    t.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
+    worldGroup.add(t);
   }
 }
 function buildDepotDeco(){
@@ -902,7 +952,8 @@ function resolveAABB(pos, vel, dt, hOverride){
   for(const c of colliders){
     if(pos.y < c.max.y && pos.y+h > c.min.y && pos.z+r>c.min.z && pos.z-r<c.max.z){
       if(pos.x+r>c.min.x && pos.x-r<c.max.x){
-        pos.x = (vel.x>0) ? c.min.x-r : c.max.x+r;
+        if(c.max.y - pos.y <= 0.36 && vel.y <= 0.1){ pos.y = c.max.y; onGround = true; }   // walk up steps
+        else pos.x = (vel.x>0) ? c.min.x-r : c.max.x+r;
       }
     }
   }
@@ -912,7 +963,8 @@ function resolveAABB(pos, vel, dt, hOverride){
   for(const c of colliders){
     if(pos.y < c.max.y && pos.y+h > c.min.y && pos.x+r>c.min.x && pos.x-r<c.max.x){
       if(pos.z+r>c.min.z && pos.z-r<c.max.z){
-        pos.z = (vel.z>0) ? c.min.z-r : c.max.z+r;
+        if(c.max.y - pos.y <= 0.36 && vel.y <= 0.1){ pos.y = c.max.y; onGround = true; }   // walk up steps
+        else pos.z = (vel.z>0) ? c.min.z-r : c.max.z+r;
       }
     }
   }
@@ -1415,7 +1467,7 @@ function buildWorld(mapId){
   worldMeshes.length = 0;
   PADS.length = 0;
   pickups.length = 0;
-  SPAWNS = MAP.SPAWNS.map(([x,z])=>new THREE.Vector3(x, 0, z));
+  SPAWNS = MAP.SPAWNS.map(([x,z,y])=>new THREE.Vector3(x, y || 0, z));
   for(const d of decals){ scene.remove(d.m); d.m.material.dispose(); } decals.length = 0;
   for(const t of tracers){ scene.remove(t.line); } tracers.length = 0;
   for(const p of puffs){ scene.remove(p.m); } puffs.length = 0;
@@ -1423,6 +1475,16 @@ function buildWorld(mapId){
   scene.fog.color.setHex(MAP.fog);
   scene.background.setHex(MAP.fog);
   outer.material.color.setHex(MAP.outer);
+  if(skyMat){
+    const sk = MAP.sky || skyMat.userData.defaults;
+    skyMat.uniforms.top.value.setHex(sk.top);
+    skyMat.uniforms.mid.value.setHex(sk.mid);
+    skyMat.uniforms.bot.value.setHex(sk.bot);
+  }
+  const sunCfg = MAP.sun || { color:0xfff0d0, intensity:2.2, hemi:1.1 };
+  sun.color.setHex(sunCfg.color);
+  sun.intensity = sunCfg.intensity;
+  hemi.intensity = sunCfg.hemi;
   const gt = TEX[MAP.ground].clone(); gt.needsUpdate = true; gt.repeat.set(26, 26);
   matGround.map = gt; matGround.needsUpdate = true;
   // geometry
@@ -1430,7 +1492,9 @@ function buildWorld(mapId){
   worldMeshes.push(...colliders.map(c=>c.mesh));
   buildPads(MAP.PADS);
   for(const p of MAP.PICKUPS) makePickup(p.x, p.z, p.kind, p.y !== undefined ? p.y : 0.7);
-  if(MAP.deco === 'meadow') buildMeadowDeco(); else buildDepotDeco();
+  if(MAP.deco === 'meadow') buildMeadowDeco();
+  else if(MAP.deco === 'skyline') buildSkylineDeco();
+  else buildDepotDeco();
 }
 buildWorld(MAP.id);
 

@@ -95,7 +95,7 @@ function spawnPos(team){
     d += Math.random()*8;
     if(d > bestScore){ bestScore = d; best = s; }
   }
-  return [best[0], 0, best[1]];
+  return [best[0], best[2] || 0, best[1]];
 }
 
 function send(ws, msg){ if(ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); }
