@@ -18,6 +18,17 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v045** (2026-07-03 ~03:55): DOMINATION (wave 3 #10) — fifth game mode. --mode=dom on any
+  map (DOM point trios added to all three: Meadow lanes, Depot incl. platform top, Skyline
+  streets). Server: 4u capture radius, ~2.2s solo capture (stacking teammates up to 3x,
+  contested = frozen, abandoned progress decays), owned points pay +1 ticket/sec each, first
+  to 200 wins; dm snap payload; bots HOLD points while flipping them (initial bug: constant
+  retargeting — now they stand on a point until it turns, then move to the next unowned one).
+  Client: beacon pillars + ground rings recolored live (gray/red/blue, capturing team tints
+  the ring), A/B/C HUD chips under the score pill, capture progress bar while standing in a
+  flipping point, minimap letters, killfeed ◆ events, +150 XP if you're on the point when it
+  captures. Live-verified: bot captured B by holding it, tickets ticked RED 23, win path
+  wired. Full suite green. SW → v045.
 - **v044** (2026-07-03 ~03:15): FOOTSTEPS + KILLCAM (wave 2 complete). Footsteps: procedural
   taps (soft thud on grass, sharp on asphalt/concrete per map ground), cadence from horizontal
   speed via stride accumulator, quieter+slower crouched, silent airborne/sliding; solo bots

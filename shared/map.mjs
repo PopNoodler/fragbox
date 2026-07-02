@@ -46,7 +46,8 @@ const MEADOW = {
     { x:-16, z:0, kind:'hp' }, { x:16, z:0, kind:'hp' },
     { x:0, z:0, kind:'hp', y:6.7 },
     { x:0, z:-16, kind:'ammo' }, { x:0, z:16, kind:'ammo' }
-  ]
+  ],
+  DOM: [ { x:-22, z:0, label:'A' }, { x:0, z:22, label:'B' }, { x:22, z:0, label:'C' } ]
 };
 
 // container helper: axis 'x' or 'z', optionally stacked
@@ -91,7 +92,8 @@ const DEPOT = {
     { x:-16, z:16, kind:'hp' }, { x:16, z:-16, kind:'hp' },
     { x:0, z:0, kind:'hp', y:3.3 },
     { x:0, z:-18, kind:'ammo' }, { x:0, z:18, kind:'ammo' }
-  ]
+  ],
+  DOM: [ { x:-28, z:-20, label:'A' }, { x:0, z:0, label:'B' }, { x:28, z:16, label:'C' } ]
 };
 
 // stair-run generator: walkable via the 0.35 step assist (steps 0.3 high)
@@ -158,7 +160,8 @@ const SKYLINE = {
     { x:20, z:-20, kind:'hp', y:8.7 },
     { x:-22, z:-18, kind:'ammo', y:6.7 },
     { x:0, z:-18, kind:'ammo' }, { x:0, z:18, kind:'hp' }
-  ]
+  ],
+  DOM: [ { x:0, z:-24, label:'A' }, { x:-12, z:9, label:'B' }, { x:13, z:12, label:'C' } ]
 };
 
 export const MAPS = { meadow: MEADOW, depot: DEPOT, skyline: SKYLINE };

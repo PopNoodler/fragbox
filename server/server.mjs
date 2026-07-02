@@ -10,8 +10,8 @@ import { getMap, PHYS } from '../shared/map.mjs';
 const mapArg = (process.argv.find(a => a.startsWith('--map=')) || '').split('=')[1];
 const MAP = getMap(mapArg);
 const modeRaw = (process.argv.find(a => a.startsWith('--mode=')) || '').split('=')[1];
-const MODE = ['tdm','gungame','ctf'].includes(modeRaw) ? modeRaw : 'ffa';
-const TEAMED = MODE === 'tdm' || MODE === 'ctf';
+const MODE = ['tdm','gungame','ctf','dom'].includes(modeRaw) ? modeRaw : 'ffa';
+const TEAMED = MODE === 'tdm' || MODE === 'ctf' || MODE === 'dom';
 const TEAM_COLORS = [0xe53935, 0x2196f3];   // red, blue
 const teamScores = [0, 0];
 function pickTeam(){
@@ -303,6 +303,45 @@ function scheduleAirstrike(striker){
   }, 1500);
 }
 
+// ---- Domination ----
+const DOM_WIN = 200, DOM_RADIUS = 4;
+const domPoints = MODE === 'dom' && MAP.DOM ? MAP.DOM.map(d => ({
+  x: d.x, z: d.z, label: d.label, owner: -1, prog: 0, progTeam: -1
+})) : null;
+let domAcc = 0;
+function tickDom(dt){
+  if(!domPoints) return;
+  for(let i = 0; i < domPoints.length; i++){
+    const pt = domPoints[i];
+    let c0 = 0, c1 = 0;
+    for(const e of ents()){
+      if(!e.alive || e.team < 0) continue;
+      if(Math.hypot(e.pos[0] - pt.x, e.pos[2] - pt.z) > DOM_RADIUS) continue;
+      if(e.team === 0) c0++; else c1++;
+    }
+    if(c0 > 0 && c1 > 0) continue;                      // contested: progress frozen
+    const team = c0 > 0 ? 0 : c1 > 0 ? 1 : -1;
+    if(team === -1){
+      pt.prog = Math.max(0, pt.prog - dt * 0.2);        // slow decay when abandoned
+      continue;
+    }
+    if(pt.owner === team){ pt.prog = 0; pt.progTeam = -1; continue; }
+    if(pt.progTeam !== team){ pt.progTeam = team; pt.prog = 0; }
+    pt.prog += dt * 0.45 * Math.min(3, team === 0 ? c0 : c1);   // ~2.2s solo, faster stacked
+    if(pt.prog >= 1){
+      pt.owner = team; pt.prog = 0; pt.progTeam = -1;
+      broadcast({ t:'dom', ev:'captured', i, label: pt.label, team });
+      console.log('[◆] ' + pt.label + ' captured by team' + team);
+    }
+  }
+  domAcc += dt;
+  while(domAcc >= 1){
+    domAcc -= 1;
+    for(const pt of domPoints) if(pt.owner >= 0) teamScores[pt.owner]++;
+    if(teamScores[0] >= DOM_WIN || teamScores[1] >= DOM_WIN) roundEnd = Date.now();
+  }
+}
+
 // ---- Capture the Flag ----
 const CTF_CAPS_TO_WIN = 3;
 const flags = MODE === 'ctf' ? [0, 1].map(team => {
@@ -531,6 +570,22 @@ function tickBot(b, dt){
     else if(!b.target || Math.hypot(b.target[0]-b.pos[0], b.target[2]-b.pos[2]) < 2) b.target = randomWaypoint();
   }
 
+  // Domination: hold a point you're flipping; otherwise head for one you don't own
+  if(domPoints && !b.enemy){
+    const inPt = domPoints.find(pt => pt.owner !== b.team && Math.hypot(b.pos[0]-pt.x, b.pos[2]-pt.z) < 3.2);
+    if(inPt) b.target = [inPt.x, 0, inPt.z];        // stand on it until it flips
+    else {
+      const onMission = b.target && domPoints.some(pt =>
+        pt.owner !== b.team && Math.hypot(b.target[0]-pt.x, b.target[2]-pt.z) < 4);
+      if(!onMission && Math.random() < 0.6){
+        const want = domPoints.filter(pt => pt.owner !== b.team);
+        if(want.length){
+          const pt = want[Math.floor(Math.random() * want.length)];
+          b.target = [pt.x + (Math.random()-0.5)*2, 0, pt.z + (Math.random()-0.5)*2];
+        }
+      }
+    }
+  }
   // CTF objectives override roaming
   if(flags){
     const mine = flags.find(f => f.carrier === b.id);
@@ -610,10 +665,12 @@ setInterval(() => {
     }
     teamScores[0] = 0; teamScores[1] = 0;
     if(flags) for(const f of flags){ f.state = 'home'; f.carrier = null; f.pos = [...f.base]; f.returnT = 0; }
+    if(domPoints) for(const pt of domPoints){ pt.owner = -1; pt.prog = 0; pt.progTeam = -1; }
     roundEnd = now + ROUND_LEN;
   }
 
   tickFlags(dt);
+  tickDom(dt);
   for(let i = liveNades.length-1; i >= 0; i--){
     const g = liveNades[i];
     g.t += dt;
@@ -636,6 +693,7 @@ setInterval(() => {
     rt: Math.max(0, Math.ceil((roundEnd - now)/1000)),
     ts: TEAMED ? [teamScores[0], teamScores[1]] : undefined,
     fl: flags ? flags.map(f => ({ p: f.pos.map(v=>+v.toFixed(1)), s: f.state[0], c: f.carrier })) : undefined,
+    dm: domPoints ? domPoints.map(pt => ({ o: pt.owner, g: +pt.prog.toFixed(2), gt: pt.progTeam })) : undefined,
     players: ents().map(p => ({
       id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl, g:p.gg, c:p.crouch?1:0
     }))

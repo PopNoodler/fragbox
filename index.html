@@ -55,6 +55,10 @@
   #killcamlabel b { color:#ff8a80; }
   .dmgnum { position:absolute; color:#ffec8a; font-weight:900; font-size:17px; text-shadow:0 2px 4px rgba(0,0,0,.85); pointer-events:none; transform:translate(-50%,-50%); }
   .dmgnum.hs { color:#ff5252; font-size:22px; }
+  #domchips { position:absolute; left:50%; top:52px; transform:translateX(-50%); display:flex; gap:6px; }
+  .domchip { width:26px; height:22px; border-radius:6px; color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,.5); }
+  #domprog { position:absolute; left:50%; bottom:24%; transform:translateX(-50%); width:180px; height:8px; background:rgba(0,0,0,.55); border-radius:4px; overflow:hidden; border:1px solid rgba(255,255,255,.25); }
+  #domprogfill { height:100%; width:0%; background:#ffca28; transition:width .1s linear; }
   #flagbanner { position:absolute; left:50%; top:19%; transform:translateX(-50%); background:rgba(7,9,18,.9); border:1.5px solid #ffca28; border-radius:10px; padding:7px 18px; color:#ffca28; font-size:13px; font-weight:800; letter-spacing:1px; pointer-events:none; }
   #tutbanner { position:absolute; left:50%; top:12%; transform:translateX(-50%); display:none; background:rgba(7,9,18,.92); border:1.5px solid #ffca28; border-radius:12px; padding:10px 22px; color:#fff; font-size:16px; font-weight:700; letter-spacing:.5px; pointer-events:none; animation:tutpulse 1.6s ease-in-out infinite; }
   #tutbanner b { color:#ffca28; }
@@ -210,6 +214,8 @@
   <div id="killbanner"></div>
   <div id="tutbanner"></div>
   <div id="flagbanner" style="display:none">⚑ YOU HAVE THE FLAG — RETURN TO YOUR BASE</div>
+  <div id="domchips"></div>
+  <div id="domprog" style="display:none"><div id="domprogfill"></div></div>
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
   <div id="pausemenu">
     <div class="pausecard">
@@ -2256,10 +2262,55 @@ function renderScoreboard(){
   el('sbbody').innerHTML = rows.map((r,i)=>{
     const kd = r.deaths ? (r.kills/r.deaths).toFixed(1) : r.kills.toFixed(1);
     const crown = (i===0 && r.kills>0) ? '👑 ' : '';
-    const dot = (mode==='mp' && (NET.gameMode==='tdm'||NET.gameMode==='ctf') && r.team>=0) ? `<span style="color:${r.team===0?'#ff8a80':'#82b1ff'}">●</span> ` : '';
+    const dot = (mode==='mp' && ['tdm','ctf','dom'].includes(NET.gameMode) && r.team>=0) ? `<span style="color:${r.team===0?'#ff8a80':'#82b1ff'}">●</span> ` : '';
     const ggTag = isGG ? ` <span style="color:#ffca28; font-size:11px">⟨${Math.min((r.g||0)+1, 8)}/8⟩</span>` : '';
     return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${dot}${crown}${r.name}${ggTag}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
   }).join('');
+}
+
+// ---------- Domination beacons ----------
+const domBeacons = [];
+const DOM_COLORS = [0xe53935, 0x2196f3];
+function ensureDomBeacons(){
+  if(domBeacons.length || !MAP.DOM) return;
+  for(const d of MAP.DOM){
+    const g = new THREE.Group();
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 16, 10, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0x9e9e9e, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }));
+    pillar.position.y = 8;
+    g.add(pillar);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 0.08, 24, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0x9e9e9e, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }));
+    ring.position.y = 0.1;
+    g.add(ring);
+    g.position.set(d.x, 0, d.z);
+    scene.add(g);
+    domBeacons.push({ g, pillar, ring });
+  }
+}
+function clearDomBeacons(){
+  for(const b of domBeacons){ scene.remove(b.g); }
+  domBeacons.length = 0;
+}
+function updateDomVisuals(){
+  if(mode !== 'mp' || NET.gameMode !== 'dom' || !NET.dm){ if(domBeacons.length) clearDomBeacons(); return; }
+  ensureDomBeacons();
+  let inPoint = -1;
+  for(let i = 0; i < domBeacons.length && i < NET.dm.length; i++){
+    const d = NET.dm[i];
+    const col = d.o === -1 ? 0x9e9e9e : DOM_COLORS[d.o];
+    domBeacons[i].pillar.material.color.setHex(col);
+    domBeacons[i].ring.material.color.setHex(d.g > 0 && d.gt >= 0 ? DOM_COLORS[d.gt] : col);
+    const dp = MAP.DOM[i];
+    if(Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < 4) inPoint = i;
+  }
+  // HUD chips
+  el('domchips').innerHTML = NET.dm.map((d, i) =>
+    '<span class="domchip" style="background:' + (d.o === -1 ? '#546e7a' : d.o === 0 ? '#c62828' : '#1565c0') + '">' + MAP.DOM[i].label + '</span>').join('');
+  // capture progress when standing in a capturing point
+  const showProg = inPoint >= 0 && NET.dm[inPoint].g > 0;
+  el('domprog').style.display = showProg ? 'block' : 'none';
+  if(showProg) el('domprogfill').style.width = Math.round(NET.dm[inPoint].g * 100) + '%';
 }
 
 // ---------- CTF flags (client visuals; server owns state) ----------
@@ -2448,6 +2499,7 @@ function mpConnect(){
       NET.roundT = m.rt;
       if(m.ts) NET.ts = m.ts;
       NET.fl = m.fl;
+      NET.dm = m.dm;
       for(const q of m.players){
         if(q.id === NET.id){
           player.kills = q.k; player.deaths = q.d;   // server-authoritative score
@@ -2528,6 +2580,19 @@ function mpConnect(){
         killfeed(`<b>${m.killer}</b> ${hsIcon} <b>${m.victim}</b>`);
       }
     }
+    else if(m.t === 'dom'){
+      const tn = m.team === 0 ? 'RED' : 'BLUE';
+      const col = m.team === 0 ? '#ff8a80' : '#82b1ff';
+      killfeed('<span style="color:' + col + '">◆ ' + tn + ' captured point ' + m.label + '</span>');
+      if(m.team === NET.team){
+        const dp = MAP.DOM && MAP.DOM[m.i];
+        if(dp && Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < 5){
+          addXp(150);
+          showCallout('POINT ' + m.label + ' CAPTURED  +150');
+        } else showCallout('YOUR TEAM CAPTURED ' + m.label);
+        SFX.streak();
+      } else if(player.alive) showCallout(tn + ' CAPTURED ' + m.label);
+    }
     else if(m.t === 'flag'){
       const tn = m.team === 0 ? 'RED' : 'BLUE';
       const col = m.team === 0 ? '#ff8a80' : '#82b1ff';
@@ -2602,6 +2667,10 @@ function mpDisconnect(){
   if(NET.ws){ try{ NET.ws.close(); }catch(e){} }
   NET.ws = null; NET.id = null; NET.roundT = undefined; NET.lastOver = null;
   NET.fl = null;
+  NET.dm = null;
+  clearDomBeacons();
+  el('domchips').innerHTML = '';
+  el('domprog').style.display = 'none';
   player.carryingFlag = false;
   el('flagbanner').style.display = 'none';
   flagMeshes.forEach(m => m.visible = false);
@@ -3136,7 +3205,7 @@ function drawMinimap(){
   if(mode === 'mp'){
     for(const r of NET.remotes.values()){
       if(!r.mesh.visible) continue;
-      const mate = (NET.gameMode === 'tdm' || NET.gameMode === 'ctf') && r.team === NET.team;
+      const mate = ['tdm','ctf','dom'].includes(NET.gameMode) && r.team === NET.team;
       if(!mate && !pingable(r.mesh.position, r.lastLoud)) continue;
       mmc.fillStyle = mate ? '#69f0ae' : '#ff5252';
       const rad = (!mate && reveal) ? 4 : 3;
@@ -3147,6 +3216,14 @@ function drawMinimap(){
     for(const b of bots){
       if(!b.alive || !pingable(b.pos, b.lastLoud)) continue;
       mmc.beginPath(); mmc.arc(px(b.pos.x), px(b.pos.z), reveal ? 4 : 3, 0, 7); mmc.fill();
+    }
+  }
+  if(mode === 'mp' && NET.gameMode === 'dom' && NET.dm && MAP.DOM){
+    for(let i = 0; i < NET.dm.length; i++){
+      const d = NET.dm[i];
+      mmc.fillStyle = d.o === -1 ? '#b0bec5' : d.o === 0 ? '#ff5252' : '#448aff';
+      mmc.font = 'bold 9px sans-serif';
+      mmc.fillText(MAP.DOM[i].label, px(MAP.DOM[i].x) - 3, px(MAP.DOM[i].z) + 3);
     }
   }
   if(mode === 'mp' && NET.gameMode === 'ctf' && NET.fl){
@@ -3182,7 +3259,7 @@ function frame(now){
     stats.playMs += dt * 1000;
     if(++statsDirty > 300) saveStats();
     if(mode === 'mp'){
-      const tdm = (NET.gameMode === 'tdm' || NET.gameMode === 'ctf') && NET.ts;
+      const tdm = ['tdm','ctf','dom'].includes(NET.gameMode) && NET.ts;
       const gg = NET.gameMode === 'gungame';
       el('tdmscore').style.display = tdm ? '' : 'none';
       el('ggscore').style.display = gg ? '' : 'none';
@@ -3192,6 +3269,7 @@ function frame(now){
       el('timeleft').textContent = NET.roundT !== undefined ? fmtTime(NET.roundT) : 'ONLINE';
       updateRemotes(dt);
       updateFlagVisuals(dt);
+      updateDomVisuals();
     } else if(!paused){
       matchT -= dt;
       el('timeleft').textContent = fmtTime(matchT);
