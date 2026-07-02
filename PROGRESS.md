@@ -15,13 +15,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 
 ## Backlog (roughly ordered)
 - [ ] Sniper + SMG weapons, weapon pickup spots (Kour-style)
-- [ ] Mobile touch controls (dual stick + fire button)
-- [ ] Match settings (bot count/difficulty, match length) in menu
 - [ ] Kill streak callouts, better death cam
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
 - [ ] Phase 2: Node WS server (`server/`), authoritative movement+hits, client prediction, bots server-side
 
 ## Releases (newest first)
+- **v004** (2026-07-02 ~04:03): Mobile touch controls + match settings. Touch: floating left
+  stick (move; >0.92 deflection = sprint), right-zone look drag, FIRE/JUMP/swap/reload/pause
+  buttons, touch-specific HUD layout (`body.touch` CSS, not width media query — 900px landscape
+  phones missed the breakpoint). Pointer lock skipped on touch. Menu settings with localStorage
+  persistence (`kh_set`): bots 3/5/7, difficulty Easy/Normal/Hard (bot skill base 0.4/0.6/0.78 +
+  damage x0.7/1.0/1.3), match length 3/5/10min. Emulated-touch headless test: fire tap −1 ammo,
+  look drag Δyaw 1.0rad, stick drag moved 9.5u, settings applied (3 bots, skills .46–.56, 3:00),
+  0 errors. SW cache → v004.
 - **v003** (2026-07-02 ~03:57): Weapon feel + pickups + jump pads. Distinct low-poly viewmodels
   per weapon (rifle barrel/receiver/mag/stock, shotgun pump, pistol slide), muzzle-flash sprite
   at barrel tip (45ms) + camera recoil kick per weapon (springs back at 9/s). Pickups: 3 health

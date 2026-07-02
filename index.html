@@ -71,6 +71,32 @@
   kbd { background:rgba(255,255,255,.12); border-radius:4px; padding:1px 7px; font-family:inherit; font-size:12px; }
   #overstats { font-size:18px; margin-bottom:18px; line-height:1.7; }
   #overtitle { font-size:42px; font-weight:900; margin-bottom:10px; }
+
+  /* ---------- Match settings ---------- */
+  #settings { margin:6px 0 20px; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .setrow { display:flex; align-items:center; gap:6px; }
+  .setlabel { opacity:.6; font-size:13px; width:76px; text-align:right; }
+  .setbtn { pointer-events:auto; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer; }
+  .setbtn.active { background:#2196f3; color:#fff; border-color:#2196f3; font-weight:700; }
+
+  /* ---------- Touch controls ---------- */
+  #touchui { display:none; }
+  body.touch #touchui { display:block; }
+  #stickzone { position:absolute; left:0; bottom:0; width:45%; height:60%; pointer-events:auto; }
+  #stickbase { position:absolute; left:60px; bottom:70px; width:110px; height:110px; border-radius:50%; background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.25); }
+  #sticknub { position:absolute; left:35px; top:35px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.45); }
+  #lookzone { position:absolute; right:0; bottom:0; width:55%; height:100%; pointer-events:auto; }
+  .tbtn { position:absolute; border-radius:50%; background:rgba(255,255,255,.14); border:2px solid rgba(255,255,255,.3); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; pointer-events:auto; font-size:13px; letter-spacing:1px; }
+  .tbtn:active { background:rgba(79,195,247,.5); }
+  #firebtn { right:36px; bottom:64px; width:92px; height:92px; font-size:16px; }
+  #jumpbtn { right:150px; bottom:40px; width:64px; height:64px; }
+  #swapbtn { right:52px; bottom:180px; width:56px; height:56px; }
+  #relbtn  { right:160px; bottom:130px; width:56px; height:56px; }
+  #pausebtn { left:14px; top:14px; width:44px; height:44px; border-radius:10px; }
+  body.touch #healthbar { left:12px; bottom:200px; width:150px; }
+  body.touch #hpnum { font-size:20px; }
+  body.touch #ammobox { right:12px; bottom:250px; text-align:right; }
+  body.touch #ammonum { font-size:24px; }
 </style>
 </head>
 <body>
@@ -85,6 +111,15 @@
   <div id="reloadmsg">RELOADING…</div>
   <div id="killfeed"></div>
   <div id="scorepill"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D <span id="timeleft">5:00</span></div>
+  <div id="touchui">
+    <div id="lookzone"></div>
+    <div id="stickzone"><div id="stickbase"><div id="sticknub"></div></div></div>
+    <div id="firebtn" class="tbtn">FIRE</div>
+    <div id="jumpbtn" class="tbtn">JUMP</div>
+    <div id="swapbtn" class="tbtn">⇄</div>
+    <div id="relbtn" class="tbtn">R</div>
+    <div id="pausebtn" class="tbtn">☰</div>
+  </div>
   <div id="scoreboard"><h3>SCOREBOARD</h3><table id="sbtable"><thead><tr><th>Player</th><th>Kills</th><th>Deaths</th></tr></thead><tbody id="sbbody"></tbody></table></div>
 </div>
 
@@ -92,6 +127,11 @@
   <div class="panel">
     <div class="logo">KOURHERO</div>
     <div class="tagline">Low-poly arena FPS — free-for-all vs bots</div>
+    <div id="settings">
+      <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
+      <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
+      <div class="setrow"><span class="setlabel">Time</span><button class="setbtn" data-k="len" data-v="180">3m</button><button class="setbtn" data-k="len" data-v="300">5m</button><button class="setbtn" data-k="len" data-v="600">10m</button></div>
+    </div>
     <button id="playbtn" class="bigbtn">PLAY</button>
     <div class="hint">
       <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> aim/shoot · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>
@@ -367,7 +407,7 @@ function makeBot(i){
     target: null,          // waypoint Vector3
     enemy: null,           // current combat target: player object or another bot
     fireT: 0, thinkT: 0, respawnT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
-    skill: 0.55 + Math.random()*0.35   // accuracy/aggression 0..1
+    skill: Math.min(0.95, DIFFS[SET.diff].skill + Math.random()*0.25)   // accuracy/aggression 0..1
   };
   b.pos.copy(spawnPoint(null));
   bots.push(b);
@@ -541,12 +581,23 @@ function tryCollect(p, pos, isPlayer, bot){
   return true;
 }
 
-// ---------- Game state ----------
+// ---------- Game state / settings ----------
 const ST = { MENU:0, PLAY:1, OVER:2 };
 let state = ST.MENU;
-const MATCH_LEN = 300;   // 5 minutes
 const KILL_TARGET = 25;
-let matchT = MATCH_LEN;
+const DIFFS = [ { skill:0.4, dmg:0.7 }, { skill:0.6, dmg:1.0 }, { skill:0.78, dmg:1.3 } ];
+let SET = { bots:5, diff:1, len:300 };
+try { SET = Object.assign(SET, JSON.parse(localStorage.kh_set||'{}')); } catch(e){}
+let matchT = SET.len;
+
+document.querySelectorAll('.setbtn').forEach(btn=>{
+  const k = btn.dataset.k, v = +btn.dataset.v;
+  if(SET[k]===v) btn.classList.add('active');
+  btn.addEventListener('click', ()=>{
+    SET[k] = v; localStorage.kh_set = JSON.stringify(SET);
+    document.querySelectorAll(`.setbtn[data-k="${k}"]`).forEach(b=>b.classList.toggle('active', +b.dataset.v===v));
+  });
+});
 
 const keys = {};
 let mouseDown = false;
@@ -585,6 +636,81 @@ document.addEventListener('pointerlockchange', ()=>{
   locked = document.pointerLockElement === document.body;
   if(!locked && state===ST.PLAY){ showMenu(); }
 });
+
+// ---------- Touch controls ----------
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if(isTouch) document.body.classList.add('touch');
+const stick = { on:false, dx:0, dy:0 };
+let touchJump = false;
+{
+  const sz = el('stickzone'), sb = el('stickbase'), nub = el('sticknub');
+  let stickId = null;
+  sz.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    stickId = t.identifier;
+    sb.style.left = (t.clientX-55)+'px'; sb.style.top = (t.clientY-55)+'px'; sb.style.bottom = 'auto';
+    stick.on = true; stick.dx = 0; stick.dy = 0;
+    nub.style.left = '35px'; nub.style.top = '35px';
+  }, { passive:false });
+  sz.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier !== stickId) continue;
+      const r = sb.getBoundingClientRect();
+      let dx = t.clientX-(r.left+55), dy = t.clientY-(r.top+55);
+      const m = Math.hypot(dx,dy)||1, cl = Math.min(m,50);
+      dx = dx/m*cl; dy = dy/m*cl;
+      stick.dx = dx/50; stick.dy = dy/50;
+      nub.style.left = (35+dx)+'px'; nub.style.top = (35+dy)+'px';
+    }
+  }, { passive:false });
+  const endStick = e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier === stickId){
+        stickId = null; stick.on = false; stick.dx = stick.dy = 0;
+        nub.style.left = '35px'; nub.style.top = '35px';
+      }
+    }
+  };
+  sz.addEventListener('touchend', endStick);
+  sz.addEventListener('touchcancel', endStick);
+
+  const lz = el('lookzone');
+  let lookId = null, lx = 0, ly = 0;
+  lz.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    lookId = t.identifier; lx = t.clientX; ly = t.clientY;
+  }, { passive:false });
+  lz.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier !== lookId) continue;
+      const s = 0.005;
+      player.yaw -= (t.clientX-lx)*s;
+      player.pitch -= (t.clientY-ly)*s;
+      player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch));
+      lx = t.clientX; ly = t.clientY;
+    }
+  }, { passive:false });
+  lz.addEventListener('touchend', e=>{ for(const t of e.changedTouches) if(t.identifier===lookId) lookId = null; });
+
+  const bindBtn = (id, down, up)=>{
+    const b = el(id);
+    b.addEventListener('touchstart', e=>{ e.preventDefault(); e.stopPropagation(); down(); }, { passive:false });
+    if(up){
+      b.addEventListener('touchend', e=>{ e.preventDefault(); up(); });
+      b.addEventListener('touchcancel', ()=>up());
+    }
+  };
+  bindBtn('firebtn', ()=>{ mouseDown = true; }, ()=>{ mouseDown = false; });
+  bindBtn('jumpbtn', ()=>{ touchJump = true; }, ()=>{ touchJump = false; });
+  bindBtn('swapbtn', ()=>switchWeapon((player.wIdx+1)%WEAPONS.length));
+  bindBtn('relbtn', ()=>tryReload());
+  bindBtn('pausebtn', ()=>showMenu());
+  addEventListener('contextmenu', e=>{ if(state===ST.PLAY) e.preventDefault(); });
+}
 
 function switchWeapon(i){
   if(i===player.wIdx || i>=WEAPONS.length) return;
@@ -719,7 +845,7 @@ function botShoot(b, e){
     // hit chance falls with distance
     const pHit = Math.min(0.6, b.skill * (0.9 - dist/75));
     if(Math.random() < pHit){
-      const dmg = 8 + Math.floor(Math.random()*5);
+      const dmg = Math.round((8 + Math.floor(Math.random()*5)) * DIFFS[SET.diff].dmg);
       if(e===player) damagePlayer(dmg, b);
       else damageBot(e, dmg, false, b);
     }
@@ -788,10 +914,10 @@ function startMatch(){
   player.pos.copy(spawnPoint(null)); player.vel.set(0,0,0);
   player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
   resetLoadout(); buildViewmodel();
-  matchT = MATCH_LEN;
+  matchT = SET.len;
   for(const b of bots){ scene.remove(b.mesh); }
   bots.length = 0;
-  for(let i=0;i<5;i++) makeBot(i);
+  for(let i=0;i<SET.bots;i++) makeBot(i);
   for(const p of pickups){ p.taken = false; p.respawnT = 0; p.g.visible = true; }
   el('killfeed').innerHTML = '';
   updateHpHUD(); updateAmmoHUD(); updateScoreHUD();
@@ -799,7 +925,7 @@ function startMatch(){
   el('gameover').classList.remove('show');
   el('hud').style.display = 'block';
   state = ST.PLAY;
-  document.body.requestPointerLock();
+  if(!isTouch){ try { document.body.requestPointerLock(); } catch(e){} }
 }
 function showMenu(){
   state = ST.MENU;
@@ -850,7 +976,8 @@ function updatePlayer(dt){
   if(keys.KeyS) wish.sub(fwd);
   if(keys.KeyA) wish.sub(right);
   if(keys.KeyD) wish.add(right);
-  const sprinting = keys.ShiftLeft && keys.KeyW;
+  if(stick.on){ wish.addScaledVector(fwd, -stick.dy).addScaledVector(right, stick.dx); }
+  const sprinting = (keys.ShiftLeft && keys.KeyW) || (stick.on && Math.hypot(stick.dx, stick.dy) > 0.92);
   const speed = sprinting ? SPRINT : WALK;
   if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
 
@@ -859,7 +986,7 @@ function updatePlayer(dt){
   player.vel.x += (wish.x - player.vel.x) * Math.min(1, accel*dt);
   player.vel.z += (wish.z - player.vel.z) * Math.min(1, accel*dt);
   player.vel.y -= GRAV*dt;
-  if(keys.Space && wasGrounded){ player.vel.y = JUMP_V; SFX.jump(); }
+  if((keys.Space || touchJump) && wasGrounded){ player.vel.y = JUMP_V; SFX.jump(); }
 
   player.grounded = resolveAABB(player.pos, player.vel, dt);
   checkPad(player.pos, player.vel, true);
