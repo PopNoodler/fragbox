@@ -1444,20 +1444,39 @@ function addRemote(q){
   mesh.add(makeNameTag(q.name));
   mesh.position.set(q.pos[0], q.pos[1], q.pos[2]);
   scene.add(mesh);
-  NET.remotes.set(q.id, { mesh, name:q.name, lvl:q.lvl||1, target:new THREE.Vector3(q.pos[0], q.pos[1], q.pos[2]), yaw:q.yaw||0 });
+  NET.remotes.set(q.id, { mesh, name:q.name, lvl:q.lvl||1, buf:[],
+    target:new THREE.Vector3(q.pos[0], q.pos[1], q.pos[2]), yaw:q.yaw||0 });
 }
 function removeRemote(id){
   const r = NET.remotes.get(id);
   if(r){ scene.remove(r.mesh); NET.remotes.delete(id); }
 }
 function updateRemotes(dt){
+  // snapshot-buffer interpolation: render remotes ~110ms in the past, lerping
+  // between the two snapshots that bracket the render time (no rubber-banding)
+  const renderT = performance.now() - 110;
   for(const r of NET.remotes.values()){
+    const buf = r.buf;
+    if(buf && buf.length >= 2){
+      while(buf.length > 2 && buf[1].t <= renderT) buf.shift();
+      const a = buf[0], b = buf[1];
+      const span = Math.max(1, b.t - a.t);
+      const al = Math.max(0, Math.min(1, (renderT - a.t) / span));
+      r.target.set(a.x + (b.x-a.x)*al, a.y + (b.y-a.y)*al, a.z + (b.z-a.z)*al);
+      let dyaw = b.yaw - a.yaw;
+      while(dyaw > Math.PI) dyaw -= Math.PI*2;
+      while(dyaw < -Math.PI) dyaw += Math.PI*2;
+      r.yaw = a.yaw + dyaw*al;
+    } else if(buf && buf.length === 1){
+      r.target.set(buf[0].x, buf[0].y, buf[0].z);
+      r.yaw = buf[0].yaw;
+    }
     const speed = r.mesh.position.distanceTo(r.target) / Math.max(dt, 0.001);
-    r.mesh.position.lerp(r.target, Math.min(1, dt*12));
+    r.mesh.position.lerp(r.target, Math.min(1, dt*25));
     let dy = r.yaw - r.mesh.rotation.y;
     while(dy > Math.PI) dy -= Math.PI*2;
     while(dy < -Math.PI) dy += Math.PI*2;
-    r.mesh.rotation.y += dy * Math.min(1, dt*12);
+    r.mesh.rotation.y += dy * Math.min(1, dt*20);
     // walk cycle: leg swing + subtle sway while moving
     const moving = Math.min(1, speed / 4);
     r.animT = (r.animT || 0) + dt * (4 + speed*1.6);
@@ -1525,8 +1544,10 @@ function mpConnect(){
         }
         const r = NET.remotes.get(q.id);
         if(r){
-          r.target.set(q.pos[0], q.pos[1], q.pos[2]);
-          r.yaw = q.yaw; r.k = q.k; r.d = q.d;
+          r.buf.push({ t: performance.now(), x:q.pos[0], y:q.pos[1], z:q.pos[2], yaw:q.yaw });
+          r.target.set(q.pos[0], q.pos[1], q.pos[2]);   // fallback for tabs whose rAF is paused
+          if(r.buf.length > 14) r.buf.shift();
+          r.k = q.k; r.d = q.d;
           if(q.l) r.lvl = q.l;
           r.mesh.visible = !!q.a;                     // hide the dead
         }
