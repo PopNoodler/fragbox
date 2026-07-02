@@ -14,11 +14,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - Every release: bump `CACHE` in `sw.js` (currently v001) + commit.
 
 ## Backlog (roughly ordered)
-- [ ] ADS/scope for touch devices (currently desktop RMB only)
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v011** (2026-07-02 ~05:20): Name entry + touch ADS. Menu name field (14 chars, persisted to
+  kh_name, used for MP join; falls back to generated Hero###). Touch ⊕ button toggles ADS
+  (button highlights while on; FOV verified 75→55→75). Full suite green. SW → v011.
+  **Overnight loop wrap: 11 releases, both phases complete, QA'd twice, all tests green.**
 - **v010** (2026-07-02 ~04:55): QA sweep (playbook §9 checklist). Fixed: dying while scoped left
   the death cam stuck at FOV 26 (dead branch now lerps FOV back); ads/mouseDown not reset on
   menu exit (re-entered matches zoomed/firing); stale NET.roundT/lastOver after MP disconnect;

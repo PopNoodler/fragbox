@@ -98,6 +98,8 @@
   #firebtn { right:36px; bottom:64px; width:92px; height:92px; font-size:16px; }
   #jumpbtn { right:150px; bottom:40px; width:64px; height:64px; }
   #swapbtn { right:52px; bottom:180px; width:56px; height:56px; }
+  #adsbtn { right:160px; bottom:210px; width:56px; height:56px; font-size:22px; }
+  .tbtn.on { background:rgba(79,195,247,.55); border-color:#4fc3f7; }
   #relbtn  { right:160px; bottom:130px; width:56px; height:56px; }
   #pausebtn { left:14px; top:14px; width:44px; height:44px; border-radius:10px; }
   body.touch #healthbar { left:12px; bottom:200px; width:150px; }
@@ -127,6 +129,7 @@
     <div id="firebtn" class="tbtn">FIRE</div>
     <div id="jumpbtn" class="tbtn">JUMP</div>
     <div id="swapbtn" class="tbtn">⇄</div>
+    <div id="adsbtn" class="tbtn">⊕</div>
     <div id="relbtn" class="tbtn">R</div>
     <div id="pausebtn" class="tbtn">☰</div>
   </div>
@@ -137,6 +140,10 @@
   <div class="panel">
     <div class="logo">KOURHERO</div>
     <div class="tagline">Low-poly arena FPS — free-for-all vs bots</div>
+    <div style="margin-bottom:14px">
+      <input id="namefield" maxlength="14" placeholder="Your name" autocomplete="off"
+        style="pointer-events:auto; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.25); color:#fff; padding:9px 14px; border-radius:8px; font-size:15px; text-align:center; width:220px; outline:none">
+    </div>
     <div id="settings">
       <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
       <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
@@ -719,6 +726,7 @@ let touchJump = false;
   bindBtn('firebtn', ()=>{ mouseDown = true; }, ()=>{ mouseDown = false; });
   bindBtn('jumpbtn', ()=>{ touchJump = true; }, ()=>{ touchJump = false; });
   bindBtn('swapbtn', ()=>switchWeapon((player.wIdx+1)%WEAPONS.length));
+  bindBtn('adsbtn', ()=>{ ads = !ads; });
   bindBtn('relbtn', ()=>tryReload());
   bindBtn('pausebtn', ()=>showMenu());
   addEventListener('contextmenu', e=>{ if(state===ST.PLAY) e.preventDefault(); });
@@ -1011,9 +1019,7 @@ function mpConnect(){
   const failT = setTimeout(()=>{ if(ws.readyState !== 1){ try{ws.close();}catch(e){} mpFail(); } }, 3000);
   ws.onopen = ()=>{
     clearTimeout(failT);
-    let name = localStorage.kh_name;
-    if(!name){ name = 'Hero' + (100 + Math.floor(Math.random()*900)); localStorage.kh_name = name; }
-    ws.send(JSON.stringify({ t:'join', name }));
+    ws.send(JSON.stringify({ t:'join', name: myName() }));
   };
   ws.onmessage = ev=>{
     let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
@@ -1124,6 +1130,16 @@ function mpDisconnect(){
   if(state === ST.PLAY) showMenu();
 }
 el('mpbtn').addEventListener('click', ()=>{ audio(); if(!NET.ws) mpConnect(); });
+
+// Player name: menu field, persisted
+function myName(){
+  let n = (el('namefield').value || '').trim().slice(0, 14);
+  if(!n) n = localStorage.kh_name || 'Hero' + (100 + Math.floor(Math.random()*900));
+  localStorage.kh_name = n;
+  return n;
+}
+el('namefield').value = localStorage.kh_name || '';
+el('namefield').addEventListener('change', ()=>myName());
 
 // ---------- Match flow ----------
 function startMatch(){
@@ -1243,6 +1259,7 @@ function updatePlayer(dt){
   el('scope').style.display = scoped ? 'block' : 'none';
   el('crosshair').style.display = scoped ? 'none' : 'block';
   vmGroup.visible = !scoped;
+  if(isTouch) el('adsbtn').classList.toggle('on', ads);
 
   // viewmodel bob & kick
   const moving = wish.lengthSq()>0 && player.grounded;
