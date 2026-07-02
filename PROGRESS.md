@@ -17,6 +17,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
 
 ## Releases (newest first)
+- **v023** (2026-07-02 ~16:20): QA sweep of v022 surface. Fixed: bloom persisted through
+  death→respawn (now reset in resetLoadout); crosshair rendered over the death cam (hidden in
+  dead branch, alive branch restores). Audited clean: pause-while-dead guards, die-closes-pause,
+  solo sim freeze (matchT/kill-target unreachable while paused), MP quit-from-pause disconnect,
+  touch resume without pointer lock, Escape in menu no-ops, bl≈1 under sniper ADS, sendInput
+  continues while MP-paused (intended). Full suite green. SW → v023.
 - **v022** (2026-07-02 ~16:20): Bloom + pause menu + progression juice + arm fix (user requests).
   BLOOM: per-weapon bloom-per-shot in shared/weapons.mjs; currentSpread() = base(ads-aware) ×
   (1 + bloom×2.2), airborne +1.3, sprinting +0.9, ADS tames movement/spray bloom to 30%;

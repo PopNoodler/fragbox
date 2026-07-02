@@ -795,6 +795,7 @@ function resetLoadout(){
   player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
   player.res = player.loadout.map(i=>WEAPONS[i].reserve);
   player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
+  bloom = 0;                                 // fresh spawn, fresh accuracy
   el('reloadmsg').style.display = 'none';
 }
 
@@ -1776,6 +1777,7 @@ function updatePlayer(dt){
     camera.rotation.set(0,0,0);
     camera.rotateY(player.yaw); camera.rotateX(player.pitch); camera.rotateZ(player.deathRoll);
     el('scope').style.display = 'none';
+    el('crosshair').style.display = 'none';   // no crosshair on the death cam
     el('reloadmsg').style.display = 'none';   // died mid-reload
     el('respawnmsg').style.display = 'block';
     const kb = player.killedBy;
