@@ -17,6 +17,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
 
 ## Releases (newest first)
+- **v021** (2026-07-02 ~15:55): QA sweep over v016–v020. Found+fixed: "RELOADING…" label stuck
+  forever after weapon-switch-during-reload (switchWeapon zeroed reloadT without hiding the
+  label) and shown through the death screen when dying mid-reload — now hidden on switch, in
+  resetLoadout, and in the dead branch. Audited clean: locked-class fallback, XP re-render with
+  open death picker, MP class-change → server maxHp → respawn chain, minimap during death cam
+  and with MP remotes, interpolation buffer on join/round-teleport (1-snapshot slide, fine),
+  hitdir/dmg guards while dead, timers across state changes. Full suite green. SW → v021.
 - **v020** (2026-07-02 ~15:50): MP snapshot-buffer interpolation. Remotes render 110ms in the
   past, lerping pos+yaw (angle-wrapped) between the two snapshots bracketing render time —
   buttery instead of rubber-band. Mesh micro-lerp rate raised to 25/s. GOTCHA repeat: snap

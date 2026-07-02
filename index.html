@@ -776,6 +776,7 @@ function resetLoadout(){
   player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
   player.res = player.loadout.map(i=>WEAPONS[i].reserve);
   player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
+  el('reloadmsg').style.display = 'none';
 }
 
 // ---------- Viewmodel (first-person gun) ----------
@@ -1138,6 +1139,7 @@ let touchJump = false;
 function switchWeapon(i){
   if(i===player.wIdx || i>=player.loadout.length) return;
   player.wIdx = i; player.reloadT = 0; player.fireCd = Math.max(player.fireCd, 0.25); ads = false;
+  el('reloadmsg').style.display = 'none';   // cancel any in-progress reload UI
   buildViewmodel(); SFX.swap(); updateAmmoHUD();
 }
 function tryReload(){
@@ -1710,6 +1712,7 @@ function updatePlayer(dt){
     camera.rotation.set(0,0,0);
     camera.rotateY(player.yaw); camera.rotateX(player.pitch); camera.rotateZ(player.deathRoll);
     el('scope').style.display = 'none';
+    el('reloadmsg').style.display = 'none';   // died mid-reload
     el('respawnmsg').style.display = 'block';
     const kb = player.killedBy;
     el('respawnmsg').innerHTML = 'Respawning in ' + Math.max(1, Math.ceil(player.respawnT)) + '…'
