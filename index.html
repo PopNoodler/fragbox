@@ -982,11 +982,17 @@ function removeRemote(id){
 }
 function updateRemotes(dt){
   for(const r of NET.remotes.values()){
+    const speed = r.mesh.position.distanceTo(r.target) / Math.max(dt, 0.001);
     r.mesh.position.lerp(r.target, Math.min(1, dt*12));
     let dy = r.yaw - r.mesh.rotation.y;
     while(dy > Math.PI) dy -= Math.PI*2;
     while(dy < -Math.PI) dy += Math.PI*2;
     r.mesh.rotation.y += dy * Math.min(1, dt*12);
+    // walk cycle: sway + bob while moving
+    const moving = Math.min(1, speed / 4);
+    r.animT = (r.animT || 0) + dt * (4 + speed*1.6);
+    r.mesh.rotation.z = Math.sin(r.animT) * 0.05 * moving;
+    r.mesh.children[0].position.y = 0.95 + Math.abs(Math.cos(r.animT)) * 0.06 * moving;
   }
 }
 function sendInput(){
@@ -1021,13 +1027,23 @@ function mpConnect(){
       for(const q of m.roster) if(q.id !== NET.id) addRemote(q);
       NET.sendT = setInterval(sendInput, 50);
     }
-    else if(m.t === 'joined'){ addRemote(m); killfeed(`<b>${m.name}</b> joined`); }
+    else if(m.t === 'joined'){ addRemote(m); killfeed(`<b>${m.name}</b> joined`); SFX.pickup(); }
     else if(m.t === 'left'){
       const r = NET.remotes.get(m.id);
       if(r) killfeed(`<b>${r.name}</b> left`);
       removeRemote(m.id);
+      SFX.swap();
+    }
+    else if(m.t === 'over'){
+      NET.lastOver = m.top;
+      const winner = m.top && m.top[0] ? m.top[0].name : '—';
+      showCallout(winner === localStorage.kh_name ? 'YOU WIN THE ROUND!' : `${winner.toUpperCase()} WINS`);
+      renderScoreboard();
+      el('scoreboard').style.display = 'block';
+      setTimeout(()=>{ if(!sbOpen) el('scoreboard').style.display = 'none'; }, 4000);
     }
     else if(m.t === 'snap'){
+      NET.roundT = m.rt;
       for(const q of m.players){
         if(q.id === NET.id){
           player.kills = q.k; player.deaths = q.d;   // server-authoritative score
@@ -1374,7 +1390,7 @@ function frame(now){
 
   if(state===ST.PLAY){
     if(mode === 'mp'){
-      el('timeleft').textContent = 'ONLINE';
+      el('timeleft').textContent = NET.roundT !== undefined ? fmtTime(NET.roundT) : 'ONLINE';
       updateRemotes(dt);
     } else {
       matchT -= dt;

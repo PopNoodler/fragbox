@@ -90,6 +90,9 @@ function broadcast(msg, exceptId){
 const BOT_NAMES = ['Vex','Nova','Rusty','Ghost','Piko','Zed','Mango','Bolt','Frost','Kilo','Echo','Juno'];
 const popArg = process.argv.find(s => s.startsWith('--pop='));
 const TARGET_POP = popArg ? +popArg.split('=')[1] : 6;
+const roundArg = process.argv.find(s => s.startsWith('--round='));
+const ROUND_LEN = (roundArg ? +roundArg.split('=')[1] : 300) * 1000;
+let roundEnd = 0;   // armed when the first human joins
 const bots = [];
 let botIdx = 0;
 
@@ -139,6 +142,7 @@ wss.on('connection', ws => {
         lastMove: Date.now()
       };
       players.set(id, p);
+      if(players.size === 1) roundEnd = Date.now() + ROUND_LEN;   // first human starts the round
       balanceBots();
       send(ws, { t:'welcome', id, pos:p.pos, color:p.color,
         roster: ents().map(q=>({ id:q.id, name:q.name, color:q.color, pos:q.pos, yaw:q.yaw })) });
@@ -342,6 +346,23 @@ setInterval(() => {
   if(!players.size) return;
   const now = Date.now();
   const dt = TICK/1000;
+
+  // round over → announce standings, reset everyone, start next round
+  if(now >= roundEnd){
+    const standings = ents().slice().sort((a,b)=>b.kills-a.kills || a.deaths-b.deaths)
+      .map(e => ({ name:e.name, k:e.kills, d:e.deaths }));
+    broadcast({ t:'over', top: standings.slice(0, 10) });
+    console.log(`[◷] round over — winner: ${standings[0] ? standings[0].name : '—'}`);
+    for(const e of ents()){
+      e.kills = 0; e.deaths = 0;
+      e.hp = 100; e.alive = true; e.deadUntil = 0;
+      e.pos = spawnPos();
+      if(e.isBot){ e.enemy = null; e.target = null; e.seeT = 0; }
+      send(e.ws, { t:'spawn', pos:e.pos });
+    }
+    roundEnd = now + ROUND_LEN;
+  }
+
   for(const b of bots) tickBot(b, dt);
   for(const p of ents()){
     if(!p.alive && now >= p.deadUntil){
@@ -354,6 +375,7 @@ setInterval(() => {
   }
   const snap = {
     t:'snap',
+    rt: Math.max(0, Math.ceil((roundEnd - now)/1000)),
     players: ents().map(p => ({
       id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0
     }))

@@ -117,7 +117,7 @@ const PORT = 18790;
   srv.kill();
 
   // ---- Lobby bots: fresh server with default pop=6, one human joins ----
-  const srv2 = spawn('node', [path.resolve(__dirname, '../server/server.mjs'), '18792'], { stdio: 'pipe' });
+  const srv2 = spawn('node', [path.resolve(__dirname, '../server/server.mjs'), '18792', '--round=7'], { stdio: 'pipe' });
   srv2.stdout.on('data', d => srvLog.push('S2: ' + d.toString().trim()));
   await new Promise(r => setTimeout(r, 1000));
   const C = await (async () => {
@@ -142,7 +142,9 @@ const PORT = 18790;
     pos: [...window.__dbg.NET.remotes.values()].map(r => r.target.toArray().map(v=>+v.toFixed(1))),
     shotsSeen: window.__dbg.NET.shotsSeen || 0,
     botKills: [...window.__dbg.NET.remotes.values()].reduce((s,r)=>s+(r.k||0), 0),
-    kf: document.getElementById('killfeed').innerText
+    kf: document.getElementById('killfeed').innerText,
+    roundOverSeen: !!window.__dbg.NET.lastOver,
+    timerText: document.getElementById('timeleft').textContent
   }));
   const botsMoved = botInfo1.pos.length === botInfo2.pos.length
     ? botInfo1.pos.filter((p,i)=>Math.hypot(p[0]-botInfo2.pos[i][0], p[2]-botInfo2.pos[i][2]) > 2).length
@@ -161,7 +163,8 @@ const PORT = 18790;
     combat: { bobHpAfterFire: bHp, bobDied: !bAlive, aliceKills: aScore.k, bobDeaths: bScore.d,
       bobKillfeedSawKill: /Alice/.test(bKillfeed), bobRespawned: bAfter.alive && bAfter.hp === 100 },
     remoteRemovedOnLeave: !b3.remotes.find(r => r.name === 'Alice'),
-    lobbyBots: { count: botInfo2.n, moved: botsMoved, shotsSeen: botInfo2.shotsSeen, botKills: botInfo2.botKills },
+    lobbyBots: { count: botInfo2.n, moved: botsMoved, shotsSeen: botInfo2.shotsSeen, botKills: botInfo2.botKills,
+      roundOverSeen: botInfo2.roundOverSeen, timerText: botInfo2.timerText },
     errors: [...A.errors, ...B.errors, ...C.errors],
     serverLog: srvLog
   };
@@ -171,7 +174,7 @@ const PORT = 18790;
   const pass = result.aMode === 'mp' && result.bMode === 'mp' && result.bSeesAliceInitially &&
     aliceMovedLocally > 3 && aliceMovedRemotely > 3 && posMatch < 2 &&
     c.bobDied && c.aliceKills >= 1 && c.bobDeaths >= 1 && c.bobKillfeedSawKill && c.bobRespawned &&
-    lb.count === 5 && lb.moved >= 3 && lb.shotsSeen > 0 &&
+    lb.count === 5 && lb.moved >= 3 && lb.shotsSeen > 0 && lb.roundOverSeen && /^\d+:\d\d$/.test(lb.timerText) &&
     result.remoteRemovedOnLeave && !result.errors.length;
   console.log(pass ? 'MPTEST OK' : 'MPTEST FAILED');
   process.exit(pass ? 0 : 1);

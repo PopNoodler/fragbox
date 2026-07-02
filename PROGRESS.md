@@ -16,10 +16,17 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 ## Backlog (roughly ordered)
 - [ ] ADS/scope for touch devices (currently desktop RMB only)
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
-- [ ] Server match timer + rounds (MP is currently open-ended FFA)
-- [ ] MP polish: interpolation buffer (currently rate-lerp), remote anim (walk bob), join/leave sounds
+- [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v009** (2026-07-02 ~04:45): MP rounds + polish + README. Server: 5-min rounds (`--round=S`),
+  armed when first human joins; at 0 → broadcast standings ('over'), reset all scores/hp/pos,
+  respawn everyone, next round. Snapshot carries `rt` (seconds left) → client HUD shows a real
+  MP countdown. Client round-over: winner callout ("YOU WIN THE ROUND!" if you), scoreboard
+  auto-shows 4s. Remote players now have a walk cycle (sway + body bob scaled by measured
+  speed) and join/leave sounds. README.md: play/run/controls/architecture/dev-workflow.
+  mptest additions: round-over seen + timer format asserted (server run with --round=7; note
+  round reset zeroes bot k/d — don't assert on botKills). SW → v009.
 - **v008** (2026-07-02 ~04:38): Phase 2c — lobby bots. Server keeps population at TARGET_POP=6
   (`--pop=N` to override): bots join when humans are short, leave when humans arrive, all gone
   when server empties. Bot entities share the player pipeline (same snapshot/kill/spawn paths,
