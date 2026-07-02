@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v046.1** (2026-07-03 ~00:30): PLAY.bat launch chain fully fixed after user report ("play.bat
+  isnt working" x2). THREE stacked root causes: (1) zombie server from 14:54 held port 8080 —
+  new server died EADDRINUSE while the browser silently loaded the ancient in-memory build
+  (v046 added stale-server kill + friendly error); (2) rewritten PLAY.bat had LF-only line
+  endings — cmd.exe misparses bare-LF batch files (window flash-closes); now CRLF; (3) server
+  parsed --open as the port → NaN crash on listen; PORT now takes the first numeric arg.
+  LESSON (playbook-worthy): verify the EXACT launch command users run — every earlier test
+  passed ports explicitly and never executed "node server.mjs --open". Verified by running
+  PLAY.bat itself: listening + page served + browser opened. Also: sw.js only caches r.ok
+  responses; index.html patches now written atomically (tmp+rename) since the user loads live.
 - **v045** (2026-07-03 ~03:55): DOMINATION (wave 3 #10) — fifth game mode. --mode=dom on any
   map (DOM point trios added to all three: Meadow lanes, Depot incl. platform top, Skyline
   streets). Server: 4u capture radius, ~2.2s solo capture (stacking teammates up to 3x,

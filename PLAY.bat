@@ -1,5 +1,5 @@
 @echo off
-title FragBox Server — close this window to stop the game
+title FragBox Server - close this window to stop the game
 cd /d "%~dp0"
 where node >nul 2>nul
 if errorlevel 1 (
@@ -12,3 +12,4 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8080" ^| findstr "LISTENING
 rem Pass any flags through to the server, e.g.:  PLAY.bat --mode=tdm --map=depot
 echo Starting FragBox at http://localhost:8080  %*
 node server\server.mjs --open %*
+if errorlevel 1 pause
