@@ -521,7 +521,7 @@ function applyDamage(victim, dmg, attacker, headshot){
     }
   }
   send(victim.ws, { t:'die', by:attacker.name, bhp:Math.max(1, Math.round(attacker.hp)), kid:attacker.id, kw:lastKillWeapon });
-  broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot });
+  broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot, kwn:lastKillWeapon });
   console.log(`[x] ${attacker.name} killed ${victim.name}${headshot?' (headshot)':''}`);
 }
 

@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v049** (2026-07-03 ~01:35): DAILY CHALLENGES (wave 4 #14) — the come-back-tomorrow hook.
+  3 challenges rolled per calendar day from a 12-entry pool (kills, headshots, grenade kills,
+  crouched kills, 5-streak, win, captures, and per-weapon-type: smg/sniper/shotgun/pistol/
+  rifle), seeded deterministically via mulberry32(date-hash) so everyone gets the same board;
+  250-600 XP each. kh_daily persists progress and resets on date change. Menu panel section
+  with progress bars; DAILY COMPLETE callouts in-match. Tracking hooks: both kill paths
+  (weapon TYPE via server kwn field in MP — grenade kills attributed via killContext solo /
+  kwn='Grenade' MP), crouch state at kill time, streak threshold, solo + gungame wins, CTF/
+  Dom capture events. Verified: deterministic roll, UI render, rifle kill → 1/12. Full suite
+  green. SW → v049.
 - **v048** (2026-07-03 ~01:10): KILL EFFECTS + WEATHER (wave 3 complete). Kill FX locker row
   (kh_killfx): None / Confetti Lv1 (5-color burst) / Skull Lv8 (rising 💀 sprite + smoke) /
   Lightning Lv15 (sky beam + sparks + crack) — plays at victim position on your kills, solo

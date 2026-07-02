@@ -145,6 +145,13 @@
   #lockerrow { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; }
   #killfxrow { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin-top:4px; }
   #killfxrow .swatch { position:relative; display:flex; align-items:center; justify-content:center; }
+  #dailybox { display:flex; flex-direction:column; gap:5px; margin-top:4px; }
+  .dailyrow { display:grid; grid-template-columns: 1fr auto; gap:2px 10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:6px 10px; font-size:11.5px; color:#cfd8dc; text-align:left; }
+  .dailyrow.done { opacity:.55; }
+  .dailyxp { color:#ffca28; font-weight:700; }
+  .dailybar { grid-column:1; height:4px; background:rgba(0,0,0,.45); border-radius:2px; overflow:hidden; }
+  .dailybar div { height:100%; background:#4fc3f7; }
+  .dailynum { font-size:10px; opacity:.7; }
   .swatch { pointer-events:auto; width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.25); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:rgba(255,255,255,.9); text-shadow:0 1px 2px rgba(0,0,0,.7); }
   .swatch.cur { border-color:#fff; box-shadow:0 0 8px rgba(255,255,255,.5); }
   .swatch.locked { opacity:.4; filter:grayscale(.4); cursor:not-allowed; }
@@ -265,6 +272,8 @@
       <div id="lockerrow"></div>
       <div class="setlabel" style="margin-top:8px">KILL EFFECT</div>
       <div id="killfxrow"></div>
+      <div class="setlabel" style="margin-top:10px">TODAY'S CHALLENGES</div>
+      <div id="dailybox"></div>
       <div id="chalrow"></div>
       <div id="settings">
         <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button><button class="setbtn" data-k="map" data-v="skyline">Skyline</button></div>
@@ -897,6 +906,7 @@ function currentSkin(){
 }
 function renderLocker(){
   renderKillFxRow();
+  renderDaily();
   const box = el('lockerrow');
   if(!box) return;
   box.innerHTML = SKINS.map(sk => {
@@ -920,6 +930,88 @@ function renderLocker(){
     });
   });
 }
+
+// ---------- Daily challenges (date-seeded, resets at midnight) ----------
+const DAILY_POOL = [
+  { k:'kills', n:25, xp:300, txt:'Get 25 kills' },
+  { k:'hs', n:5, xp:400, txt:'Get 5 headshots' },
+  { k:'nade', n:3, xp:500, txt:'Get 3 grenade kills' },
+  { k:'crouch', n:5, xp:450, txt:'Kill 5 enemies while crouched' },
+  { k:'streak5', n:1, xp:500, txt:'Reach a 5 killstreak' },
+  { k:'win', n:1, xp:400, txt:'Win a match' },
+  { k:'caps', n:3, xp:600, txt:'Capture 3 flags or points' },
+  { k:'smg', n:10, xp:350, txt:'Get 10 SMG kills' },
+  { k:'sniper', n:5, xp:550, txt:'Get 5 sniper kills' },
+  { k:'shotgun', n:8, xp:400, txt:'Get 8 shotgun kills' },
+  { k:'pistol', n:6, xp:450, txt:'Get 6 pistol kills' },
+  { k:'rifle', n:12, xp:350, txt:'Get 12 rifle kills' }
+];
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+let daily = { date:'', picks:[], prog:[0,0,0], done:[false,false,false] };
+function loadDaily(){
+  try { daily = Object.assign(daily, JSON.parse(localStorage.kh_daily || '{}')); } catch(e){}
+  const today = todayKey();
+  if(daily.date !== today){
+    let h = 0;
+    for(const ch of today) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    const rnd = mulberry32(h);
+    const pool = DAILY_POOL.slice();
+    const picks = [];
+    while(picks.length < 3 && pool.length) picks.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0].k);
+    daily = { date: today, picks, prog:[0,0,0], done:[false,false,false] };
+    saveDaily();
+  }
+}
+function saveDaily(){ localStorage.kh_daily = JSON.stringify(daily); }
+function dailyDef(i){ return DAILY_POOL.find(c => c.k === daily.picks[i]); }
+function dailyBump(key, amt = 1){
+  let changed = false;
+  for(let i = 0; i < daily.picks.length; i++){
+    if(daily.picks[i] !== key || daily.done[i]) continue;
+    const def = dailyDef(i);
+    daily.prog[i] = Math.min(def.n, daily.prog[i] + amt);
+    changed = true;
+    if(daily.prog[i] >= def.n){
+      daily.done[i] = true;
+      setTimeout(() => { showCallout('DAILY COMPLETE: ' + def.txt.toUpperCase() + '  +' + def.xp); SFX.streak(); }, 1200);
+      addXp(def.xp);
+    }
+  }
+  if(changed){ saveDaily(); renderDaily(); }
+}
+function dailyKill(wname, headshot, viaNade){
+  dailyBump('kills');
+  if(headshot) dailyBump('hs');
+  if(player.crouch) dailyBump('crouch');
+  if(viaNade) dailyBump('nade');
+  else { const w = WEAPONS.find(x => x.name === wname); if(w) dailyBump(w.type); }
+  if(player.streak >= 5) dailyBump('streak5');
+}
+function renderDaily(){
+  const box = el('dailybox');
+  if(!box) return;
+  box.innerHTML = daily.picks.map((k, i) => {
+    const def = dailyDef(i);
+    const pct = Math.round(daily.prog[i] / def.n * 100);
+    return '<div class="dailyrow' + (daily.done[i] ? ' done' : '') + '">' +
+      '<span>' + (daily.done[i] ? '✅ ' : '') + def.txt + '</span>' +
+      '<span class="dailyxp">+' + def.xp + ' XP</span>' +
+      '<div class="dailybar"><div style="width:' + pct + '%"></div></div>' +
+      '<span class="dailynum">' + daily.prog[i] + '/' + def.n + '</span></div>';
+  }).join('');
+}
+loadDaily();
 
 // ---------- Kill effect cosmetics ----------
 const KILLFX = [
@@ -1207,6 +1299,7 @@ function castWorldHit(origin, dir, maxDist){   // full hit info (point + normal)
 }
 
 // ---------- Grenades ----------
+let killContext = null;   // 'nade' while blast damage resolves, for challenge attribution
 const nades = [];
 const nadeGeo = new THREE.SphereGeometry(0.13, 8, 8);
 let camShake = 0;
@@ -1312,6 +1405,7 @@ function updateNades(dt){
           }
         }
       } else if(g.doDamage){
+        killContext = 'nade';
         // solo player nade: hurt bots (full) and self (half), LOS-checked
         for(const b of bots){
           if(!b.alive) continue;
@@ -1332,6 +1426,7 @@ function updateNades(dt){
             }
           }
         }
+        killContext = null;
       }
     }
   }
@@ -2121,6 +2216,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       killBanner(headshot ? 150 : 100, (headshot ? 'HEADSHOT · ' : 'ELIMINATED ') + b.name);
       killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
       recordWeaponKill(curW().name);
+      dailyKill(curW().name, headshot, killContext === 'nade');
       playKillFx(b.pos);
       const st = STREAKS[player.streak];
       if(st){ showCallout(st[0] + '  +' + st[1]); addXp(st[1]); }
@@ -2688,7 +2784,7 @@ function mpConnect(){
     else if(m.t === 'over'){
       NET.lastOver = m.top;
       if(m.gg){
-        if(m.gg === localStorage.kh_name){ stats.wins++; statsDirty++; }
+        if(m.gg === localStorage.kh_name){ stats.wins++; statsDirty++; dailyBump('win'); }
         showCallout(m.gg === localStorage.kh_name ? 'YOU WIN THE GUN GAME!' : m.gg.toUpperCase() + ' WINS THE GUN GAME');
         NET.gg = 0;
       } else if(m.ts){
@@ -2780,6 +2876,7 @@ function mpConnect(){
         killBanner(m.hs ? 150 : 100, (m.hs ? 'HEADSHOT · ' : 'ELIMINATED ') + m.victim);
         killfeed(`<span class="me">You</span> ${hsIcon} <b>${m.victim}</b>`);
         recordWeaponKill(curW().name);
+        dailyKill(m.kwn || curW().name, m.hs, m.kwn === 'Grenade');
         const st = STREAKS[player.streak];
         if(st){ showCallout(st[0] + '  +' + st[1]); addXp(st[1]); }
         else if(m.hs) showCallout('HEADSHOT');
@@ -2798,6 +2895,7 @@ function mpConnect(){
         const dp = MAP.DOM && MAP.DOM[m.i];
         if(dp && Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < 5){
           addXp(150);
+          dailyBump('caps');
           showCallout('POINT ' + m.label + ' CAPTURED  +150');
         } else showCallout('YOUR TEAM CAPTURED ' + m.label);
         SFX.streak();
@@ -2812,7 +2910,7 @@ function mpConnect(){
       else if(m.ev === 'captured'){
         killfeed(`<span style="color:${col}">⚑ ${tn} flag CAPTURED${m.by ? ' by <b>' + m.by + '</b>' : ''}</span>`);
         showCallout(m.by === myName() ? 'FLAG CAPTURED  +300' : (m.team === NET.team ? 'ENEMY SCORED ON YOUR FLAG' : 'YOUR TEAM CAPTURED THE FLAG'));
-        if(m.by === myName()) addXp(300);
+        if(m.by === myName()){ addXp(300); dailyBump('caps'); }
         SFX.streak();
       }
     }
@@ -2998,7 +3096,7 @@ function endMatch(){
   el('hud').style.display = 'none';
   const rows = [{ name:'You', kills:player.kills }, ...bots.map(b=>({ name:b.name, kills:b.kills }))].sort((a,b)=>b.kills-a.kills);
   const won = rows[0].name === 'You';
-  if(won){ stats.wins++; statsDirty++; }
+  if(won){ stats.wins++; statsDirty++; dailyBump('win'); }
   el('overtitle').textContent = won ? 'VICTORY!' : 'MATCH OVER';
   el('overtitle').style.color = won ? '#ffca28' : '#fff';
   const matchXp = xp - (player.matchXpStart === undefined ? xp : player.matchXpStart);
