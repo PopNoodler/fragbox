@@ -249,6 +249,7 @@
     <div class="setslider"><label>Mouse sensitivity <b id="sensval">1.0</b></label><input type="range" id="senssl" min="30" max="220" step="5"></div>
     <div class="setslider"><label>Field of view <b id="fovval">75</b></label><input type="range" id="fovsl" min="60" max="110" step="1"></div>
     <div class="setslider"><label>Volume <b id="volval">100%</b></label><input type="range" id="volsl" min="0" max="100" step="5"></div>
+    <div class="setslider" style="display:flex; justify-content:space-between; align-items:center"><label style="margin:0">Music</label><button id="musicbtn" class="setbtn" style="width:70px">ON</button></div>
     <div style="margin-top:16px"><button id="setclose" class="bigbtn" style="font-size:15px; padding:11px 34px">DONE</button></div>
   </div>
 </div>
@@ -591,6 +592,7 @@ function audio(){
     masterGain.connect(AC.destination);
   }
   if(AC.state==='suspended') AC.resume();
+  if(!MUSIC.gain) setMusicMode(MUSIC.want);
   return AC;
 }
 function noiseBurst(dur, vol, freq, type='lowpass'){
@@ -612,8 +614,26 @@ function tone(freq, dur, vol, type='square'){
   g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
   o.connect(g); g.connect(masterGain); o.start(); o.stop(ac.currentTime+dur);
 }
+// distinct timbre per weapon type: [noiseDur, noiseFreq, toneFreq, toneDur, toneType, extra]
+const SHOT_RECIPES = {
+  rifle:    w => { noiseBurst(0.09, w._v, 1400); tone(150+Math.random()*20, 0.08, w._v*0.5, 'sawtooth'); },
+  smg:      w => { noiseBurst(0.05, w._v*0.9, 2600); tone(230+Math.random()*30, 0.045, w._v*0.4, 'square'); },
+  shotgun:  w => { noiseBurst(0.22, w._v, 700); tone(78, 0.18, w._v*0.6, 'sawtooth'); },
+  sniper:   w => { noiseBurst(0.05, w._v, 3200); tone(95, 0.34, w._v*0.55, 'sawtooth');
+                   setTimeout(()=>noiseBurst(0.25, w._v*0.25, 500), 60); },   // crack + rolling tail
+  lmg:      w => { noiseBurst(0.08, w._v, 1000); tone(118+Math.random()*14, 0.09, w._v*0.55, 'sawtooth'); },
+  dmr:      w => { noiseBurst(0.07, w._v, 2100); tone(175, 0.09, w._v*0.5, 'sawtooth'); },
+  revolver: w => { noiseBurst(0.16, w._v, 900); tone(68, 0.26, w._v*0.65, 'sawtooth');
+                   setTimeout(()=>tone(52, 0.18, w._v*0.3, 'sine'), 50); },   // thunder
+  pistol:   w => { noiseBurst(0.06, w._v, 1900); tone(265, 0.05, w._v*0.45, 'square'); }
+};
 const SFX = {
-  shoot(w){ noiseBurst(0.11, w.loud, 1800); tone(160+Math.random()*40, 0.07, w.loud*0.5, 'sawtooth'); },
+  shoot(w, vol=1){
+    const loud = (w.loud !== undefined ? w.loud : 0.3) * vol;
+    const recipe = SHOT_RECIPES[w.type];
+    if(recipe){ w._v = loud; recipe(w); }
+    else { noiseBurst(0.11, loud, 1800); tone(160+Math.random()*40, 0.07, loud*0.5, 'sawtooth'); }
+  },
   hit(){ tone(1200, 0.05, 0.12, 'square'); },
   kill(){ tone(520, 0.09, 0.2, 'square'); setTimeout(()=>tone(780, 0.12, 0.2, 'square'), 80); },
   hurt(){ tone(110, 0.15, 0.25, 'sawtooth'); },
@@ -626,6 +646,56 @@ const SFX = {
   pickup(){ tone(660, 0.07, 0.15, 'square'); setTimeout(()=>tone(990, 0.1, 0.15, 'square'), 70); },
   boing(){ tone(180, 0.05, 0.2, 'sine'); setTimeout(()=>tone(420, 0.18, 0.22, 'sine'), 40); }
 };
+
+// ---------- Music & ambience (procedural, through masterGain) ----------
+const MUSIC = { timer:null, amb:null, gain:null, step:0, want:'menu' };
+function mtone(freq, dur, vol, type, lpFreq){
+  const ac = AC; if(!ac || !MUSIC.gain) return;
+  const o = ac.createOscillator(); o.type = type; o.frequency.value = freq;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(vol, ac.currentTime + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+  if(lpFreq){
+    const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lpFreq;
+    o.connect(f); f.connect(g);
+  } else o.connect(g);
+  g.connect(MUSIC.gain);
+  o.start(); o.stop(ac.currentTime + dur + 0.05);
+}
+function setMusicMode(mode){
+  MUSIC.want = mode;
+  if(!AC) return;                      // applied on first audio() gesture
+  if(!MUSIC.gain){ MUSIC.gain = AC.createGain(); MUSIC.gain.gain.value = 0; MUSIC.gain.connect(masterGain); }
+  clearInterval(MUSIC.timer); MUSIC.timer = null;
+  if(MUSIC.amb){ try { MUSIC.amb.stop(); } catch(e){} MUSIC.amb = null; }
+  if(!SET.music){ MUSIC.gain.gain.value = 0; return; }
+  if(mode === 'menu'){
+    MUSIC.gain.gain.value = 0.15;
+    const arp = [220, 261.6, 329.6, 440, 523.3, 440, 329.6, 261.6];
+    const bass = [110, 87.31, 98, 73.42];
+    MUSIC.timer = setInterval(()=>{
+      const st = MUSIC.step++;
+      const shift = (st % 32) < 16 ? 1 : 0.8909;         // Am ↔ G feel
+      mtone(arp[st % 8] * shift, 0.42, 0.5, 'triangle');
+      if(st % 4 === 0) mtone(bass[((st/4)|0) % 4] * shift, 1.1, 0.4, 'sawtooth', 420);
+      if(st % 16 === 12) mtone(arp[2] * shift * 2, 0.5, 0.14, 'sine');
+    }, 210);
+  } else if(mode === 'game'){
+    MUSIC.gain.gain.value = 0.10;
+    // low wind hum: looped filtered noise
+    const len = AC.sampleRate * 2;
+    const buf = AC.createBuffer(1, len, AC.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * 0.5;
+    const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+    const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220;
+    const g = AC.createGain(); g.gain.value = 0.35;
+    src.connect(f); f.connect(g); g.connect(MUSIC.gain);
+    src.start();
+    MUSIC.amb = src;
+  }
+}
 
 // ---------- Weapons ----------
 // WEAPONS imported from shared/weapons.mjs (single source of truth with the server)
@@ -1205,7 +1275,7 @@ const ST = { MENU:0, PLAY:1, OVER:2 };
 let state = ST.MENU;
 const KILL_TARGET = 25;
 const DIFFS = [ { skill:0.4, dmg:0.7 }, { skill:0.6, dmg:1.0 }, { skill:0.78, dmg:1.3 } ];
-let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow' };
+let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow', music:1 };
 try { SET = Object.assign(SET, JSON.parse(localStorage.kh_set||'{}')); } catch(e){}
 let matchT = SET.len;
 
@@ -1241,6 +1311,8 @@ camera.fov = SET.fov; camera.updateProjectionMatrix();
 // ---------- Settings panel ----------
 function saveSET(){ localStorage.kh_set = JSON.stringify(SET); }
 function syncSettingsUI(){
+  el('musicbtn').textContent = SET.music ? 'ON' : 'OFF';
+  el('musicbtn').classList.toggle('active', !!SET.music);
   el('senssl').value = SET.sens; el('sensval').textContent = (SET.sens/100).toFixed(2);
   el('fovsl').value = SET.fov;   el('fovval').textContent = SET.fov;
   el('volsl').value = SET.vol;   el('volval').textContent = SET.vol + '%';
@@ -1253,6 +1325,12 @@ el('volsl').addEventListener('input', ()=>{ SET.vol = +el('volsl').value; saveSE
 function openSettings(){ syncSettingsUI(); el('settingspanel').style.display = 'flex'; }
 el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
 el('gearbtn2').addEventListener('click', ()=>openSettings());
+el('musicbtn').addEventListener('click', ()=>{
+  SET.music = SET.music ? 0 : 1; saveSET();
+  el('musicbtn').textContent = SET.music ? 'ON' : 'OFF';
+  el('musicbtn').classList.toggle('active', !!SET.music);
+  setMusicMode(MUSIC.want);
+});
 el('setclose').addEventListener('click', ()=>{ el('settingspanel').style.display = 'none'; });
 
 document.querySelectorAll('.setbtn').forEach(btn=>{
@@ -1559,7 +1637,7 @@ function botShoot(b, e){
   addTracer(eye.clone().add(dir.clone().multiplyScalar(1)), eye.clone().add(dir.clone().multiplyScalar(Math.min(wallDist, dist))));
   // gunshot volume by distance to the LISTENER (the player), not the target
   const dPlayer = eye.distanceTo(playerEye());
-  SFX.shoot({ loud: Math.max(0.03, 0.3 - dPlayer*0.004) });
+  SFX.shoot(WEAPONS[0], Math.max(0.08, 1 - dPlayer*0.013));
   if(wallDist >= dist - 0.5){
     // hit chance falls with distance
     const pHit = Math.min(0.6, b.skill * (0.9 - dist/75));
@@ -1862,7 +1940,7 @@ function mpConnect(){
       const dist = Math.min(castWorld(o, d, 150), 150);
       addTracer(o.clone().add(d.clone().multiplyScalar(1)), o.clone().add(d.clone().multiplyScalar(dist)));
       const dp = o.distanceTo(playerEye());
-      SFX.shoot({ loud: Math.max(0.03, 0.3 - dp*0.004) });
+      SFX.shoot(WEAPONS[m.w] || WEAPONS[0], Math.max(0.08, 1 - dp*0.013));
       if(r) r.mesh.rotation.y = Math.atan2(d.x, d.z);
     }
     else if(m.t === 'hitfx'){
@@ -2020,10 +2098,12 @@ function startMatch(){
   el('gameover').classList.remove('show');
   el('hud').style.display = 'block';
   state = ST.PLAY;
+  setMusicMode('game');
   openSpawnPick();
 }
 function showMenu(){
   state = ST.MENU;
+  setMusicMode('menu');
   ads = false; mouseDown = false;
   paused = false; deployMode = false;
   el('ptitle').textContent = 'PAUSED';
@@ -2390,7 +2470,7 @@ updateChallengesUI();
 updateXpHUD();
 
 // Debug hook for automated verification (harmless in production)
-window.__dbg = { player, bots, camera, THREE, colliders, NET, get mode(){ return mode; } };
+window.__dbg = { player, bots, camera, THREE, colliders, NET, MUSIC, get mode(){ return mode; } };
 
 // ---------- Service worker (real hosts only — playbook §4) ----------
 if('serviceWorker' in navigator && (location.hostname.endsWith('github.io') || location.hostname==='localhost' || location.hostname==='127.0.0.1')){

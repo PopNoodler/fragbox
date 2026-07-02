@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v032** (2026-07-02 ~21:45): Audio pass (roadmap #5). Per-weapon shot timbres via
+  SHOT_RECIPES keyed on weapon type: AK punchy mid, MP5 snappy square, M870 700Hz boom,
+  AWP 3.2kHz crack + rolling tail, M249 heavy chug, M14 sharp semi, .44 thunder + sub,
+  M1911 clean pop; remote/bot shots use the real fired weapon's recipe scaled by listener
+  distance. Procedural music engine: menu = Am↔G triangle arpeggio + filtered saw bass +
+  sparkle (210ms step, setInterval), game = looped lowpass wind ambience; all through
+  MUSIC.gain → masterGain (volume slider covers it); Music ON/OFF in settings (persisted);
+  state machine setMusicMode driven by showMenu/startMatch, applied at first audio gesture.
+  Headless: menu timer on, toggle persists off, game swaps to ambience, 0 errors. Full suite
+  green. SW → v032.
 - **v031** (2026-07-02 ~21:25): Gun Game mode (roadmap #4, Kour reference). Server
   --mode=gungame: shared GG_LADDER [AK-47→MP5→M870→M249→M14→AWP→M1911→.44 Magnum]; every
   entity tracks gg index; kills advance it ({t:'gg'} to the killer), finishing the ladder →
