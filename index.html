@@ -124,6 +124,12 @@
   .clscard span { font-size:10.5px; opacity:.65; }
   .clscard i { font-size:9px; opacity:.45; font-style:normal; }
   .clscard.active { border-color:#4fc3f7; background:rgba(79,195,247,.16); }
+  #lockerrow { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; }
+  .swatch { pointer-events:auto; width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.25); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:rgba(255,255,255,.9); text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  .swatch.cur { border-color:#fff; box-shadow:0 0 8px rgba(255,255,255,.5); }
+  .swatch.locked { opacity:.4; filter:grayscale(.4); cursor:not-allowed; }
+  #chalrow { font-size:10.5px; opacity:.55; color:#cfd8dc; }
+  #chalrow b { color:#ffca28; }
   #btnrow { display:flex; gap:10px; justify-content:center; }
   #btnrow .bigbtn { flex:1; max-width:200px; }
   #filewarn { position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; background:#0d0d1a; color:#fff; text-align:center; padding:24px; }
@@ -205,6 +211,8 @@
       <div id="classrow" class="classgrid"></div>
       <div id="menulvl" style="font-size:11px; opacity:.55"></div>
       <input id="namefield" maxlength="14" placeholder="Your name" autocomplete="off">
+      <div id="lockerrow"></div>
+      <div id="chalrow"></div>
       <div id="settings">
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
         <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
@@ -253,6 +261,7 @@ if (location.protocol === 'file:') {
 import * as THREE from 'three';
 import { ARENA, BOXES, SPAWNS as SPAWN_XZ, PADS as PAD_DEFS, PICKUPS as PICKUP_DEFS } from './shared/map.mjs';
 import { WEAPONS } from './shared/weapons.mjs';
+import { SKINS } from './shared/cosmetics.mjs';
 
 /* =============================================================
    FragBox — single-file low-poly arena FPS vs bots
@@ -579,9 +588,69 @@ function addXp(pts){
     const unlocked = CLASSES.filter(c => !c.premium && !c.soon && c.lvl > before && c.lvl <= lv);
     unlocked.forEach((c, i) => setTimeout(()=>{ showCallout('UNLOCKED: ' + c.name.toUpperCase()); SFX.streak(); }, 1600*(i+1)));
     renderClassCards();          // new unlocks may be available
+    renderLocker();
   }
   updateXpHUD();
 }
+// ---------- Skins (cosmetic, level-gated, server-validated) ----------
+let skinId = localStorage.kh_skin || 'ember';
+function skinUnlocked(sk){ return !sk.premium && !sk.soon && levelOf(xp) >= (sk.lvl || 1); }
+function currentSkin(){
+  const sk = SKINS.find(k => k.id === skinId);
+  return (sk && skinUnlocked(sk)) ? sk : SKINS[0];
+}
+function renderLocker(){
+  const box = el('lockerrow');
+  if(!box) return;
+  box.innerHTML = SKINS.map(sk => {
+    const un = skinUnlocked(sk);
+    const cur = currentSkin().id === sk.id;
+    const hex = '#' + sk.color.toString(16).padStart(6, '0');
+    const tag = sk.soon ? '★' : (un ? '' : sk.lvl);
+    return '<div class="swatch' + (cur ? ' cur' : '') + (un ? '' : ' locked') + '" data-s="' + sk.id + '" title="' + sk.name + (un ? '' : (sk.soon ? ' — premium, coming soon' : ' — unlocks at level ' + sk.lvl)) + '" style="background:' + hex + '">' + tag + '</div>';
+  }).join('');
+  box.querySelectorAll('.swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      const sk = SKINS.find(k => k.id === sw.dataset.s);
+      if(!sk || !skinUnlocked(sk)){ SFX.empty(); return; }
+      skinId = sk.id;
+      localStorage.kh_skin = skinId;
+      renderLocker();
+      buildViewmodel();          // retint sleeves immediately
+    });
+  });
+}
+
+// ---------- Per-weapon kill challenges ----------
+const CHALLENGE_TIERS = [[10, 250], [50, 1000], [250, 5000]];
+const TIER_NAMES = ['I', 'II', 'III'];
+let wkills = {};
+try { wkills = JSON.parse(localStorage.kh_wkills || '{}'); } catch(e){}
+function recordWeaponKill(wname){
+  wkills[wname] = (wkills[wname] || 0) + 1;
+  localStorage.kh_wkills = JSON.stringify(wkills);
+  const k = wkills[wname];
+  const tier = CHALLENGE_TIERS.findIndex(t => t[0] === k);
+  if(tier >= 0){
+    const bonus = CHALLENGE_TIERS[tier][1];
+    setTimeout(() => { showCallout(wname.toUpperCase() + ' ' + TIER_NAMES[tier] + ' COMPLETE  +' + bonus); SFX.streak(); }, 900);
+    addXp(bonus);
+  }
+  updateChallengesUI();
+}
+function updateChallengesUI(){
+  const box = el('chalrow');
+  if(!box) return;
+  const rows = WEAPONS.map(w => {
+    const k = wkills[w.name] || 0;
+    const next = CHALLENGE_TIERS.find(t => t[0] > k);
+    return next ? { name: w.name, k, goal: next[0], left: next[0] - k } : null;
+  }).filter(Boolean).sort((a,b) => a.left - b.left).slice(0, 3);
+  box.innerHTML = rows.length
+    ? 'Challenges: ' + rows.map(r => r.name + ' <b>' + r.k + '/' + r.goal + '</b>').join(' · ')
+    : 'All weapon challenges complete!';
+}
+
 function updateXpHUD(){
   const lv = levelOf(xp);
   const cur = 150*(lv-1)*(lv-1), next = 150*lv*lv;
@@ -858,8 +927,8 @@ function buildViewmodel(){
     box(0.045,0.13,0.07, 0x2b2b2b, 0,-0.07,0.02);      // grip
     tipZ = -0.23;
   }
-  // first-person arms + hands: limbs run exactly shoulder → hand
-  const SLEEVE = 0x4d5b3c, SKIN = 0xf5d0a9;
+  // first-person arms + hands: limbs run exactly shoulder → hand (sleeves = your skin color)
+  const SLEEVE = new THREE.Color(currentSkin().color).multiplyScalar(0.65).getHex(), SKIN = 0xf5d0a9;
   const limb = (from, to, thick, c) => {
     const dir = new THREE.Vector3().subVectors(to, from);
     const m = new THREE.Mesh(new THREE.BoxGeometry(thick, thick, dir.length()), mat(c));
@@ -1289,6 +1358,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       SFX.kill();
       killBanner(headshot ? 150 : 100, (headshot ? 'HEADSHOT · ' : 'ELIMINATED ') + b.name);
       killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
+      recordWeaponKill(curW().name);
       const st = STREAKS[player.streak];
       if(st){ showCallout(st[0] + '  +' + st[1]); addXp(st[1]); }
       else if(headshot) showCallout('HEADSHOT');
@@ -1551,7 +1621,7 @@ function mpConnect(){
   ws.onopen = ()=>{
     clearTimeout(failT);
     const cls = CLASSES[SET.cls] || CLASSES[0];
-    ws.send(JSON.stringify({ t:'join', name: myName(), maxhp: cls.hp, lvl: levelOf(xp) }));
+    ws.send(JSON.stringify({ t:'join', name: myName(), maxhp: cls.hp, lvl: levelOf(xp), skin: currentSkin().color }));
   };
   ws.onmessage = ev=>{
     let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
@@ -1641,6 +1711,7 @@ function mpConnect(){
         SFX.kill();
         killBanner(m.hs ? 150 : 100, (m.hs ? 'HEADSHOT · ' : 'ELIMINATED ') + m.victim);
         killfeed(`<span class="me">You</span> ${hsIcon} <b>${m.victim}</b>`);
+        recordWeaponKill(curW().name);
         const st = STREAKS[player.streak];
         if(st){ showCallout(st[0] + '  +' + st[1]); addXp(st[1]); }
         else if(m.hs) showCallout('HEADSHOT');
@@ -2079,6 +2150,8 @@ function frame(now){
 requestAnimationFrame(frame);
 
 renderClassCards();
+renderLocker();
+updateChallengesUI();
 updateXpHUD();
 
 // Debug hook for automated verification (harmless in production)

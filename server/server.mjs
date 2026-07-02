@@ -8,6 +8,8 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { ARENA, BOXES, SPAWNS, PHYS } from '../shared/map.mjs';
 import { WEAPONS, HITBOX } from '../shared/weapons.mjs';
+import { SKINS } from '../shared/cosmetics.mjs';
+const SKIN_COLORS = new Set(SKINS.filter(s => !s.premium).map(s => s.color));
 
 // Solid world AABBs for authoritative hitscan
 const AABBS = BOXES.filter(b=>b.solid !== false).map(b => ({
@@ -137,7 +139,7 @@ wss.on('connection', ws => {
       const p = {
         id, ws,
         name: String(m.name || 'Player').slice(0, 14),
-        color: COLORS[id % COLORS.length],
+        color: SKIN_COLORS.has(+m.skin) ? +m.skin : COLORS[id % COLORS.length],
         maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
         lvl: Math.max(1, Math.min(99, (+m.lvl|0) || 1)),
         pos: spawnPos(), yaw: 0, pitch: 0,

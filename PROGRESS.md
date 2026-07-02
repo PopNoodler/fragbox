@@ -14,9 +14,20 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - Every release: bump `CACHE` in `sw.js` (currently v001) + commit.
 
 ## Backlog (roughly ordered)
-- [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
+- [ ] Real IAP wiring for premium class/skin (needs user's payment accounts — see playbook §7)
+- [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v024** (2026-07-02 ~16:30): Progression loop deepened — weapon challenges + skin locker.
+  CHALLENGES: per-weapon kill counts (kh_wkills) with tiers 10/50/250 kills → +250/+1000/+5000
+  XP, completion callout ("RIFLE I COMPLETE +250"), menu shows 3 nearest-to-complete. Hooked
+  into both solo and MP kill paths (weapon attributed via curW()). SKINS: shared/cosmetics.mjs
+  catalog (7 level-gated colors Lv1–15 + premium "Rose" coming-soon slot); locker swatches in
+  menu (locked = grey + level number, current = ring); selection persists (kh_skin), tints
+  first-person sleeves immediately, and is sent at MP join — server validates against the
+  catalog (SKIN_COLORS set) so invalid colors fall back to palette; other players see your
+  skin color on your avatar. Level-ups refresh locker + class locks. Verified: gating at lvl 3
+  (2/8 unlocked, locked pick rejected), challenge completion XP math, full suite. SW → v024.
 - **v023** (2026-07-02 ~16:20): QA sweep of v022 surface. Fixed: bloom persisted through
   death→respawn (now reset in resetLoadout); crosshair rendered over the death cam (hidden in
   dead branch, alive branch restores). Audited clean: pause-while-dead guards, die-closes-pause,
