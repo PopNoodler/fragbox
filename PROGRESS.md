@@ -15,9 +15,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 
 ## Backlog (roughly ordered)
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
-- [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v020** (2026-07-02 ~15:50): MP snapshot-buffer interpolation. Remotes render 110ms in the
+  past, lerping pos+yaw (angle-wrapped) between the two snapshots bracketing render time —
+  buttery instead of rubber-band. Mesh micro-lerp rate raised to 25/s. GOTCHA repeat: snap
+  handler must ALSO set r.target directly — background tabs pause rAF so interpolation never
+  runs there (mptest asserts on r.target from a backgrounded tab). Full suite green. SW → v020.
 - **v019** (2026-07-02 ~15:40): Minimap + killed-by + streak XP. Minimap (150px canvas,
   top-left; 110px below pause btn on touch): walls/cover as translucent rects, red enemy dots
   (alive only; MP uses remote visibility), green hp-pickup dots (solo), rotating player arrow
