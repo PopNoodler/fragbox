@@ -63,6 +63,13 @@ const TEST = process.argv.includes('--test');   // enables {t:'tp'} for automate
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.svg':'image/svg+xml' };
 
+process.on('uncaughtException', err => {
+  if(err && err.code === 'EADDRINUSE'){
+    console.error('Port ' + PORT + ' is already in use — close the other FragBox window (or run: taskkill /f /im node.exe) and try again.');
+    process.exit(1);
+  }
+  throw err;
+});
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/index.html';
@@ -701,4 +708,10 @@ setInterval(() => {
   broadcast(snap);
 }, TICK);
 
-server.listen(PORT, () => console.log(`FragBox server on http://localhost:${PORT} (ws same port) — map: ${MAP.name}`));
+server.listen(PORT, () => {
+  console.log(`FragBox server on http://localhost:${PORT} (ws same port) — map: ${MAP.name}`);
+  if(process.argv.includes('--open')){
+    import('node:child_process').then(cp =>
+      cp.spawn('cmd', ['/c', 'start', '', `http://localhost:${PORT}`], { detached: true, stdio: 'ignore' }));
+  }
+});
