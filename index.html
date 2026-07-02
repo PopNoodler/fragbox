@@ -56,6 +56,11 @@
   #killcamlabel b { color:#ff8a80; }
   .dmgnum { position:absolute; color:#ffec8a; font-weight:900; font-size:17px; text-shadow:0 2px 4px rgba(0,0,0,.85); pointer-events:none; transform:translate(-50%,-50%); }
   .dmgnum.hs { color:#ff5252; font-size:22px; }
+  #votebar { position:absolute; left:50%; top:30%; transform:translateX(-50%); display:flex; gap:8px; align-items:center; background:rgba(7,9,18,.92); border:1.5px solid rgba(255,255,255,.2); border-radius:12px; padding:10px 16px; pointer-events:auto; z-index:25; }
+  .votelabel { font-size:11px; color:#8fa3b8; letter-spacing:1px; font-weight:700; }
+  .votebtn { background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.2); color:#fff; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+  .votebtn:hover { background:rgba(79,195,247,.2); }
+  .votebtn.on { background:rgba(79,195,247,.3); border-color:#4fc3f7; }
   #domchips { position:absolute; left:50%; top:52px; transform:translateX(-50%); display:flex; gap:6px; }
   .domchip { width:26px; height:22px; border-radius:6px; color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,.5); }
   #domprog { position:absolute; left:50%; bottom:24%; transform:translateX(-50%); width:180px; height:8px; background:rgba(0,0,0,.55); border-radius:4px; overflow:hidden; border:1px solid rgba(255,255,255,.25); }
@@ -224,6 +229,7 @@
   <div id="killbanner"></div>
   <div id="tutbanner"></div>
   <div id="flagbanner" style="display:none">⚑ YOU HAVE THE FLAG — RETURN TO YOUR BASE</div>
+  <div id="votebar" style="display:none"></div>
   <div id="domchips"></div>
   <div id="domprog" style="display:none"><div id="domprogfill"></div></div>
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
@@ -2855,7 +2861,25 @@ function mpConnect(){
       }
       renderScoreboard();
       el('scoreboard').style.display = 'block';
+      if(m.vote){
+        el('votebar').style.display = 'flex';
+        el('votebar').innerHTML = '<span class="votelabel">NEXT MAP — VOTE:</span>' + m.vote.map(v =>
+          '<button class="votebtn" data-m="' + v.id + '">' + v.name + '</button>').join('');
+        el('votebar').querySelectorAll('.votebtn').forEach(b => b.addEventListener('click', () => {
+          if(NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify({ t:'vote', map: b.dataset.m }));
+          el('votebar').querySelectorAll('.votebtn').forEach(x => x.classList.toggle('on', x === b));
+          SFX.click && SFX.click();
+        }));
+        setTimeout(() => { el('votebar').style.display = 'none'; }, 7000);
+      }
       setTimeout(()=>{ if(!sbOpen) el('scoreboard').style.display = 'none'; }, 4000);
+    }
+    else if(m.t === 'mapchange'){
+      buildWorld(m.id);
+      for(const g of nades){ scene.remove(g.mesh); }
+      nades.length = 0;
+      killfeed('<span style="color:#ffca28">▣ Map changed to <b>' + (MAPS[m.id] ? MAPS[m.id].name : m.id) + '</b></span>');
+      showCallout('NEW MAP: ' + (MAPS[m.id] ? MAPS[m.id].name.toUpperCase() : m.id));
     }
     else if(m.t === 'snap'){
       NET.roundT = m.rt;
@@ -3034,6 +3058,7 @@ function mpDisconnect(){
   NET.ws = null; NET.id = null; NET.roundT = undefined; NET.lastOver = null;
   NET.fl = null;
   NET.dm = null;
+  el('votebar').style.display = 'none';
   clearDomBeacons();
   el('domchips').innerHTML = '';
   el('domprog').style.display = 'none';

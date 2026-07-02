@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v051** (2026-07-03 ~02:25): MAP VOTING + LIVE MAP SWAP (wave 4 #16). Round end now opens
+  a 7s intermission: over msg carries vote options (current + 2 shuffled others), clients get
+  a NEXT MAP vote bar over the scoreboard, {t:'vote'} tallied server-side (last vote per
+  player, ties keep current). Server map state made live-swappable (MAP/ARENA/BOXES/SPAWNS/
+  AABBS let-bound + applyMap() rebuilds hitscan AABBs, CTF flag bases, Domination points),
+  everyone teleports to fresh spawns on the winning map, {t:'mapchange'} → clients
+  buildWorld(id) + clear stray nade visuals + NEW MAP callout. Verified live: two clients
+  voted meadow→depot, server logged the switch, client colliders rebuilt (26→25), killfeed
+  announced. Full suite green. SW → v051.
 - **v050** (2026-07-03 ~02:00): WEAPON CAMOS (wave 4 #15). Per-gun kill tiers past attachments:
   50 = FOREST (blotch canvas texture), 150 = DIGITAL (pixel grid), 400 = GOLD (emissive shine).
   Auto-equips best earned; applied to viewmodel furniture (receiver/wood/body — barrel and mag

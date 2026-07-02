@@ -6,9 +6,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
-import { getMap, PHYS } from '../shared/map.mjs';
+import { getMap, MAPS, PHYS } from '../shared/map.mjs';
 const mapArg = (process.argv.find(a => a.startsWith('--map=')) || '').split('=')[1];
-const MAP = getMap(mapArg);
+let MAP = getMap(mapArg);
 const modeRaw = (process.argv.find(a => a.startsWith('--mode=')) || '').split('=')[1];
 const MODE = ['tdm','gungame','ctf','dom'].includes(modeRaw) ? modeRaw : 'ffa';
 const TEAMED = MODE === 'tdm' || MODE === 'ctf' || MODE === 'dom';
@@ -19,16 +19,35 @@ function pickTeam(){
   for(const e of ents()){ if(e.team === 0) a++; else if(e.team === 1) b++; }
   return a <= b ? 0 : 1;
 }
-const ARENA = MAP.ARENA, BOXES = MAP.BOXES, SPAWNS = MAP.SPAWNS;
+let ARENA = MAP.ARENA, BOXES = MAP.BOXES, SPAWNS = MAP.SPAWNS;
 import { WEAPONS, HITBOX, GG_LADDER, NADE } from '../shared/weapons.mjs';
 import { SKINS } from '../shared/cosmetics.mjs';
 const SKIN_COLORS = new Set(SKINS.filter(s => !s.premium).map(s => s.color));
 
 // Solid world AABBs for authoritative hitscan
-const AABBS = BOXES.filter(b=>b.solid !== false).map(b => ({
-  min: [b.x-b.sx/2, b.y-b.sy/2, b.z-b.sz/2],
-  max: [b.x+b.sx/2, b.y+b.sy/2, b.z+b.sz/2]
-}));
+function buildAABBs(boxes){
+  return boxes.filter(b=>b.solid !== false).map(b => ({
+    min: [b.x-b.sx/2, b.y-b.sy/2, b.z-b.sz/2],
+    max: [b.x+b.sx/2, b.y+b.sy/2, b.z+b.sz/2]
+  }));
+}
+let AABBS = buildAABBs(BOXES);
+
+// Live map swap (between rounds, driven by votes)
+function applyMap(id){
+  MAP = getMap(id);
+  ARENA = MAP.ARENA; BOXES = MAP.BOXES; SPAWNS = MAP.SPAWNS;
+  AABBS = buildAABBs(BOXES);
+  if(flags) for(const f of flags){
+    f.base = [SPAWNS[f.team][0], SPAWNS[f.team][2] || 0, SPAWNS[f.team][1]];
+    f.pos = [...f.base]; f.state = 'home'; f.carrier = null; f.returnT = 0;
+  }
+  if(domPoints){
+    domPoints.length = 0;
+    if(MAP.DOM) for(const d of MAP.DOM) domPoints.push({ x:d.x, z:d.z, label:d.label, owner:-1, prog:0, progTeam:-1 });
+  }
+  console.log('[▣] map switched to ' + MAP.name);
+}
 
 function rayBox(o, d, b){
   let tmin = 0, tmax = 300;
@@ -202,6 +221,11 @@ wss.on('connection', ws => {
     if(m.t === 'tp' && TEST && Array.isArray(m.pos)){
       p.pos = m.pos.map(Number);
       p.lastMove = Date.now();
+      return;
+    }
+
+    if(m.t === 'vote' && typeof m.map === 'string'){
+      if(intermission && voteOpts && voteOpts.includes(m.map)) votes.set(p.id, m.map);
       return;
     }
 
@@ -420,6 +444,10 @@ function tickFlags(dt){
     }
   }
 }
+
+// ---- Map voting (intermission between rounds) ----
+let intermission = false, voteOpts = null;
+const votes = new Map();
 
 const liveNades = [];
 function stepNade(g, dt){
@@ -664,14 +692,32 @@ setInterval(() => {
   const now = Date.now();
   const dt = TICK/1000;
 
-  // round over → announce standings, reset everyone, start next round
-  if(now >= roundEnd){
+  // round over → intermission with map vote, then reset onto the winning map
+  if(now >= roundEnd && !intermission){
+    intermission = true;
+    const others = Object.keys(MAPS).filter(id => id !== MAP.id).sort(() => Math.random() - 0.5);
+    voteOpts = [MAP.id, ...others.slice(0, 2)];
+    votes.clear();
     const standings = ents().slice().sort((a,b)=>b.kills-a.kills || a.deaths-b.deaths)
       .map(e => ({ name:e.name, k:e.kills, d:e.deaths }));
-    broadcast({ t:'over', top: standings.slice(0, 10), ts: TEAMED ? [...teamScores] : undefined });
-    console.log(`[◷] round over — winner: ${standings[0] ? standings[0].name : '—'}`);
+    broadcast({ t:'over', top: standings.slice(0, 10), ts: TEAMED ? [...teamScores] : undefined,
+      vote: voteOpts.map(id => ({ id, name: MAPS[id].name })) });
+    console.log(`[◷] round over — winner: ${standings[0] ? standings[0].name : '—'} · voting: ${voteOpts.join('/')}`);
+    roundEnd = now + 7000;
+  } else if(now >= roundEnd && intermission){
+    intermission = false;
+    // tally: most votes wins, ties keep the current map
+    const tally = {};
+    for(const v of votes.values()) tally[v] = (tally[v] || 0) + 1;
+    let winner = MAP.id, best = tally[MAP.id] || 0;
+    for(const id of voteOpts) if((tally[id] || 0) > best){ best = tally[id]; winner = id; }
+    if(winner !== MAP.id){
+      applyMap(winner);
+      broadcast({ t:'mapchange', id: winner });
+    }
+    voteOpts = null;
     for(const e of ents()){
-      e.kills = 0; e.deaths = 0; e.gg = 0;
+      e.kills = 0; e.deaths = 0; e.gg = 0; e.streak = 0; e.shield = 0;
       e.hp = e.maxHp || 100; e.alive = true; e.deadUntil = 0;
       e.pos = spawnPos(e.team);
       if(e.isBot){ e.enemy = null; e.target = null; e.seeT = 0; }
