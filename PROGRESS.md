@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v017** (2026-07-02 ~15:25): Arsenal + roster expansion. 3 new weapons in shared/weapons.mjs
+  (server auto-validates): LMG (18dmg/550rpm/60mag/3.2s reload), DMR (34dmg semi, adsSpread
+  0.002), Revolver (55dmg = 2-body/1-head). Distinct viewmodels (LMG bipod+box mag, DMR low
+  scope, Revolver cylinder+wood grip). 3 new classes extending the grind ladder: Support
+  (LMG+Pistol, 110hp, lvl 10), Ranger (DMR+Revolver, 95hp, lvl 13), Outlaw (Revolver+Shotgun,
+  1.05x, lvl 16) — 8 cards total, grid auto-fits. BUG FIX: solo bots spawned via
+  spawnPoint(null) which ignores the player → bots could spawn inside you (screenshots showed
+  body parts clipping the camera; looked like a render glitch). Now spawnPoint(player.pos).
+  Test lesson: '.clscard[data-c=N]' matches the hidden death-picker copy first — scope test
+  selectors to '#classrow'. Full suite green. SW → v017.
 - **v016** (2026-07-02 ~14:40): Kour-style feedback + in-game class picker + CRITICAL movement
   fixes (user-reported). BUGS: right-vector was fwd×up flipped → A/D (and touch strafe)
   inverted since v001 — headless tests only asserted "moved", never direction (lesson: assert

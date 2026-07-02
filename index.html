@@ -525,8 +525,11 @@ const CLASSES = [
   { name:'Assault',  weapons:[0,4], hp:100, speed:1.0,  lvl:1, desc:'Balanced auto rifle' },
   { name:'Gunner',   weapons:[1,4], hp:90,  speed:1.08, lvl:3, desc:'Fast SMG skirmisher' },
   { name:'Breacher', weapons:[2,4], hp:115, speed:0.93, lvl:5, desc:'Tanky shotgun brawler' },
-  { name:'Marksman', weapons:[3,4], hp:90,  speed:1.0,  lvl:8, desc:'One-shot precision' },
-  { name:'Phantom',  weapons:[1,4], hp:85,  speed:1.15, lvl:1, premium:true, soon:true, desc:'Coming soon' }
+  { name:'Marksman', weapons:[3,4], hp:90,  speed:1.0,  lvl:8,  desc:'One-shot precision' },
+  { name:'Support',  weapons:[5,4], hp:110, speed:0.95, lvl:10, desc:'LMG suppression' },
+  { name:'Ranger',   weapons:[6,7], hp:95,  speed:1.0,  lvl:13, desc:'DMR + revolver' },
+  { name:'Outlaw',   weapons:[7,2], hp:100, speed:1.05, lvl:16, desc:'Revolver duelist' },
+  { name:'Phantom',  weapons:[1,4], hp:85,  speed:1.15, lvl:1,  premium:true, soon:true, desc:'Coming soon' }
 ];
 function classUnlocked(i){
   const c = CLASSES[i];
@@ -715,7 +718,7 @@ function makeBot(i){
     fireT: 0, thinkT: 0, respawnT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
     skill: Math.min(0.95, DIFFS[SET.diff].skill + Math.random()*0.25)   // accuracy/aggression 0..1
   };
-  b.pos.copy(spawnPoint(null));
+  b.pos.copy(spawnPoint(player.pos));   // never spawn a bot on top of the player
   bots.push(b);
   return b;
 }
@@ -796,6 +799,26 @@ function buildViewmodel(){
     box(0.04,0.05,0.16,  0x111111, 0,0.06,-0.06);      // scope tube
     box(0.05,0.06,0.14,  0x4e342e, 0,-0.02,0.18);      // stock
     tipZ = -0.92;
+  } else if(w.name==='LMG'){
+    box(0.06,0.065,0.62, w.color, 0,0.01,-0.42);       // heavy barrel
+    box(0.09,0.11,0.3,   0x2c363e, 0,-0.01,-0.02);     // receiver
+    box(0.12,0.18,0.16,  0x222b31, 0,-0.13,-0.02);     // box mag
+    box(0.05,0.07,0.14,  0x4e342e, 0,-0.02,0.17);      // stock
+    box(0.02,0.12,0.02,  0x263238, -0.03,-0.06,-0.6);  // bipod leg
+    box(0.02,0.12,0.02,  0x263238, 0.03,-0.06,-0.6);
+    tipZ = -0.75;
+  } else if(w.name==='DMR'){
+    box(0.045,0.05,0.68, w.color, 0,0.01,-0.44);       // long barrel
+    box(0.06,0.085,0.26, 0x3a332a, 0,-0.01,-0.02);     // receiver
+    box(0.045,0.05,0.14, 0x14181c, 0,0.065,-0.04);     // low scope
+    box(0.05,0.14,0.06,  0x263238, 0,-0.1,0.0);        // mag
+    box(0.05,0.06,0.15,  0x4e342e, 0,-0.02,0.16);      // stock
+    tipZ = -0.8;
+  } else if(w.name==='Revolver'){
+    box(0.045,0.06,0.3,  w.color, 0,0.03,-0.14);       // barrel
+    box(0.07,0.085,0.12, 0x51565c, 0,0.0,-0.0);        // cylinder
+    box(0.045,0.12,0.06, 0x3e2a20, 0,-0.08,0.05);      // wood grip
+    tipZ = -0.31;
   } else { // Pistol
     box(0.05,0.07,0.26,  w.color, 0,0.02,-0.1);        // slide
     box(0.045,0.13,0.07, 0x2b2b2b, 0,-0.07,0.02);      // grip
