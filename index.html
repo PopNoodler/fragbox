@@ -200,7 +200,7 @@
   <div id="scope"><div id="scopering"></div><span class="sh"></span><span class="sv"></span></div>
   <canvas id="minimap" width="150" height="150"></canvas>
   <div id="killfeed"></div>
-  <div id="scorepill"><span id="ffascore"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D</span><span id="tdmscore" style="display:none"><span style="color:#ff8a80">RED <b id="tred">0</b></span> &nbsp;·&nbsp; <span style="color:#82b1ff"><b id="tblue">0</b> BLUE</span></span> <span id="timeleft">5:00</span></div>
+  <div id="scorepill"><span id="ffascore"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D</span><span id="tdmscore" style="display:none"><span style="color:#ff8a80">RED <b id="tred">0</b></span> &nbsp;·&nbsp; <span style="color:#82b1ff"><b id="tblue">0</b> BLUE</span></span><span id="ggscore" style="display:none; color:#ffca28">GUN <b id="ggnum">1</b>/8</span> <span id="timeleft">5:00</span></div>
   <div id="touchui">
     <div id="lookzone"></div>
     <div id="stickzone"><div id="stickbase"><div id="sticknub"></div></div></div>
@@ -282,7 +282,7 @@ if (location.protocol === 'file:') {
 <script type="module">
 import * as THREE from 'three';
 import { getMap, MAPS } from './shared/map.mjs';
-import { WEAPONS } from './shared/weapons.mjs';
+import { WEAPONS, GG_LADDER } from './shared/weapons.mjs';
 import { SKINS } from './shared/cosmetics.mjs';
 
 /* =============================================================
@@ -939,6 +939,18 @@ const player = {
   ammo: [], res: [], reloadT: 0, fireCd: 0, recoil: 0
 };
 function resetLoadout(){
+  if(mode === 'mp' && NET.gameMode === 'gungame'){
+    const wi = GG_LADDER[Math.min(NET.gg || 0, GG_LADDER.length - 1)];
+    player.loadout = [wi];
+    player.maxHp = 100;
+    player.speedMul = 1;
+    player.ammo = player.loadout.map(i=>WEAPONS[i].mag);
+    player.res = player.loadout.map(i=>WEAPONS[i].reserve);
+    player.wIdx = 0; player.reloadT = 0; player.fireCd = 0;
+    bloom = 0;
+    el('reloadmsg').style.display = 'none';
+    return;
+  }
   if(!classUnlocked(SET.cls)) SET.cls = 0;      // saved class may be locked on this profile
   const cls = CLASSES[SET.cls] || CLASSES[0];
   player.loadout = cls.weapons.slice();
@@ -1672,10 +1684,11 @@ function showHitmarker(){
   requestAnimationFrame(()=>{ h.style.transition = 'opacity .3s'; h.style.opacity = 0; });
 }
 function renderScoreboard(){
+  const isGG = mode === 'mp' && NET.gameMode === 'gungame';
   const others = mode === 'mp'
-    ? [...NET.remotes.values()].map(r=>({ name:r.name, kills:r.k||0, deaths:r.d||0, lvl:r.lvl||1, team:r.team }))
+    ? [...NET.remotes.values()].map(r=>({ name:r.name, kills:r.k||0, deaths:r.d||0, lvl:r.lvl||1, team:r.team, g:r.g||0 }))
     : bots.map(b=>({ name:b.name, kills:b.kills, deaths:b.deaths, lvl:b.lvl||1 }));
-  const rows = [{ name:'You', kills:player.kills, deaths:player.deaths, lvl:levelOf(xp), team:NET.team, self:true }, ...others]
+  const rows = [{ name:'You', kills:player.kills, deaths:player.deaths, lvl:levelOf(xp), team:NET.team, g:NET.gg||0, self:true }, ...others]
     .sort((a,b)=>b.kills-a.kills || a.deaths-b.deaths);
   el('sbmode').textContent = mode === 'mp'
     ? 'ONLINE FFA · round resets every 5:00'
@@ -1684,7 +1697,8 @@ function renderScoreboard(){
     const kd = r.deaths ? (r.kills/r.deaths).toFixed(1) : r.kills.toFixed(1);
     const crown = (i===0 && r.kills>0) ? '👑 ' : '';
     const dot = (mode==='mp' && NET.gameMode==='tdm' && r.team>=0) ? `<span style="color:${r.team===0?'#ff8a80':'#82b1ff'}">●</span> ` : '';
-    return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${dot}${crown}${r.name}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
+    const ggTag = isGG ? ` <span style="color:#ffca28; font-size:11px">⟨${Math.min((r.g||0)+1, 8)}/8⟩</span>` : '';
+    return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${dot}${crown}${r.name}${ggTag}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
   }).join('');
 }
 
@@ -1785,9 +1799,11 @@ function mpConnect(){
       mode = 'mp';
       NET.gameMode = m.mode || 'ffa';
       NET.team = m.team;
+      NET.gg = 0;
       if(m.map && m.map !== MAP.id) buildWorld(m.map);
       el('mphint').textContent = '';
       startMatch();
+      if(NET.gameMode === 'gungame') closePause(true);   // no class choice in gun game
       player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
       player.yaw = Math.atan2(player.pos.x, player.pos.z);   // face arena center from server spawn
       for(const q of m.roster) if(q.id !== NET.id) addRemote(q);
@@ -1802,7 +1818,10 @@ function mpConnect(){
     }
     else if(m.t === 'over'){
       NET.lastOver = m.top;
-      if(m.ts){
+      if(m.gg){
+        showCallout(m.gg === localStorage.kh_name ? 'YOU WIN THE GUN GAME!' : m.gg.toUpperCase() + ' WINS THE GUN GAME');
+        NET.gg = 0;
+      } else if(m.ts){
         const msg = m.ts[0] === m.ts[1] ? 'ROUND DRAW' : (m.ts[0] > m.ts[1] ? 'RED TEAM WINS' : 'BLUE TEAM WINS');
         const won = NET.team >= 0 && ((m.ts[0] > m.ts[1]) === (NET.team === 0)) && m.ts[0] !== m.ts[1];
         showCallout(won ? 'VICTORY — ' + msg : msg);
@@ -1829,6 +1848,7 @@ function mpConnect(){
           r.target.set(q.pos[0], q.pos[1], q.pos[2]);   // fallback for tabs whose rAF is paused
           if(r.buf.length > 14) r.buf.shift();
           r.k = q.k; r.d = q.d;
+          if(q.g !== undefined) r.g = q.g;
           if(q.l) r.lvl = q.l;
           r.mesh.visible = !!q.a;                     // hide the dead
         }
@@ -1885,6 +1905,18 @@ function mpConnect(){
       } else {
         killfeed(`<b>${m.killer}</b> ${hsIcon} <b>${m.victim}</b>`);
       }
+    }
+    else if(m.t === 'gg'){
+      NET.gg = m.idx;
+      const wi = GG_LADDER[Math.min(NET.gg, GG_LADDER.length - 1)];
+      player.loadout = [wi];
+      player.wIdx = 0;
+      player.ammo = [WEAPONS[wi].mag];
+      player.res = [WEAPONS[wi].reserve];
+      player.reloadT = 0; ads = false;
+      buildViewmodel();
+      updateAmmoHUD();
+      if(m.idx > 0){ showCallout('WEAPON UP — ' + WEAPONS[wi].name.toUpperCase()); SFX.streak(); }
     }
     else if(m.t === 'spawn'){
       player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
@@ -1979,6 +2011,7 @@ function startMatch(){
   bots.length = 0;
   if(mode !== 'mp') for(let i=0;i<SET.bots;i++) makeBot(i);
   el('tdmscore').style.display = 'none';
+  el('ggscore').style.display = 'none';
   el('ffascore').style.display = '';
   for(const p of pickups){ p.taken = false; p.respawnT = 0; p.g.visible = (mode !== 'mp'); }
   el('killfeed').innerHTML = '';
@@ -2321,9 +2354,12 @@ function frame(now){
   if(state===ST.PLAY){
     if(mode === 'mp'){
       const tdm = NET.gameMode === 'tdm' && NET.ts;
+      const gg = NET.gameMode === 'gungame';
       el('tdmscore').style.display = tdm ? '' : 'none';
-      el('ffascore').style.display = tdm ? 'none' : '';
+      el('ggscore').style.display = gg ? '' : 'none';
+      el('ffascore').style.display = (tdm || gg) ? 'none' : '';
       if(tdm){ el('tred').textContent = NET.ts[0]; el('tblue').textContent = NET.ts[1]; }
+      if(gg) el('ggnum').textContent = Math.min((NET.gg || 0) + 1, GG_LADDER.length);
       el('timeleft').textContent = NET.roundT !== undefined ? fmtTime(NET.roundT) : 'ONLINE';
       updateRemotes(dt);
     } else if(!paused){

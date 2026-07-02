@@ -13,5 +13,9 @@ export const WEAPONS = [
   { name:'.44 Magnum',type:'revolver', dmg:55, rpm:130, mag:6,  reserve:24,  reload:2.1, spread:0.012, pellets:1, auto:false, loud:0.55, color:0x6a6f75, len:0.55, kick:0.042, bloom:0.32 }
 ];
 
+// Gun Game kill-ladder: weapon indices in advancement order (finish the
+// .44 Magnum tier to win the round)
+export const GG_LADDER = [0, 1, 2, 5, 6, 3, 4, 7];
+
 // Hitbox spec shared by server hit tests and (later) client prediction
 export const HITBOX = { bodyY:1.0, bodyR:0.55, headY:1.66, headR:0.3 };

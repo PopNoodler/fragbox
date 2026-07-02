@@ -9,7 +9,8 @@ import { WebSocketServer } from 'ws';
 import { getMap, PHYS } from '../shared/map.mjs';
 const mapArg = (process.argv.find(a => a.startsWith('--map=')) || '').split('=')[1];
 const MAP = getMap(mapArg);
-const MODE = ((process.argv.find(a => a.startsWith('--mode=')) || '').split('=')[1]) === 'tdm' ? 'tdm' : 'ffa';
+const modeRaw = (process.argv.find(a => a.startsWith('--mode=')) || '').split('=')[1];
+const MODE = modeRaw === 'tdm' ? 'tdm' : modeRaw === 'gungame' ? 'gungame' : 'ffa';
 const TEAM_COLORS = [0xe53935, 0x2196f3];   // red, blue
 const teamScores = [0, 0];
 function pickTeam(){
@@ -18,7 +19,7 @@ function pickTeam(){
   return a <= b ? 0 : 1;
 }
 const ARENA = MAP.ARENA, BOXES = MAP.BOXES, SPAWNS = MAP.SPAWNS;
-import { WEAPONS, HITBOX } from '../shared/weapons.mjs';
+import { WEAPONS, HITBOX, GG_LADDER } from '../shared/weapons.mjs';
 import { SKINS } from '../shared/cosmetics.mjs';
 const SKIN_COLORS = new Set(SKINS.filter(s => !s.premium).map(s => s.color));
 
@@ -119,7 +120,7 @@ function addBot(){
   const id = nextId++;
   const team = MODE === 'tdm' ? pickTeam() : -1;
   const b = {
-    id, ws:null, isBot:true, team,
+    id, ws:null, isBot:true, team, gg: 0,
     name: BOT_NAMES[botIdx++ % BOT_NAMES.length],
     color: MODE === 'tdm' ? TEAM_COLORS[team] : COLORS[id % COLORS.length],
     pos: spawnPos(team), yaw: 0, pitch: 0,
@@ -156,6 +157,7 @@ wss.on('connection', ws => {
         id, ws,
         name: String(m.name || 'Player').slice(0, 14),
         team: MODE === 'tdm' ? pickTeam() : -1,
+        gg: 0,
         color: SKIN_COLORS.has(+m.skin) ? +m.skin : COLORS[id % COLORS.length],
         maxHp: Math.max(80, Math.min(120, +m.maxhp || 100)),   // class hp, clamped
         lvl: Math.max(1, Math.min(99, (+m.lvl|0) || 1)),
@@ -194,7 +196,7 @@ wss.on('connection', ws => {
     }
 
     if(m.t === 'fire' && p.alive && Array.isArray(m.o) && Array.isArray(m.d) && m.o.length === 3){
-      const w = WEAPONS[m.w|0];
+      const w = MODE === 'gungame' ? WEAPONS[GG_LADDER[Math.min(p.gg, GG_LADDER.length-1)]] : WEAPONS[m.w|0];
       if(!w) return;
       const now = Date.now();
       if(now - p.lastFire < (60000/w.rpm) * 0.7) return;   // fire-rate cap (30% net slack)
@@ -262,6 +264,22 @@ function doFire(shooter, o, nd, w, ads, bloomMult = 1){
   }
 }
 
+function ggWin(winner){
+  const standings = ents().slice().sort((a,b)=>b.gg-a.gg || b.kills-a.kills)
+    .map(e => ({ name:e.name, k:e.kills, d:e.deaths, g:e.gg }));
+  broadcast({ t:'over', top: standings.slice(0, 10), gg: winner.name });
+  console.log(`[◷] gun game won by ${winner.name}`);
+  for(const e of ents()){
+    e.kills = 0; e.deaths = 0; e.gg = 0;
+    e.hp = e.maxHp || 100; e.alive = true; e.deadUntil = 0;
+    e.pos = spawnPos(e.team);
+    if(e.isBot){ e.enemy = null; e.target = null; e.seeT = 0; }
+    send(e.ws, { t:'spawn', pos:e.pos });
+    send(e.ws, { t:'gg', idx: 0 });
+  }
+  roundEnd = Date.now() + ROUND_LEN;
+}
+
 function applyDamage(victim, dmg, attacker, headshot){
   if(!victim.alive) return;
   victim.hp -= dmg;
@@ -276,6 +294,14 @@ function applyDamage(victim, dmg, attacker, headshot){
   victim.deadUntil = Date.now() + 3000;
   attacker.kills++;
   if(MODE === 'tdm' && attacker.team >= 0) teamScores[attacker.team]++;
+  if(MODE === 'gungame'){
+    attacker.gg++;
+    if(attacker.gg >= GG_LADDER.length){
+      ggWin(attacker);
+    } else {
+      send(attacker.ws, { t:'gg', idx: attacker.gg });
+    }
+  }
   send(victim.ws, { t:'die', by:attacker.name, bhp:Math.max(1, Math.round(attacker.hp)) });
   broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot });
   console.log(`[x] ${attacker.name} killed ${victim.name}${headshot?' (headshot)':''}`);
@@ -375,7 +401,8 @@ function tickBot(b, dt){
     const t = [ enemy.pos[0]+(Math.random()-0.5)*err, enemy.pos[1]+1.0+(Math.random()-0.5)*err, enemy.pos[2]+(Math.random()-0.5)*err ];
     let d = [t[0]-o[0], t[1]-o[1], t[2]-o[2]];
     const l = Math.hypot(...d) || 1; d = d.map(v=>v/l);
-    doFire(b, o, d, WEAPONS[0], false);   // bots run rifles
+    const bw = MODE === 'gungame' ? WEAPONS[GG_LADDER[Math.min(b.gg, GG_LADDER.length-1)]] : WEAPONS[0];
+    doFire(b, o, d, bw, false);
   }
 }
 
@@ -391,11 +418,12 @@ setInterval(() => {
     broadcast({ t:'over', top: standings.slice(0, 10), ts: MODE === 'tdm' ? [...teamScores] : undefined });
     console.log(`[◷] round over — winner: ${standings[0] ? standings[0].name : '—'}`);
     for(const e of ents()){
-      e.kills = 0; e.deaths = 0;
+      e.kills = 0; e.deaths = 0; e.gg = 0;
       e.hp = e.maxHp || 100; e.alive = true; e.deadUntil = 0;
       e.pos = spawnPos(e.team);
       if(e.isBot){ e.enemy = null; e.target = null; e.seeT = 0; }
       send(e.ws, { t:'spawn', pos:e.pos });
+      if(MODE === 'gungame') send(e.ws, { t:'gg', idx: 0 });
     }
     teamScores[0] = 0; teamScores[1] = 0;
     roundEnd = now + ROUND_LEN;
@@ -416,7 +444,7 @@ setInterval(() => {
     rt: Math.max(0, Math.ceil((roundEnd - now)/1000)),
     ts: MODE === 'tdm' ? [teamScores[0], teamScores[1]] : undefined,
     players: ents().map(p => ({
-      id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl
+      id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl, g:p.gg
     }))
   };
   broadcast(snap);

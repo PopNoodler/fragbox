@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v031** (2026-07-02 ~21:25): Gun Game mode (roadmap #4, Kour reference). Server
+  --mode=gungame: shared GG_LADDER [AK-47→MP5→M870→M249→M14→AWP→M1911→.44 Magnum]; every
+  entity tracks gg index; kills advance it ({t:'gg'} to the killer), finishing the ladder →
+  ggWin: broadcast over w/ winner, full reset (scores+gg), respawn all; server ENFORCES the
+  ladder weapon on fire (ignores client w) and bots fire their own ladder gun; timed round
+  reset also zeroes gg. Client: single-slot loadout from ladder (class picker skipped — classes
+  are irrelevant in GG), 'gg' msg hot-swaps weapon with WEAPON UP callout, GUN n/8 score pill
+  (third static pill layout), scoreboard shows ⟨n/8⟩ per player, "YOU WIN THE GUN GAME!" on
+  ladder finish. Functional test: kill → MP5 + GUN 2/8 (test lesson: re-aim each frame at
+  moving bots — chase-aim loop). Full suite green. SW → v031.
 - **v030** (2026-07-02 ~21:05): Team Deathmatch (roadmap #3, Kour reference). Server
   --mode=tdm: balanced team assignment on join (humans + lobby bots, pickTeam counts both),
   team colors override skins (red 0xe53935 / blue 0x2196f3), spawnPos avoids only ENEMIES in
