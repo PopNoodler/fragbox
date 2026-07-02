@@ -18,6 +18,24 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] MP polish: interpolation buffer (currently rate-lerp)
 
 ## Releases (newest first)
+- **v013** (2026-07-02 ~05:45): Graphics fidelity pass (user request: match Kour.io polish).
+  ACES filmic tone mapping (exposure 1.15) + stronger sun/hemi + shadow bias. Gradient sky dome
+  (shader, BackSide sphere), 10 drifting cloud sprites (radial-gradient canvas), low-poly
+  mountain ring fading into fog (far 210). Procedural canvas textures — grass (speckled),
+  wood-plank crates w/ grain+frame, seamed concrete walls, riveted metal, painted green metal —
+  per-box cloned+tiled by size via matFor(); textured ground + darker outer ring. New soldier
+  model: hip-pivoted swinging legs+boots, vest+pouch+belt, forward arms w/ hands, two-handed
+  rifle, helmet+rim+visor (head kept at hitbox height 1.62). Leg walk-cycle for remotes AND
+  solo bots. Pines (3-tier cones)+rocks replace box trees. CSS grade saturate(1.05)
+  contrast(1.03) + permanent subtle vignette. Tuned after first screenshots: grass smaller/
+  lower-contrast speckle, sky desaturated, mountains darker. Full suite green. SW → v013.
+- **v012** (2026-07-02 ~05:35): User feedback round. REBRAND KourHero → **FragBox** everywhere
+  (title/logo/manifest/SW cache prefix/server logs/docs; no Kour references left; folder rename
+  to FragBox pending a file lock on the user's side). Fixed "menu buttons don't work": opening
+  via file:// blocks module imports (CORS) killing all JS — added classic-script guard that
+  shows a friendly overlay + PLAY.bat one-click launcher (starts server, opens browser). Menu
+  redesigned: compact setup card (name field + settings), PLAY/ONLINE side by side, scrollable
+  overlay. file:// guard verified headlessly; full suite green. SW → v012.
 - **v011** (2026-07-02 ~05:20): Name entry + touch ADS. Menu name field (14 chars, persisted to
   kh_name, used for MP join; falls back to generated Hero###). Touch ⊕ button toggles ADS
   (button highlights while on; FOV verified 75→55→75). Full suite green. SW → v011.
