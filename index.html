@@ -49,6 +49,9 @@
   #respawnmsg small b { color:#ff8a80; }
   .dmgnum { position:absolute; color:#ffec8a; font-weight:900; font-size:17px; text-shadow:0 2px 4px rgba(0,0,0,.85); pointer-events:none; transform:translate(-50%,-50%); }
   .dmgnum.hs { color:#ff5252; font-size:22px; }
+  #tutbanner { position:absolute; left:50%; top:12%; transform:translateX(-50%); display:none; background:rgba(7,9,18,.92); border:1.5px solid #ffca28; border-radius:12px; padding:10px 22px; color:#fff; font-size:16px; font-weight:700; letter-spacing:.5px; pointer-events:none; animation:tutpulse 1.6s ease-in-out infinite; }
+  #tutbanner b { color:#ffca28; }
+  @keyframes tutpulse { 0%,100% { box-shadow:0 0 0 rgba(255,202,40,0); } 50% { box-shadow:0 0 18px rgba(255,202,40,.45); } }
   #killbanner { position:absolute; left:50%; top:62%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .18s; pointer-events:none; color:#ffca28; font-size:16px; font-weight:800; letter-spacing:1.5px; text-shadow:0 2px 8px rgba(0,0,0,.8); }
   #hitdir { position:absolute; left:50%; top:50%; width:130px; height:130px; transform:translate(-50%,-50%); opacity:0; transition:opacity .25s; pointer-events:none; }
   #hitdir span { position:absolute; left:50%; top:-4px; transform:translateX(-50%); width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent; border-bottom:18px solid rgba(244,67,54,.9); filter:drop-shadow(0 0 6px rgba(244,67,54,.7)); }
@@ -182,6 +185,7 @@
   <div id="callout"></div>
   <div id="respawnmsg"></div>
   <div id="killbanner"></div>
+  <div id="tutbanner"></div>
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
   <div id="pausemenu">
     <div class="pausecard">
@@ -250,7 +254,10 @@
     <div class="setslider"><label>Field of view <b id="fovval">75</b></label><input type="range" id="fovsl" min="60" max="110" step="1"></div>
     <div class="setslider"><label>Volume <b id="volval">100%</b></label><input type="range" id="volsl" min="0" max="100" step="5"></div>
     <div class="setslider" style="display:flex; justify-content:space-between; align-items:center"><label style="margin:0">Music</label><button id="musicbtn" class="setbtn" style="width:70px">ON</button></div>
-    <div style="margin-top:16px"><button id="setclose" class="bigbtn" style="font-size:15px; padding:11px 34px">DONE</button></div>
+    <div style="margin-top:14px; display:flex; gap:10px; justify-content:center">
+      <button id="tutreplay" class="setbtn" style="width:auto; padding:8px 16px">Replay tutorial</button>
+      <button id="setclose" class="bigbtn" style="font-size:15px; padding:11px 34px">DONE</button>
+    </div>
   </div>
 </div>
 
@@ -517,7 +524,7 @@ function checkPad(pos, vel, isPlayer){
     const dx = pos.x-p.x, dz = pos.z-p.z;
     if(dx*dx+dz*dz < 1.25*1.25 && pos.y < 0.35 && vel.y <= 0.5){
       vel.y = p.v; p.pulse = 1;
-      if(isPlayer) SFX.boing();
+      if(isPlayer){ SFX.boing(); tutFlag('pad'); }
       return true;
     }
   }
@@ -1331,6 +1338,11 @@ el('musicbtn').addEventListener('click', ()=>{
   el('musicbtn').classList.toggle('active', !!SET.music);
   setMusicMode(MUSIC.want);
 });
+el('tutreplay').addEventListener('click', ()=>{
+  localStorage.removeItem('kh_tut');
+  el('tutreplay').textContent = 'Will replay next solo match ✓';
+  setTimeout(()=>{ el('tutreplay').textContent = 'Replay tutorial'; }, 1800);
+});
 el('setclose').addEventListener('click', ()=>{ el('settingspanel').style.display = 'none'; });
 
 document.querySelectorAll('.setbtn').forEach(btn=>{
@@ -1521,6 +1533,7 @@ function playerShoot(){
   player.ammo[player.wIdx]--;
   player.fireCd = 60/w.rpm;
   SFX.shoot(w);
+  tutFlag('shot');
   vmKick = 1;
   player.recoil += w.kick;
   vmFlashT = 0.045;
@@ -1597,6 +1610,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
     } else {
       player.kills++;
       player.streak++;
+      tutFlag('kill');
       SFX.kill();
       killBanner(headshot ? 150 : 100, (headshot ? 'HEADSHOT · ' : 'ELIMINATED ') + b.name);
       killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
@@ -1712,6 +1726,46 @@ function showHitDir(sx, sz){
   el('hitdir').style.transform = 'translate(-50%,-50%) rotate(' + rel.toFixed(3) + 'rad)';
   el('hitdir').style.opacity = 1;
   hitdirT = 0.7;
+}
+
+// ---------- First-run tutorial (action-gated, solo only) ----------
+const TUT = { active:false, step:-1, flags:{}, moved:0, last:null };
+const TUT_STEPS = [
+  { html:'Move with <b>W A S D</b>', done:()=>TUT.moved > 4 },
+  { html:'Hold <b>LEFT MOUSE</b> to fire', flag:'shot' },
+  { html:'Hold <b>RIGHT MOUSE</b> to aim down sights', done:()=>ads },
+  { html:'<b>Eliminate a bot!</b> (aim for the head)', flag:'kill' },
+  { html:'Step on a <b>BLUE PAD</b> for a jump boost', flag:'pad' },
+  { html:'Ready — first to <b>25 kills</b> wins. Good luck!', timer:3 }
+];
+function tutStart(){
+  TUT.active = true; TUT.step = 0; TUT.flags = {}; TUT.moved = 0;
+  TUT.last = player.pos.clone();
+  TUT_STEPS.forEach(st=>delete st.t);
+  el('tutbanner').innerHTML = TUT_STEPS[0].html;
+  el('tutbanner').style.display = 'block';
+}
+function tutFlag(f){ if(TUT.active) TUT.flags[f] = true; }
+function updateTut(dt){
+  if(!TUT.active || !player.alive) return;
+  TUT.moved += player.pos.distanceTo(TUT.last);
+  TUT.last.copy(player.pos);
+  const st = TUT_STEPS[TUT.step];
+  let ok = false;
+  if(st.done) ok = st.done();
+  else if(st.flag) ok = !!TUT.flags[st.flag];
+  else if(st.timer !== undefined){ st.t = (st.t === undefined ? st.timer : st.t) - dt; ok = st.t <= 0; }
+  if(ok){
+    TUT.step++;
+    SFX.pickup();
+    if(TUT.step >= TUT_STEPS.length){
+      TUT.active = false;
+      localStorage.kh_tut = 1;
+      el('tutbanner').style.display = 'none';
+      return;
+    }
+    el('tutbanner').innerHTML = TUT_STEPS[TUT.step].html;
+  }
 }
 
 // ---------- Kill streaks ----------
@@ -2050,6 +2104,7 @@ function closePause(relock){
     resetLoadout(); buildViewmodel();
     player.hp = player.maxHp;
     updateHpHUD(); updateAmmoHUD();
+    if(mode !== 'mp' && !localStorage.kh_tut) tutStart();
   }
   paused = false;
   el('ptitle').textContent = 'PAUSED';
@@ -2103,6 +2158,8 @@ function startMatch(){
 }
 function showMenu(){
   state = ST.MENU;
+  TUT.active = false;
+  el('tutbanner').style.display = 'none';
   setMusicMode('menu');
   ads = false; mouseDown = false;
   paused = false; deployMode = false;
@@ -2453,6 +2510,7 @@ function frame(now){
     if(!(paused && mode !== 'mp')){
       for(const b of bots) updateBot(b, dt);
       updatePickups(dt);
+      if(mode !== 'mp') updateTut(dt);
     }
     updateDmgNums(dt);
     drawMinimap();

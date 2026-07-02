@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v033** (2026-07-02 ~22:00): First-run interactive tutorial (roadmap #6, playbook §8).
+  Six action-gated steps in the first solo match (starts on DEPLOY when kh_tut unset): move
+  4u → fire → ADS → eliminate a bot → ride a jump pad → ready message; gold pulsing banner
+  top-center advances with a chime per step; kh_tut=1 on completion; leaves cleanly on menu
+  exit; "Replay tutorial" button in settings clears the flag. Hooks piggyback existing events
+  (playerShoot, damageBot kill, checkPad). Headless walkthrough advanced all 6 steps and
+  persisted. Gotcha: apostrophe in a single-quoted tutorial string — verify caught it. Full
+  suite green. SW → v033.
 - **v032** (2026-07-02 ~21:45): Audio pass (roadmap #5). Per-weapon shot timbres via
   SHOT_RECIPES keyed on weapon type: AK punchy mid, MP5 snappy square, M870 700Hz boom,
   AWP 3.2kHz crack + rolling tail, M249 heavy chug, M14 sharp semi, .44 thunder + sub,
