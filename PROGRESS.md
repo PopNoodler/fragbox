@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v037** (2026-07-03 ~00:05): Crouch + slide movement (max-grind queue #1). Ctrl/C (or touch
+  ▼ toggle): 0.5x speed, eye lerps 1.62→1.08, collision height 1.2, accuracy bonus (bloom mult
+  ×0.7 when steady). Sprint+crouch = SLIDE: 0.55s momentum burst (1.35× sprint), input accel
+  damped to 2.2 so momentum carries, eye 0.9 + camera tilt, slide adds spread (+0.7). Crouch
+  flag rides the 'in' msg → server stores p.crouch and scales hit spheres (head ×0.68 /
+  body ×0.7) so crouching genuinely shrinks you online; snap 'c' → remotes squash-scale 0.66
+  visually. playerEye() now uses dynamic eye height (shots originate lower when crouched;
+  bots aim at your real eye). Functional: crouch eye/speed, stand restore, slide burst 13.3u/s.
+  Full suite green. SW → v037.
 - **v036** (2026-07-02 ~23:40): GRENADES — first big core-combat expansion (user: "bigger
   changes… more everything"). Shared NADE constants; client: G key / 🧨 touch button, 2 per
   life (+1 from ammo pickups), thrown from eye with arc, full bounce physics (ground + axis-

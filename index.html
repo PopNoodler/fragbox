@@ -167,6 +167,7 @@
   .tbtn.on { background:rgba(79,195,247,.55); border-color:#4fc3f7; }
   #relbtn  { right:160px; bottom:130px; width:56px; height:56px; }
   #nadebtn { right:250px; bottom:80px; width:56px; height:56px; font-size:20px; }
+  #crouchbtn { right:250px; bottom:150px; width:56px; height:56px; }
   #pausebtn { left:14px; top:14px; width:44px; height:44px; border-radius:10px; }
   body.touch #healthbar { left:12px; bottom:200px; width:150px; }
   body.touch #hpnum { font-size:20px; }
@@ -217,6 +218,7 @@
     <div id="adsbtn" class="tbtn">⊕</div>
     <div id="relbtn" class="tbtn">R</div>
     <div id="nadebtn" class="tbtn">🧨</div>
+    <div id="crouchbtn" class="tbtn">▼</div>
     <div id="pausebtn" class="tbtn">☰</div>
   </div>
   <div id="scoreboard"><h3>SCOREBOARD</h3><div id="sbmode"></div><table id="sbtable"><thead><tr><th>LV</th><th>PLAYER</th><th class="num">KILLS</th><th class="num">DEATHS</th><th class="num">K/D</th></tr></thead><tbody id="sbbody"></tbody></table></div>
@@ -245,7 +247,7 @@
     </div>
     <div id="mphint" style="margin-top:8px; font-size:12px; opacity:.6"></div>
     <div class="hint">
-      <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim/scope · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>
+      <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Ctrl</kbd> crouch/slide · <kbd>G</kbd> grenade<br>
       <kbd>R</kbd> reload · <kbd>1 2</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
     </div>
   </div>
@@ -875,9 +877,9 @@ const PLAYER_R = 0.45, PLAYER_H = 1.8, EYE = 1.62;
 const GRAV = 24, JUMP_V = 9.0, WALK = 7, SPRINT = 10.4, AIR_CTRL = 0.35;
 const PHYS_GRAV = GRAV;
 
-function resolveAABB(pos, vel, dt){
+function resolveAABB(pos, vel, dt, hOverride){
   // pos = feet position. Move axis-by-axis against colliders + ground + arena bounds.
-  const r = PLAYER_R, h = PLAYER_H;
+  const r = PLAYER_R, h = hOverride || PLAYER_H;
   let onGround = false;
 
   // Y
@@ -1177,6 +1179,7 @@ const player = {
   yaw: Math.PI, pitch: 0, hp: 100, alive: true,
   kills: 0, deaths: 0, respawnT: 0,
   wIdx: 0, loadout: [0,4], maxHp: 100, speedMul: 1,
+  crouch: false, slideT: 0, eyeH: 1.62,
   ammo: [], res: [], reloadT: 0, fireCd: 0, recoil: 0
 };
 function resetLoadout(){
@@ -1593,6 +1596,7 @@ const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 if(isTouch) document.body.classList.add('touch');
 const stick = { on:false, dx:0, dy:0 };
 let touchJump = false;
+let touchCrouch = false;
 {
   const sz = el('stickzone'), sb = el('stickbase'), nub = el('sticknub');
   let stickId = null;
@@ -1661,6 +1665,7 @@ let touchJump = false;
   bindBtn('adsbtn', ()=>{ ads = !ads; });
   bindBtn('relbtn', ()=>tryReload());
   bindBtn('nadebtn', ()=>throwNade());
+  bindBtn('crouchbtn', ()=>{ touchCrouch = !touchCrouch; el('crouchbtn').classList.toggle('on', touchCrouch); });
   bindBtn('pausebtn', ()=>{ if(paused) closePause(false); else openPause(); });
   addEventListener('contextmenu', e=>{ if(state===ST.PLAY) e.preventDefault(); });
 }
@@ -1685,13 +1690,15 @@ function currentSpread(w){
   const base = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
   let mult = 1 + bloom*2.2;
   if(!player.grounded) mult += 1.3;               // airborne
+  else if(player.slideT > 0) mult += 0.7;         // sliding
   else if(player.sprinting) mult += 0.9;          // sprinting
+  else if(player.crouch) mult *= 0.7;             // crouched = steady
   if(ads) mult = 1 + (mult-1)*0.3;                // ADS tames movement/spray bloom
   return base * mult;
 }
 
 const _dir = new THREE.Vector3(), _eye = new THREE.Vector3();
-function playerEye(){ return _eye.set(player.pos.x, player.pos.y+EYE, player.pos.z); }
+function playerEye(){ return _eye.set(player.pos.x, player.pos.y + (player.eyeH || EYE), player.pos.z); }
 
 function fireDir(spread){
   camera.getWorldDirection(_dir);
@@ -2069,6 +2076,9 @@ function updateRemotes(dt){
     while(dy > Math.PI) dy -= Math.PI*2;
     while(dy < -Math.PI) dy += Math.PI*2;
     r.mesh.rotation.y += dy * Math.min(1, dt*20);
+    // crouch visual: squash the whole rig
+    const targetSy = r.crouch ? 0.66 : 1;
+    r.mesh.scale.y += (targetSy - r.mesh.scale.y) * Math.min(1, dt*10);
     // walk cycle: leg swing + subtle sway while moving
     const moving = Math.min(1, speed / 4);
     r.animT = (r.animT || 0) + dt * (4 + speed*1.6);
@@ -2084,7 +2094,7 @@ function sendInput(){
   if(NET.ws && NET.ws.readyState === 1 && state === ST.PLAY){
     NET.ws.send(JSON.stringify({ t:'in',
       pos:[+player.pos.x.toFixed(2), +player.pos.y.toFixed(2), +player.pos.z.toFixed(2)],
-      yaw:+player.yaw.toFixed(3), pitch:+player.pitch.toFixed(3) }));
+      yaw:+player.yaw.toFixed(3), pitch:+player.pitch.toFixed(3), c: player.crouch ? 1 : 0 }));
   }
 }
 function mpConnect(){
@@ -2155,6 +2165,7 @@ function mpConnect(){
           r.target.set(q.pos[0], q.pos[1], q.pos[2]);   // fallback for tabs whose rAF is paused
           if(r.buf.length > 14) r.buf.shift();
           r.k = q.k; r.d = q.d;
+          r.crouch = !!q.c;
           if(q.g !== undefined) r.g = q.g;
           if(q.l) r.lvl = q.l;
           r.mesh.visible = !!q.a;                     // hide the dead
@@ -2437,25 +2448,44 @@ function updatePlayer(dt){
   if(stick.on){ wish.addScaledVector(fwd, -stick.dy).addScaledVector(right, stick.dx); }
   const sprinting = (keys.ShiftLeft && keys.KeyW) || (stick.on && Math.hypot(stick.dx, stick.dy) > 0.92);
   player.sprinting = sprinting && wish.lengthSq() > 0;
-  const speed = (sprinting ? SPRINT : WALK) * (player.speedMul || 1);
+
+  // ---- crouch & slide ----
+  const crouchIntent = keys.ControlLeft || keys.KeyC || touchCrouch;
+  if(crouchIntent && player.sprinting && player.grounded && player.slideT <= 0 && !player.crouch){
+    // sprint + crouch = slide: momentum burst, keep it while slideT runs
+    player.slideT = 0.55;
+    const dir = wish.clone().normalize();
+    player.vel.x = dir.x * SPRINT * 1.35;
+    player.vel.z = dir.z * SPRINT * 1.35;
+    SFX.swap();
+  }
+  const sliding = player.slideT > 0;
+  if(sliding) player.slideT -= dt;
+  player.crouch = crouchIntent || sliding;
+  const eyeTarget = sliding ? 0.9 : (player.crouch ? 1.08 : EYE);
+  player.eyeH += (eyeTarget - (player.eyeH || EYE)) * Math.min(1, dt*12);
+
+  let speed = (sprinting ? SPRINT : WALK) * (player.speedMul || 1);
+  if(player.crouch && !sliding) speed *= 0.5;
   if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
 
   const wasGrounded = player.grounded;
-  const accel = wasGrounded ? 14 : 14*AIR_CTRL;
+  const accel = sliding ? 2.2 : (wasGrounded ? 14 : 14*AIR_CTRL);   // slide keeps momentum
   player.vel.x += (wish.x - player.vel.x) * Math.min(1, accel*dt);
   player.vel.z += (wish.z - player.vel.z) * Math.min(1, accel*dt);
   player.vel.y -= GRAV*dt;
   if((keys.Space || touchJump) && wasGrounded){ player.vel.y = JUMP_V; SFX.jump(); }
 
-  player.grounded = resolveAABB(player.pos, player.vel, dt);
+  player.grounded = resolveAABB(player.pos, player.vel, dt, player.crouch ? 1.2 : PLAYER_H);
   checkPad(player.pos, player.vel, true);
 
   // camera (recoil kicks pitch up, springs back)
   player.recoil -= player.recoil * Math.min(1, dt*9);
-  camera.position.set(player.pos.x, player.pos.y+EYE, player.pos.z);
+  camera.position.set(player.pos.x, player.pos.y + player.eyeH, player.pos.z);
   camera.rotation.set(0,0,0);
   camera.rotateY(player.yaw);
   camera.rotateX(Math.min(1.55, player.pitch + player.recoil));
+  if(player.slideT > 0) camera.rotateZ(0.05);
   if(camShake > 0.0005){
     camera.rotateZ((Math.random()-0.5) * camShake);
     camera.rotateX((Math.random()-0.5) * camShake);

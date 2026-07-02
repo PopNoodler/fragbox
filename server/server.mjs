@@ -241,6 +241,7 @@ wss.on('connection', ws => {
       p.pos[1] = Math.max(0, Math.min(40, ny));
       p.yaw = +m.yaw || 0;
       p.pitch = +m.pitch || 0;
+      p.crouch = !!m.c;
     }
     } catch(err){ console.error('[!] message handler error:', err.message); }
   });
@@ -266,8 +267,10 @@ function doFire(shooter, o, nd, w, ads, bloomMult = 1){
     for(const q of ents()){
       if(q.id === shooter.id || !q.alive) continue;
       if(MODE === 'tdm' && q.team === shooter.team) continue;   // no friendly fire
-      const tH = raySphere(o, d, [q.pos[0], q.pos[1]+HITBOX.headY, q.pos[2]], HITBOX.headR);
-      const tB = raySphere(o, d, [q.pos[0], q.pos[1]+HITBOX.bodyY, q.pos[2]], HITBOX.bodyR);
+      const hY = q.crouch ? HITBOX.headY * 0.68 : HITBOX.headY;
+      const bY = q.crouch ? HITBOX.bodyY * 0.7  : HITBOX.bodyY;
+      const tH = raySphere(o, d, [q.pos[0], q.pos[1]+hY, q.pos[2]], HITBOX.headR);
+      const tB = raySphere(o, d, [q.pos[0], q.pos[1]+bY, q.pos[2]], HITBOX.bodyR);
       let t = Infinity, hs = false;
       if(tH < t){ t = tH; hs = true; }
       if(tB < t){ t = tB; hs = false; }
@@ -506,7 +509,7 @@ setInterval(() => {
     rt: Math.max(0, Math.ceil((roundEnd - now)/1000)),
     ts: MODE === 'tdm' ? [teamScores[0], teamScores[1]] : undefined,
     players: ents().map(p => ({
-      id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl, g:p.gg
+      id:p.id, pos:p.pos.map(v=>+v.toFixed(2)), yaw:+p.yaw.toFixed(3), hp:p.hp, k:p.kills, d:p.deaths, a:p.alive?1:0, l:p.lvl, g:p.gg, c:p.crouch?1:0
     }))
   };
   broadcast(snap);
