@@ -140,6 +140,7 @@
   #btnrow .bigbtn { flex:1; max-width:200px; }
   #gearbtn { pointer-events:auto; position:absolute; top:14px; right:14px; width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#cfd8dc; font-size:19px; cursor:pointer; }
   #gearbtn:hover { background:rgba(255,255,255,.16); }
+  #adsim { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; background:rgba(4,6,12,.9); pointer-events:auto; }
   #settingspanel { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.75); backdrop-filter:blur(3px); pointer-events:auto; }
   .setslider { margin:14px 0; text-align:left; color:#cfd8dc; }
   .setslider label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
@@ -274,7 +275,18 @@
   <div class="panel">
     <div id="overtitle">MATCH OVER</div>
     <div id="overstats"></div>
-    <button id="againbtn" class="bigbtn">PLAY AGAIN</button>
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+      <button id="againbtn" class="bigbtn">PLAY AGAIN</button>
+      <button id="adx2btn" class="bigbtn" style="display:none; background:linear-gradient(135deg,#66bb6a,#2e7d32); box-shadow:0 4px 20px rgba(46,125,50,.4)">▶ AD — 2× XP</button>
+    </div>
+  </div>
+</div>
+
+<div id="adsim">
+  <div class="pausecard" style="max-width:380px; text-align:center">
+    <div class="ptitle">AD BREAK</div>
+    <div style="color:#cfd8dc; font-size:14px; line-height:1.8">Simulated rewarded ad<br>Reward in <b id="adcount" style="color:#ffca28; font-size:22px">2</b>s</div>
+    <div style="font-size:10px; opacity:.4; margin-top:10px">(real ad network plugs in via Monetize.provider)</div>
   </div>
 </div>
 
@@ -654,6 +666,36 @@ const SFX = {
   boing(){ tone(180, 0.05, 0.2, 'sine'); setTimeout(()=>tone(420, 0.18, 0.22, 'sine'), 40); }
 };
 
+// ---------- Monetization (dormant — playbook §7: simulated until accounts exist) ----------
+const Monetize = {
+  provider: 'sim',                 // flip to a real provider key once the SDK is wired
+  rewardedAvailable(){ return this.provider === 'sim'; },
+  showRewarded(onReward, onFail){
+    if(this.provider === 'sim'){
+      const ov = el('adsim');
+      ov.style.display = 'flex';
+      let t = 2;
+      el('adcount').textContent = t;
+      const iv = setInterval(()=>{
+        t--;
+        el('adcount').textContent = Math.max(0, t);
+        if(t <= 0){
+          clearInterval(iv);
+          ov.style.display = 'none';
+          onReward();
+        }
+      }, 1000);
+      return;
+    }
+    // real providers: map their SDK's rewarded call here, reward EXACTLY once
+    if(onFail) onFail();
+  },
+  buyPremium(){
+    showCallout('★ PREMIUM — COMING SOON');
+    SFX.swap();
+  }
+};
+
 // ---------- Music & ambience (procedural, through masterGain) ----------
 const MUSIC = { timer:null, amb:null, gain:null, step:0, want:'menu' };
 function mtone(freq, dur, vol, type, lpFreq){
@@ -763,7 +805,10 @@ function renderLocker(){
   box.querySelectorAll('.swatch').forEach(sw => {
     sw.addEventListener('click', () => {
       const sk = SKINS.find(k => k.id === sw.dataset.s);
-      if(!sk || !skinUnlocked(sk)){ SFX.empty(); return; }
+      if(!sk || !skinUnlocked(sk)){
+        if(sk && sk.premium) Monetize.buyPremium(); else SFX.empty();
+        return;
+      }
       skinId = sk.id;
       localStorage.kh_skin = skinId;
       renderLocker();
@@ -1302,7 +1347,10 @@ function renderClassCards(){
     box.querySelectorAll('.clscard').forEach(card=>{
       card.addEventListener('click', ()=>{
         const i = +card.dataset.c;
-        if(!classUnlocked(i)){ SFX.empty(); return; }
+        if(!classUnlocked(i)){
+          if(CLASSES[i] && CLASSES[i].premium) Monetize.buyPremium(); else SFX.empty();
+          return;
+        }
         SET.cls = i;
         localStorage.kh_set = JSON.stringify(SET);
         renderClassCards();
@@ -2185,7 +2233,21 @@ function endMatch(){
   const won = rows[0].name === 'You';
   el('overtitle').textContent = won ? 'VICTORY!' : 'MATCH OVER';
   el('overtitle').style.color = won ? '#ffca28' : '#fff';
-  el('overstats').innerHTML = `You placed <b>#${rows.findIndex(r=>r.name==='You')+1}</b> of ${rows.length}<br>${player.kills} kills · ${player.deaths} deaths<br><span style="color:#ffca28">+${xp - (player.matchXpStart||xp)} XP earned</span>`;
+  const matchXp = xp - (player.matchXpStart === undefined ? xp : player.matchXpStart);
+  el('overstats').innerHTML = `You placed <b>#${rows.findIndex(r=>r.name==='You')+1}</b> of ${rows.length}<br>${player.kills} kills · ${player.deaths} deaths<br><span style="color:#ffca28">+${matchXp} XP earned</span>`;
+  const adBtn = el('adx2btn');
+  if(matchXp > 0 && Monetize.rewardedAvailable()){
+    adBtn.style.display = '';
+    adBtn.textContent = '▶ AD — 2× XP (+' + matchXp + ')';
+    adBtn.onclick = ()=>{
+      adBtn.style.display = 'none';                    // one reward per match
+      Monetize.showRewarded(()=>{
+        addXp(matchXp);
+        showCallout('XP DOUBLED  +' + matchXp);
+        el('overstats').innerHTML += '<br><span style="color:#66bb6a">2× bonus +' + matchXp + ' XP ✓</span>';
+      }, ()=>{ adBtn.style.display = ''; });           // no-fill: restore button
+    };
+  } else adBtn.style.display = 'none';
   el('gameover').classList.add('show');
   if(document.pointerLockElement) document.exitPointerLock();
 }

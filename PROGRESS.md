@@ -14,10 +14,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - Every release: bump `CACHE` in `sw.js` (currently v001) + commit.
 
 ## Backlog (roughly ordered)
-- [ ] Real IAP wiring for premium class/skin (needs user's payment accounts — see playbook §7)
+- [ ] Real ad-network SDK + IAP wiring (needs user's accounts — see MONETIZATION.md)
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v034** (2026-07-02 ~22:20): Dormant monetization (roadmap #7, playbook §7). Monetize
+  abstraction (provider:'sim'): showRewarded plays a simulated 2s AD BREAK overlay then
+  rewards exactly once (onFail restores UI for no-fill), buyPremium → "COMING SOON" callout.
+  Placement built: match-end "▶ AD — 2× XP (+N)" doubles that match's XP (once per match).
+  Premium Phantom class + Rose skin clicks route through buyPremium. MONETIZATION.md documents
+  placements, go-live steps (portal SDK mapping, reward-exactly-once audit rules), and what
+  requires the user's accounts (portal/ad network, payments). BUG: matchXpStart||xp treated
+  a legit 0-XP start as unset → matchXp 0 → button hidden on fresh profiles; explicit
+  undefined check. Full flow verified headlessly (100→200 XP). Full suite green. SW → v034.
 - **v033** (2026-07-02 ~22:00): First-run interactive tutorial (roadmap #6, playbook §8).
   Six action-gated steps in the first solo match (starts on DEPLOY when kh_tut unset): move
   4u → fire → ADS → eliminate a bot → ride a jump pad → ready message; gold pulsing banner
