@@ -17,6 +17,21 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] Progression: XP/levels, cosmetic skins for bots+viewmodel (playbook §5)
 
 ## Releases (newest first)
+- **v022** (2026-07-02 ~16:20): Bloom + pause menu + progression juice + arm fix (user requests).
+  BLOOM: per-weapon bloom-per-shot in shared/weapons.mjs; currentSpread() = base(ads-aware) ×
+  (1 + bloom×2.2), airborne +1.3, sprinting +0.9, ADS tames movement/spray bloom to 30%;
+  decays 1.7/s (0.45 while holding fire). Crosshair reworked to center-relative lines and its
+  size now shows live spread (24px rest → 29px spraying → 36px airborne, verified). MP fire
+  sends bl multiplier; server multiplies its spread (clamped 1–4; only ever ADDS spread so not
+  a cheat vector). PAUSE MENU: Esc/lock-loss while alive opens PAUSED overlay (both modes) with
+  full class grid (applies next spawn), RESUME (re-locks), MAIN MENU (quits/disconnects); solo
+  freezes the sim, MP keeps running; touch ☰ toggles it; shooting/ADS input blocked while
+  paused; death closes it. Replaces the old lock-loss→menu flow. PROGRESSION: level-ups now
+  announce each newly UNLOCKED class; menu shows "next unlock: X at Lv N"; match end shows
+  "+N XP earned". VIEWMODEL: arms rebuilt as exact shoulder→hand limbs via quaternion
+  setFromUnitVectors (user reported left arm not aligned with hand — it wasn't; eyeballed
+  angles replaced with computed geometry). TEST regression: focus loss now auto-pauses in MP
+  (by design) — mptest must dismiss the pause overlay before firing. Full suite green. SW → v022.
 - **v021** (2026-07-02 ~15:55): QA sweep over v016–v020. Found+fixed: "RELOADING…" label stuck
   forever after weapon-switch-during-reload (switchWeapon zeroed reloadT without hiding the
   label) and shown through the death screen when dying mid-reload — now hidden on switch, in

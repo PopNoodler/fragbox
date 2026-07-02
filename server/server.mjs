@@ -182,7 +182,7 @@ wss.on('connection', ws => {
       if(Math.hypot(o[0]-p.pos[0], o[1]-(p.pos[1]+PHYS.EYE), o[2]-p.pos[2]) > 3) return;
       const bl = Math.hypot(baseD[0], baseD[1], baseD[2]) || 1;
       const nd = [baseD[0]/bl, baseD[1]/bl, baseD[2]/bl];
-      doFire(p, o, nd, w, !!m.ads);
+      doFire(p, o, nd, w, !!m.ads, Math.max(1, Math.min(4, +m.bl || 1)));
       return;
     }
 
@@ -217,10 +217,10 @@ wss.on('connection', ws => {
   ws.on('error', () => {});
 });
 
-function doFire(shooter, o, nd, w, ads){
+function doFire(shooter, o, nd, w, ads, bloomMult = 1){
   broadcast({ t:'shot', id:shooter.id, o, d:nd, w:WEAPONS.indexOf(w) }, shooter.id);
   for(let pe=0; pe<w.pellets; pe++){
-    const spr = ads && w.adsSpread !== undefined ? w.adsSpread : w.spread;
+    const spr = (ads && w.adsSpread !== undefined ? w.adsSpread : w.spread) * bloomMult;
     let d = [ nd[0]+(Math.random()-0.5)*2*spr, nd[1]+(Math.random()-0.5)*2*spr, nd[2]+(Math.random()-0.5)*2*spr ];
     const l = Math.hypot(...d) || 1; d = d.map(v=>v/l);
     const wallT = rayWorld(o, d);

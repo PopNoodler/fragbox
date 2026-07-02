@@ -18,10 +18,10 @@
   #hud { position:fixed; inset:0; pointer-events:none; display:none; }
   #crosshair { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:24px; height:24px; }
   #crosshair span { position:absolute; background:#fff; box-shadow:0 0 3px rgba(0,0,0,.8); }
-  #crosshair .h1 { left:0; top:11px; width:7px; height:2px; }
-  #crosshair .h2 { right:0; top:11px; width:7px; height:2px; }
-  #crosshair .v1 { left:11px; top:0; width:2px; height:7px; }
-  #crosshair .v2 { left:11px; bottom:0; width:2px; height:7px; }
+  #crosshair .h1 { left:0; top:50%; margin-top:-1px; width:7px; height:2px; }
+  #crosshair .h2 { right:0; top:50%; margin-top:-1px; width:7px; height:2px; }
+  #crosshair .v1 { left:50%; top:0; margin-left:-1px; width:2px; height:7px; }
+  #crosshair .v2 { left:50%; bottom:0; margin-left:-1px; width:2px; height:7px; }
   #hitmarker { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(45deg); width:26px; height:26px; opacity:0; }
   #hitmarker span { position:absolute; background:#ff5252; }
   #hitmarker .h1 { left:0; top:12px; width:8px; height:2px; }
@@ -115,6 +115,10 @@
   .clscard.locked { opacity:.45; cursor:not-allowed; filter:grayscale(.6); }
   #deathpick { position:absolute; left:50%; top:56%; transform:translateX(-50%); width:min(520px, 92vw); background:rgba(10,10,25,.85); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px 14px; display:none; pointer-events:auto; }
   .dptitle { text-align:center; color:#ffca28; font-size:12px; font-weight:800; letter-spacing:2px; margin-bottom:8px; }
+  #pausemenu { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.72); backdrop-filter:blur(3px); pointer-events:auto; }
+  .pausecard { width:min(560px, 92vw); background:rgba(12,14,28,.95); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:22px 24px; text-align:center; }
+  .ptitle { color:#ffca28; font-size:20px; font-weight:900; letter-spacing:4px; margin-bottom:14px; }
+  .phint { margin-top:12px; font-size:11px; opacity:.45; color:#fff; }
   .clscard { pointer-events:auto; background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.13); border-radius:10px; padding:8px 2px; cursor:pointer; display:flex; flex-direction:column; gap:2px; transition:border-color .12s, background .12s; }
   .clscard b { font-size:12.5px; letter-spacing:.3px; }
   .clscard span { font-size:10.5px; opacity:.65; }
@@ -163,6 +167,17 @@
   <div id="respawnmsg"></div>
   <div id="killbanner"></div>
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
+  <div id="pausemenu">
+    <div class="pausecard">
+      <div class="ptitle">PAUSED</div>
+      <div id="pauseclasses" class="classgrid"></div>
+      <div style="display:flex; gap:10px; margin-top:16px; justify-content:center">
+        <button id="resumebtn" class="bigbtn" style="font-size:15px; padding:11px 30px">RESUME</button>
+        <button id="quitbtn" class="bigbtn" style="font-size:15px; padding:11px 30px; background:linear-gradient(135deg,#ef5350,#c62828); box-shadow:0 4px 20px rgba(198,40,40,.35)">MAIN MENU</button>
+      </div>
+      <div class="phint">Class changes apply on your next spawn · Esc to resume</div>
+    </div>
+  </div>
   <div id="hitdir"><span></span></div>
   <div id="xpbar"><div id="lvlnum">1</div><div id="xpbg"><div id="xpfill"></div></div></div>
   <div id="scope"><div id="scopering"></div><span class="sh"></span><span class="sv"></span></div>
@@ -561,6 +576,8 @@ function addXp(pts){
   if(lv > before){
     showCallout('LEVEL UP — ' + lv);
     SFX.streak();
+    const unlocked = CLASSES.filter(c => !c.premium && !c.soon && c.lvl > before && c.lvl <= lv);
+    unlocked.forEach((c, i) => setTimeout(()=>{ showCallout('UNLOCKED: ' + c.name.toUpperCase()); SFX.streak(); }, 1600*(i+1)));
     renderClassCards();          // new unlocks may be available
   }
   updateXpHUD();
@@ -570,7 +587,9 @@ function updateXpHUD(){
   const cur = 150*(lv-1)*(lv-1), next = 150*lv*lv;
   el('lvlnum').textContent = lv;
   el('xpfill').style.width = Math.min(100, (xp-cur)/(next-cur)*100) + '%';
-  el('menulvl').textContent = 'Level ' + lv + ' · ' + xp + ' XP';
+  const nextCls = CLASSES.find(c => !c.premium && !c.soon && c.lvl > lv);
+  el('menulvl').textContent = 'Level ' + lv + ' · ' + xp + ' XP'
+    + (nextCls ? '  —  next unlock: ' + nextCls.name + ' at Lv ' + nextCls.lvl : '  —  all classes unlocked!');
 }
 
 // ---------- Entity helpers ----------
@@ -838,15 +857,22 @@ function buildViewmodel(){
     box(0.045,0.13,0.07, 0x2b2b2b, 0,-0.07,0.02);      // grip
     tipZ = -0.23;
   }
-  // first-person arms + hands (olive sleeves, gripping the weapon)
+  // first-person arms + hands: limbs run exactly shoulder → hand
   const SLEEVE = 0x4d5b3c, SKIN = 0xf5d0a9;
-  const armR = box(0.08, 0.08, 0.38, SLEEVE, 0.05, -0.13, 0.26);
-  armR.rotation.x = 0.55; armR.rotation.y = -0.08;
-  box(0.1, 0.09, 0.1, SKIN, 0.02, -0.06, 0.08);              // trigger hand
+  const limb = (from, to, thick, c) => {
+    const dir = new THREE.Vector3().subVectors(to, from);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(thick, thick, dir.length()), mat(c));
+    m.position.copy(from).addScaledVector(dir, 0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), dir.clone().normalize());
+    g.add(m); return m;
+  };
+  const handR = new THREE.Vector3(0.02, -0.065, 0.06);
+  limb(new THREE.Vector3(0.18, -0.42, 0.4), handR, 0.085, SLEEVE);
+  box(0.1, 0.09, 0.1, SKIN, handR.x, handR.y, handR.z);          // trigger hand
   if(w.name !== 'Pistol'){
-    const armL = box(0.085, 0.085, 0.4, SLEEVE, -0.16, -0.16, tipZ*0.45 + 0.22);
-    armL.rotation.x = 0.55; armL.rotation.y = 0.3;
-    box(0.1, 0.09, 0.1, SKIN, -0.03, -0.055, tipZ*0.45);     // forend hand
+    const handL = new THREE.Vector3(-0.02, -0.06, tipZ*0.45);
+    limb(new THREE.Vector3(-0.2, -0.44, 0.34), handL, 0.085, SLEEVE);
+    box(0.1, 0.09, 0.1, SKIN, handL.x, handL.y, handL.z);        // forend hand
   }
 
   // muzzle flash sprite (shown for a few ms after each shot)
@@ -981,7 +1007,7 @@ function renderClassCards(){
     return '<div class="clscard' + (SET.cls===i?' active':'') + (unlocked?'':' locked') + '" data-c="' + i + '">'
       + '<b>' + c.name + '</b><span>' + sub + '</span><i>' + meta + '</i></div>';
   }).join('');
-  for(const id of ['classrow','deathclasses']){
+  for(const id of ['classrow','deathclasses','pauseclasses']){
     const box = el(id);
     if(!box) continue;
     box.innerHTML = html;
@@ -1022,7 +1048,10 @@ addEventListener('keydown', e=>{
   if(e.code==='Digit2') switchWeapon(1);
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
-  if(e.code==='Escape' && !document.pointerLockElement) showMenu();   // MP: 2nd Esc leaves match
+  if(e.code==='Escape' && !document.pointerLockElement){
+    if(paused) closePause(true);
+    else if(player.alive) openPause();
+  }
 });
 addEventListener('keyup', e=>{
   keys[e.code] = false;
@@ -1030,6 +1059,7 @@ addEventListener('keyup', e=>{
 });
 let ads = false;
 addEventListener('mousedown', e=>{
+  if(paused) return;
   if(e.button===0) mouseDown = true;
   if(e.button===2 && state===ST.PLAY) ads = true;
 });
@@ -1054,7 +1084,7 @@ document.addEventListener('pointerlockchange', ()=>{
   locked = document.pointerLockElement === document.body;
   // Solo: unlock = pause to menu. MP: stay in the match (alt-tab shouldn't kick you);
   // click re-locks, pressing Esc again opens the menu (= leave match).
-  if(!locked && state===ST.PLAY && mode !== 'mp' && player.alive){ showMenu(); }   // dead = class-picker time, not menu
+  if(!locked && state===ST.PLAY && player.alive && !paused){ openPause(); }   // Esc = pause (both modes); dead = class picker
 });
 canvas.addEventListener('click', ()=>{
   if(state===ST.PLAY && !locked && !isTouch){ try { document.body.requestPointerLock(); } catch(e){} }
@@ -1132,7 +1162,7 @@ let touchJump = false;
   bindBtn('swapbtn', ()=>switchWeapon((player.wIdx+1)%player.loadout.length));
   bindBtn('adsbtn', ()=>{ ads = !ads; });
   bindBtn('relbtn', ()=>tryReload());
-  bindBtn('pausebtn', ()=>showMenu());
+  bindBtn('pausebtn', ()=>{ if(paused) closePause(false); else openPause(); });
   addEventListener('contextmenu', e=>{ if(state===ST.PLAY) e.preventDefault(); });
 }
 
@@ -1150,6 +1180,17 @@ function tryReload(){
 }
 
 // ---------- Shooting ----------
+// ---------- Bloom: dynamic spread from sustained fire + movement ----------
+let bloom = 0;   // 0..1, decays over time, grows per shot
+function currentSpread(w){
+  const base = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
+  let mult = 1 + bloom*2.2;
+  if(!player.grounded) mult += 1.3;               // airborne
+  else if(player.sprinting) mult += 0.9;          // sprinting
+  if(ads) mult = 1 + (mult-1)*0.3;                // ADS tames movement/spray bloom
+  return base * mult;
+}
+
 const _dir = new THREE.Vector3(), _eye = new THREE.Vector3();
 function playerEye(){ return _eye.set(player.pos.x, player.pos.y+EYE, player.pos.z); }
 
@@ -1176,7 +1217,9 @@ function playerShoot(){
 
   const eye = playerEye().clone();
   let hitSomething = false;
-  const spr = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
+  const spr = currentSpread(w);
+  const sprBase = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
+  bloom = Math.min(1, bloom + (w.bloom || 0.1));
   for(let p=0; p<w.pellets; p++){
     const dir = fireDir(spr).clone();
     const wallHit = castWorldHit(eye, dir, 200);
@@ -1211,7 +1254,7 @@ function playerShoot(){
     NET.ws.send(JSON.stringify({ t:'fire',
       o:[+eye.x.toFixed(2), +eye.y.toFixed(2), +eye.z.toFixed(2)],
       d:[+aim.x.toFixed(4), +aim.y.toFixed(4), +aim.z.toFixed(4)],
-      w:player.loadout[player.wIdx], ads }));
+      w:player.loadout[player.wIdx], ads, bl:+(spr/Math.max(1e-6, sprBase)).toFixed(2) }));
   }
   if(player.ammo[player.wIdx]<=0) tryReload();
   updateAmmoHUD();
@@ -1584,6 +1627,7 @@ function mpConnect(){
       player.respawnT = 3;                       // server respawns us; this drives the countdown text
       player.streak = 0; player.deathRoll = 0; ads = false;
       SFX.die();
+      closePause(false);
       renderClassCards();
       el('deathpick').style.display = 'block';
       if(document.pointerLockElement) document.exitPointerLock();
@@ -1634,6 +1678,23 @@ function mpDisconnect(){
 }
 el('mpbtn').addEventListener('click', ()=>{ audio(); if(!NET.ws) mpConnect(); });
 
+// ---------- Pause menu (in-game: change class / resume / quit) ----------
+let paused = false;
+function openPause(){
+  if(state !== ST.PLAY || !player.alive || paused) return;
+  paused = true;
+  renderClassCards();
+  el('pausemenu').style.display = 'flex';
+  if(document.pointerLockElement) document.exitPointerLock();
+}
+function closePause(relock){
+  paused = false;
+  el('pausemenu').style.display = 'none';
+  if(relock && state === ST.PLAY && !isTouch){ try { document.body.requestPointerLock(); } catch(e){} }
+}
+el('resumebtn').addEventListener('click', ()=>closePause(true));
+el('quitbtn').addEventListener('click', ()=>{ closePause(false); showMenu(); });
+
 // Player name: menu field, persisted
 function myName(){
   let n = (el('namefield').value || '').trim().slice(0, 14);
@@ -1656,6 +1717,7 @@ function startMatch(){
   player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
   resetLoadout(); buildViewmodel();
   player.hp = player.maxHp;
+  player.matchXpStart = xp;
   matchT = SET.len;
   for(const b of bots){ scene.remove(b.mesh); }
   bots.length = 0;
@@ -1672,6 +1734,8 @@ function startMatch(){
 function showMenu(){
   state = ST.MENU;
   ads = false; mouseDown = false;
+  paused = false;
+  el('pausemenu').style.display = 'none';
   el('deathpick').style.display = 'none';
   el('hud').style.display = 'none';
   el('menu').classList.add('show');
@@ -1691,7 +1755,7 @@ function endMatch(){
   const won = rows[0].name === 'You';
   el('overtitle').textContent = won ? 'VICTORY!' : 'MATCH OVER';
   el('overtitle').style.color = won ? '#ffca28' : '#fff';
-  el('overstats').innerHTML = `You placed <b>#${rows.findIndex(r=>r.name==='You')+1}</b> of ${rows.length}<br>${player.kills} kills · ${player.deaths} deaths`;
+  el('overstats').innerHTML = `You placed <b>#${rows.findIndex(r=>r.name==='You')+1}</b> of ${rows.length}<br>${player.kills} kills · ${player.deaths} deaths<br><span style="color:#ffca28">+${xp - (player.matchXpStart||xp)} XP earned</span>`;
   el('gameover').classList.add('show');
   if(document.pointerLockElement) document.exitPointerLock();
 }
@@ -1739,6 +1803,7 @@ function updatePlayer(dt){
   if(keys.KeyD) wish.add(right);
   if(stick.on){ wish.addScaledVector(fwd, -stick.dy).addScaledVector(right, stick.dx); }
   const sprinting = (keys.ShiftLeft && keys.KeyW) || (stick.on && Math.hypot(stick.dx, stick.dy) > 0.92);
+  player.sprinting = sprinting && wish.lengthSq() > 0;
   const speed = (sprinting ? SPRINT : WALK) * (player.speedMul || 1);
   if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
 
@@ -1769,6 +1834,11 @@ function updatePlayer(dt){
   const scoped = ads && wpn.name==='Sniper' && camera.fov < 42;
   el('scope').style.display = scoped ? 'block' : 'none';
   el('crosshair').style.display = scoped ? 'none' : 'block';
+  // bloom decay + crosshair gap reflects live spread
+  bloom = Math.max(0, bloom - dt*(mouseDown ? 0.45 : 1.7));
+  const chPx = Math.min(90, Math.round(14 + currentSpread(wpn)*800));
+  const chEl = el('crosshair');
+  if(chEl._sz !== chPx){ chEl._sz = chPx; chEl.style.width = chEl.style.height = chPx + 'px'; }
   vmGroup.visible = !scoped;
   if(isTouch) el('adsbtn').classList.toggle('on', ads);
 
@@ -1984,14 +2054,18 @@ function frame(now){
     if(mode === 'mp'){
       el('timeleft').textContent = NET.roundT !== undefined ? fmtTime(NET.roundT) : 'ONLINE';
       updateRemotes(dt);
-    } else {
+    } else if(!paused){
       matchT -= dt;
       el('timeleft').textContent = fmtTime(matchT);
       if(matchT<=0){ endMatch(); }
     }
-    updatePlayer(dt);
-    for(const b of bots) updateBot(b, dt);
-    updatePickups(dt);
+    if(!paused || mode === 'mp'){
+      updatePlayer(dt);
+    }
+    if(!(paused && mode !== 'mp')){
+      for(const b of bots) updateBot(b, dt);
+      updatePickups(dt);
+    }
     updateDmgNums(dt);
     drawMinimap();
     if(hitdirT > 0){ hitdirT -= dt; if(hitdirT <= 0) el('hitdir').style.opacity = 0; }

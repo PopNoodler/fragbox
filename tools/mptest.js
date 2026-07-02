@@ -82,6 +82,12 @@ const PORT = 18790;
   await new Promise(r => setTimeout(r, 400));
 
   await A.page.bringToFront();
+  // focus loss (Bob's tab opening) auto-pauses Alice — dismiss the pause overlay first
+  const unpause = async c => {
+    const shown = await c.page.evaluate(() => getComputedStyle(document.getElementById('pausemenu')).display !== 'none');
+    if (shown) { await c.page.click('#resumebtn'); await new Promise(r => setTimeout(r, 300)); }
+  };
+  await unpause(A);
   // aim Alice at Bob's chest, then hold fire (auto rifle)
   await A.page.evaluate(() => {
     const d = window.__dbg;
