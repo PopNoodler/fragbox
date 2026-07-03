@@ -468,6 +468,35 @@ DEPOT.SPAWNS = [
   [-24,4],[24,-4],[8,-14],[-8,14]
 ];
 
+// ---- SKYLINE 2.0-lite: two buildings become enterable (hollow ground floor,
+//      window slits, solid cap so rooftops stay playable pad-landing surfaces) ----
+function hollowBuilding(w, totalH, d, doors, windowSide){
+  const wallH = 4;
+  const out = P.room(w, d, wallH, [...doors, windowSide]).map(b => ({ ...b, color: 0x3a4652 }));
+  // fill the windowSide opening into a slit: sill below, lintel above (gap 1.2–1.9, eye height)
+  const hw = w / 2, hd = d / 2;
+  const at = windowSide === 'n' ? { x: 0, z: -hd } : windowSide === 's' ? { x: 0, z: hd }
+    : windowSide === 'w' ? { x: -hw, z: 0 } : { x: hw, z: 0 };
+  const horiz = (windowSide === 'n' || windowSide === 's');
+  out.push({ x: at.x, y: 0.6, z: at.z, sx: horiz ? 4.4 : 1, sy: 1.2, sz: horiz ? 1 : 4.4, color: 0x3a4652, solid: true });
+  out.push({ x: at.x, y: (1.9 + wallH) / 2, z: at.z, sx: horiz ? 4.4 : 1, sy: wallH - 1.9, sz: horiz ? 1 : 4.4, color: 0x3a4652, solid: true });
+  // solid cap from wall top to the original roof height (roof surface unchanged)
+  out.push({ x: 0, y: (wallH + totalH) / 2, z: 0, sx: w, sy: totalH - wallH, sz: d, color: 0x3a4652, solid: true });
+  // interior cover crate
+  out.push({ x: horiz ? 2 : 0, y: 0.75, z: horiz ? 0 : 2, sx: 3, sy: 1.5, sz: 3, color: CRATE, solid: true });
+  return out;
+}
+{
+  const isB1 = b => b.x === -22 && b.z === -18 && b.sy === 6;
+  const isB3 = b => b.x === -20 && b.z === 20 && b.sy === 6;
+  SKYLINE.BOXES = SKYLINE.BOXES.filter(b => !(isB1(b) || isB3(b)));
+  SKYLINE.BOXES.push(
+    ...place(hollowBuilding(16, 6, 14, ['s', 'e'], 'n'), -22, -18, 0),
+    ...place(hollowBuilding(14, 6, 12, ['n', 'e'], 's'), -20, 20, 0)
+  );
+  SKYLINE.PICKUPS.push({ x: -22, z: -18, kind: 'hp' });   // interior prize
+}
+
 // ---- COMPOUND: first map composed entirely from the prefab kit ----
 const COMPOUND = {
   id:'compound', name:'Compound', ARENA:44,

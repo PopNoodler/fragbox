@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v070** (2026-07-03 ~07:20): SKYLINE INTERIORS — level rework arc COMPLETE. Two of the four
+  corner buildings are now enterable: hollow ground floors (walls to y4 w/ two street-facing
+  doors), WINDOW SLITS at eye height (sill 0-1.2 / gap 1.2-1.9 / lintel 1.9-4 — shoot out,
+  can't crawl through, grenades fit), solid caps up to the original roof height so rooftops
+  remain playable pad-landing surfaces (flight-verified apex 7.1 over roof 6), interior cover
+  crate + hp prize inside B1. hollowBuilding() composes from P.room + fills. Verified: walked
+  through the door to the interior center, slit geometry exact, pad landings intact, double
+  mptest green. LEVEL REWORK TOTALS: 10-prefab kit, Compound built new, Meadow 2.0 (elevated
+  spine), Depot 2.0 (crane walkway), Skyline interiors, Bunker grid — six maps, each with a
+  vertical/spatial identity, all composable in minutes. SW → v070.
 - **v069** (2026-07-03 ~06:50): DEPOT 2.0 — industrial rebuild with the kit. Central loading
   dock (platform + stair runs BOTH ends), signature CRANE WALKWAY: two 2-floor stair towers
   east/west linked by a railed catwalk at deck ~6.1 spanning the whole yard (verified walking
