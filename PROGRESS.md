@@ -18,6 +18,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v080** (2026-07-03 ~mid-morning): COMPLETE UI SYSTEM REWORK (user: "full complete UI
+  style rework, more flash, modern standards"). New token-based design system replacing the
+  entire 222-line stylesheet: CSS custom properties (color/radius/shadow/clip tokens),
+  glassmorphism panels (blur + translucent + gradient top-line accent), esports angled
+  clip-path buttons/chips/pills with hover shine-sweep + lift, animated gradient FRAGBOX logo
+  (7s hue drift + glow), scanline texture on menu overlays, card entrance animations, tabular
+  numerals everywhere. HUD: glass health panel (green edge) + glass ammo panel (cyan edge,
+  36px numerals), angled score pill, glowing minimap frame, glass killfeed chips, restyled
+  streak/ability/rank chips. Menu REORGANIZED hero-first: PLAY/ONLINE/KILLHOUSE CTAs directly
+  under the logo (were below the fold at 720p!). Class cards: hover lift, gold glow active,
+  diagonal-stripe locked. Fixed: crate-only skins showed "undefined" on locked swatches (now
+  📦 + tooltip). All JS display/state semantics preserved (verified across menu/deploy/HUD/
+  career/crates screenshots + full suite, mptest rerun after one flake). SW → v080.
 - **v079** (2026-07-03 ~11:45): Minimap background now tints toward each map's fog theme
   (dusk-blue on Skyline, industrial gray on Depot, etc.); SESSION_NOTES.md brought current
   through v078 with the session stats line (45 releases / 55+ commits). Full suite green.
