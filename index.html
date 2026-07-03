@@ -283,6 +283,7 @@
       <div id="chalrow"></div>
       <div id="settings">
         <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button><button class="setbtn" data-k="map" data-v="skyline">Skyline</button></div>
+        <div class="setrow"><span class="setlabel">Graphics</span><button class="setbtn" data-k="quality" data-v="auto">Auto</button><button class="setbtn" data-k="quality" data-v="low">Low</button><button class="setbtn" data-k="quality" data-v="med">Med</button><button class="setbtn" data-k="quality" data-v="high">High</button></div>
         <div class="setrow"><span class="setlabel">Weather</span><button class="setbtn" data-k="weather" data-v="auto">Auto</button><button class="setbtn" data-k="weather" data-v="clear">Clear</button><button class="setbtn" data-k="weather" data-v="rain">Rain</button><button class="setbtn" data-k="weather" data-v="snow">Snow</button></div>
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
         <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
@@ -378,6 +379,51 @@ const canvas = el('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
+
+// ---------- Quality tiers ----------
+const QUALITY = {
+  high: { px: 2,    shadow: 2048, part: 1,   deco: true  },
+  med:  { px: 1,    shadow: 1024, part: 0.7, deco: true  },
+  low:  { px: 0.75, shadow: 0,    part: 0.5, deco: false }
+};
+let qTier = 'high';
+function resolveQualityTier(){
+  const q = (typeof SET !== 'undefined' && SET.quality) || 'auto';
+  if(q !== 'auto') return q;
+  return localStorage.kh_qauto || 'high';
+}
+function applyQuality(tier){
+  if(!QUALITY[tier]) tier = 'high';
+  qTier = tier;
+  const q = QUALITY[tier];
+  renderer.setPixelRatio(Math.min(q.px, devicePixelRatio || 1));
+  sun.castShadow = q.shadow > 0;
+  if(q.shadow > 0){
+    sun.shadow.mapSize.set(q.shadow, q.shadow);
+    if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
+  }
+  clouds.forEach(c => c.visible = q.deco);
+}
+let fpsSample = null;   // { t, frames, until }
+function startFpsProbe(){
+  if(SET.quality !== 'auto' || localStorage.kh_qauto) return;
+  fpsSample = { frames: 0, start: performance.now() };
+}
+function tickFpsProbe(){
+  if(!fpsSample) return;
+  fpsSample.frames++;
+  const elapsed = performance.now() - fpsSample.start;
+  if(elapsed >= 5000){
+    const fps = fpsSample.frames / (elapsed / 1000);
+    fpsSample = null;
+    const tier = fps < 40 ? 'low' : fps < 55 ? 'med' : 'high';
+    localStorage.kh_qauto = tier;
+    if(tier !== 'high'){
+      applyQuality(tier);
+      showCallout('GRAPHICS AUTO-TUNED: ' + tier.toUpperCase() + ' (' + Math.round(fps) + ' fps)');
+    }
+  }
+}
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
@@ -676,9 +722,9 @@ function buildSkylineDeco(){
     ac.castShadow = true;
     worldGroup.add(ac);
   }
-  // distant unlit tower silhouettes outside the walls
+  // distant unlit tower silhouettes outside the walls (skipped on low quality)
   const silMat = new THREE.MeshLambertMaterial({ color: 0x171c26 });
-  for(let i = 0; i < 14; i++){
+  for(let i = 0; i < (QUALITY[qTier].deco ? 14 : 0); i++){
     const a = i/14*Math.PI*2 + 0.2, r = ARENA + 14 + (i % 4) * 8;
     const h = 10 + (i * 7) % 18;
     const t = new THREE.Mesh(new THREE.BoxGeometry(5 + i % 4, h, 5 + (i * 3) % 4), silMat);
@@ -1794,6 +1840,7 @@ function addTracer(a, b){
 const puffs = [];
 const puffGeo = new THREE.BoxGeometry(0.12,0.12,0.12);
 function addPuff(p, color=0xcccccc, n=5, speed=3){
+  n = Math.max(2, Math.round(n * QUALITY[qTier].part));
   for(let i=0;i<n;i++){
     const m = new THREE.Mesh(puffGeo, new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.9 }));
     m.position.copy(p);
@@ -1928,7 +1975,7 @@ const ST = { MENU:0, PLAY:1, OVER:2 };
 let state = ST.MENU;
 const KILL_TARGET = 25;
 const DIFFS = [ { skill:0.4, dmg:0.7 }, { skill:0.6, dmg:1.0 }, { skill:0.78, dmg:1.3 } ];
-let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow', music:1, weather:'auto' };
+let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow', music:1, weather:'auto', quality:'auto' };
 try { SET = Object.assign(SET, JSON.parse(localStorage.kh_set||'{}')); } catch(e){}
 let matchT = SET.len;
 
@@ -2006,12 +2053,17 @@ document.querySelectorAll('.setbtn').forEach(btn=>{
   if(SET[k]===v) btn.classList.add('active');
   btn.addEventListener('click', ()=>{
     SET[k] = v; localStorage.kh_set = JSON.stringify(SET);
+    if(k === 'quality'){
+      if(v === 'auto') localStorage.removeItem('kh_qauto');
+      applyQuality(resolveQualityTier());
+    }
     document.querySelectorAll(`.setbtn[data-k="${k}"]`).forEach(b=>{
       const bv = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v;
       b.classList.toggle('active', bv===v);
     });
   });
 });
+applyQuality(resolveQualityTier());
 
 const keys = {};
 let mouseDown = false;
@@ -2584,7 +2636,7 @@ function buildWeather(kind){
   clearWeather();
   weatherKind = kind;
   if(kind === 'clear') return;
-  const N = 400, R = 22, H = 26;
+  const N = Math.round(400 * QUALITY[qTier].part), R = 22, H = 26;
   const grp = new THREE.Group();
   const drops = [];
   if(kind === 'rain'){
@@ -3188,6 +3240,7 @@ el('namefield').addEventListener('change', ()=>myName());
 // ---------- Match flow ----------
 function startMatch(){
   clearPodium();
+  startFpsProbe();
   buildWeather(resolveWeather());
   // reset
   player.kills = 0; player.deaths = 0; player.alive = true; player.streak = 0;
@@ -3746,6 +3799,7 @@ function frame(now){
   if(dt>0.05) dt = 0.05;                       // clamp — playbook §9
 
   if(state===ST.PLAY){
+    tickFpsProbe();
     updateWeather(dt, performance.now() / 1000);
     stats.playMs += dt * 1000;
     if(++statsDirty > 300) saveStats();
