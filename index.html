@@ -61,6 +61,7 @@
   .votebtn { background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.2); color:#fff; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
   .votebtn:hover { background:rgba(79,195,247,.2); }
   .votebtn.on { background:rgba(79,195,247,.3); border-color:#4fc3f7; }
+  #ghostpace { position:absolute; left:50%; top:52px; transform:translateX(-50%); font-size:13px; font-weight:800; letter-spacing:1px; text-shadow:0 1px 4px rgba(0,0,0,.8); }
   #domchips { position:absolute; left:50%; top:52px; transform:translateX(-50%); display:flex; gap:6px; }
   .domchip { width:26px; height:22px; border-radius:6px; color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,.5); }
   #domprog { position:absolute; left:50%; bottom:24%; transform:translateX(-50%); width:180px; height:8px; background:rgba(0,0,0,.55); border-radius:4px; overflow:hidden; border:1px solid rgba(255,255,255,.25); }
@@ -248,6 +249,7 @@
   <div id="votebar" style="display:none"></div>
   <div id="rotatehint"><span>📱↻</span>ROTATE YOUR DEVICE<br><small style="opacity:.6;font-size:12px">FragBox plays in landscape</small></div>
   <div id="domchips"></div>
+  <div id="ghostpace" style="display:none"></div>
   <div id="domprog" style="display:none"><div id="domprogfill"></div></div>
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
   <div id="pausemenu">
@@ -3579,7 +3581,7 @@ el('namefield').addEventListener('change', ()=>myName());
 // ---------- Match flow ----------
 // ---------- Killhouse aim trainer ----------
 let trainMode = false;
-const train = { targets: 0, shots: 0, hits: 0, ttks: [], spawnT: 0 };
+const train = { targets: 0, shots: 0, hits: 0, ttks: [], spawnT: 0, splits: [], ghost: null };
 function spawnDummy(){
   const b = makeBot(0);
   const d = bots[bots.length - 1];
@@ -3600,6 +3602,7 @@ function spawnDummy(){
 function trainKill(){
   train.targets++;
   train.ttks.push((performance.now() - train.spawnT) / 1000);
+  train.splits.push(+(60 - matchT).toFixed(2));
   SFX.kill();
   killBanner(0, 'TARGET ' + train.targets);
   const old = bots.pop();
@@ -3608,7 +3611,9 @@ function trainKill(){
 }
 function startTrain(){
   trainMode = true;
-  train.targets = 0; train.shots = 0; train.hits = 0; train.ttks = [];
+  train.targets = 0; train.shots = 0; train.hits = 0; train.ttks = []; train.splits = [];
+  try { train.ghost = JSON.parse(localStorage.kh_trainghost || 'null'); } catch(e){ train.ghost = null; }
+  el('ghostpace').style.display = train.ghost ? 'block' : 'none';
   startMatch();
   closePause(true);                       // skip the deploy screen — straight in
   flybyT = 0;
@@ -3625,6 +3630,12 @@ function endTrain(){
   const grade = train.targets >= 28 ? 'S' : train.targets >= 22 ? 'A' : train.targets >= 16 ? 'B' : 'C';
   const best = +(localStorage.kh_train || 0);
   if(train.targets > best) localStorage.kh_train = train.targets;
+  const g = train.ghost;
+  if(g && train.targets > g.targets) setTimeout(() => { showCallout('👻 GHOST BEATEN — ' + train.targets + ' vs ' + g.targets); SFX.streak(); }, 800);
+  if(!g || train.targets > g.targets){
+    localStorage.kh_trainghost = JSON.stringify({ targets: train.targets, splits: train.splits });
+  }
+  el('ghostpace').style.display = 'none';
   addXp(100);
   el('trainstats').innerHTML =
     '<div class="statcell"><b>' + train.targets + '</b><span>TARGETS</span></div>' +
@@ -3871,6 +3882,22 @@ function updatePlayer(dt){
   vmGroup.visible = !scoped;
   if(isTouch) el('adsbtn').classList.toggle('on', ads);
 
+  // killhouse ghost pace
+  if(trainMode && train.ghost){
+    const elapsed = 60 - matchT;
+    let gCount = 0;
+    for(const t of train.ghost.splits){ if(t <= elapsed) gCount++; else break; }
+    let deltaTxt = '';
+    const i = Math.min(train.targets, train.ghost.splits.length) - 1;
+    if(i >= 0 && train.splits[i] !== undefined){
+      const d = train.ghost.splits[i] - train.splits[i];      // + = you were faster
+      deltaTxt = ' · ' + (d >= 0 ? '+' : '') + d.toFixed(1) + 's';
+    }
+    const ahead = train.targets > gCount || (train.targets === gCount && deltaTxt.includes('+'));
+    const gp = el('ghostpace');
+    gp.textContent = '👻 ' + gCount + deltaTxt;
+    gp.style.color = ahead ? '#69f0ae' : '#ff8a80';
+  }
   // ability timers
   if(player.abilityCd > 0){
     player.abilityCd -= dt;

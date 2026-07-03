@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v065** (2026-07-03 ~04:50): KILLHOUSE REPLAY GHOST. Best run's per-target split times
+  persist (kh_trainghost {targets, splits}); later runs race it live: 👻 chip under the timer
+  shows the ghost's target count ticking up in real time as its splits pass, plus a ±N.Ns
+  split delta at your current target count — green when ahead, red when behind; GHOST BEATEN
+  callout + new ghost saved when you out-score it. Fixture-verified ghost ticking + behind-
+  pace coloring. Full suite green. SW → v065.
 - **v064** (2026-07-03 ~04:30): CRATE MONETIZATION WIRING. Crate panel: FREE DAILY CRATE
   (rewarded-ad sim → +1 crate, date-gated kh_freecrate, reward-exactly-once audit, button
   flips to ✓ CLAIMED TODAY) + 5 CRATES $1.99 buy stub (COMING SOON via Monetize.buyPremium).
