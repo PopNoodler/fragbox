@@ -18,6 +18,18 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v068** (2026-07-03 ~06:15): MEADOW 2.0 — the original map fully rebuilt with the prefab
+  kit (level-design rework continues per user directive). New layout: central 2-story tower
+  fort, four walled corner yards (11x11, inward doors) with seeded cover, north/south sniper
+  platforms feeding an ELEVATED SPINE — catwalks running platform→tower→platform (verified by
+  walking the entire route in one take: stairs 1.2 → platform 2.7 → catwalk 2.95 → tower 3.2
+  → catwalk → far platform → down), east/west TUNNEL flank routes (walkable roofs), L-corners
+  + cover clusters on diagonals. TWO NEW PREFABS: P.catwalk(len,y) — railed walkway on
+  pillars; P.tunnel(len,w,h) — enclosed corridor with walkable roof. KIT FIXES from real
+  playtesting: platform stair runs now END flush at the slab edge (computed from step count —
+  was 1.65u short, players fell through), catwalk deck top math corrected (y+0.3). mptest
+  duel lane moved to the clear west edge (old spot now blocked by design — proof the cover
+  works). 114 boxes from ~25 lines. Full suite green. SW → v068.
 - **v067** (2026-07-03 ~05:40): MODULAR LEVEL KIT + FIFTH MAP (user: "rework level creation —
   modular pieces to build levels smartly"). shared/map.mjs now exports place(pieces,x,z,rot)
   (quarter-turn rotation with sx/sz swap) and a prefab library P: room(w,d,h,doors,roof) —

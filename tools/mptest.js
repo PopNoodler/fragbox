@@ -79,8 +79,9 @@ const PORT = 18790;
     d.player.pos.set(x, y, z); d.player.vel.set(0,0,0);
     d.NET.ws.send(JSON.stringify({ t:'tp', pos:[x, y, z] }));
   }, x, y, z);
-  await tp(A, 20, 0, 10);
-  await tp(B, 20, 0, 20);
+  // west-edge lane — kept clear of Meadow 2.0 prefab structures
+  await tp(A, -40, 0, -10);
+  await tp(B, -40, 0, -20);
   await new Promise(r => setTimeout(r, 400));
 
   await A.page.bringToFront();

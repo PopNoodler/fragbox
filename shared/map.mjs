@@ -344,7 +344,7 @@ export const P = {
       { x: w/2-0.5, y: h/2, z: d/2-0.5, sx:1, sy:h, sz:1, color: BLOCK, solid: true },
       { x:-w/2+0.5, y: h/2, z: d/2-0.5, sx:1, sy:h, sz:1, color: BLOCK, solid: true },
       { x: w/2-0.5, y: h/2, z:-d/2+0.5, sx:1, sy:h, sz:1, color: BLOCK, solid: true },
-      ...stairs(0, -(d/2 + 9.35), 0, 1, Math.round(h / 0.3), 2.6)
+      ...(() => { const c = Math.round(h / 0.3); return stairs(0, -(d/2 + 0.55) - (c - 1) * 1.1, 0, 1, c, 2.6); })()
     ];
   },
   // Deterministic crate/barrier cover cluster (seed varies the arrangement).
@@ -374,8 +374,55 @@ export const P = {
   // Solid building block (skyline facade texture at 0x3a4652).
   building(w = 12, h = 6, d = 10){
     return [{ x:0, y: h/2, z:0, sx: w, sy: h, sz: d, color: 0x3a4652, solid: true }];
+  },
+  // Narrow elevated walkway with side rails and support pillars.
+  catwalk(len = 12, y = 2.5){
+    const out = [
+      { x:0, y: y + 0.15, z:0, sx: 2.2, sy: 0.3, sz: len, color: CONC, solid: true },
+      { x:-1.15, y: y + 0.75, z:0, sx: 0.18, sy: 0.9, sz: len, color: 0x5a616a, solid: true },
+      { x: 1.15, y: y + 0.75, z:0, sx: 0.18, sy: 0.9, sz: len, color: 0x5a616a, solid: true }
+    ];
+    for(let z = -len/2 + 2; z < len/2; z += 6){
+      out.push({ x:0, y: y/2, z, sx: 0.7, sy: y, sz: 0.7, color: BLOCK, solid: true });
+    }
+    return out;
+  },
+  // Enclosed corridor: two walls + low roof (roof top is itself walkable).
+  tunnel(len = 14, w = 3.6, h = 2.6){
+    return [
+      { x:-w/2 - 0.5, y: h/2, z:0, sx: 1, sy: h, sz: len, color: CONC, solid: true },
+      { x: w/2 + 0.5, y: h/2, z:0, sx: 1, sy: h, sz: len, color: CONC, solid: true },
+      { x:0, y: h + 0.15, z:0, sx: w + 2, sy: 0.3, sz: len, color: 0x2b3038, solid: true }
+    ];
   }
 };
+
+// ---- MEADOW 2.0: the original map rebuilt with the prefab kit ----
+MEADOW.BOXES = [
+  ...walls(45),
+  // central 2-story tower fort (hp prize on top)
+  ...place(P.tower(2, 9), 0, 0, 0),
+  // walled corner yards (open sky, two doors) with cover inside
+  ...place(P.room(11, 11, 3.5, ['n', 'e']), -31, -31, 0),
+  ...place(P.room(11, 11, 3.5, ['n', 'e']),  31, -31, 1),
+  ...place(P.room(11, 11, 3.5, ['n', 'e']),  31,  31, 2),
+  ...place(P.room(11, 11, 3.5, ['n', 'e']), -31,  31, 3),
+  // sniper perches north/south with catwalks running toward the tower
+  ...place(P.platform(6, 2.5, 6), 0, -31, 0),
+  ...place(P.platform(6, 2.5, 6), 0,  31, 2),
+  ...place(P.catwalk(23, 2.65), 0, -16.5, 0),   // deck top 2.95: 0.25 step from platform (2.7) and to tower floor (3.2)
+  ...place(P.catwalk(23, 2.65), 0,  16.5, 0),
+  // tunnel flank routes east/west (roof walkable, feeds the DOM lanes)
+  ...place(P.tunnel(16), -32, 0, 0),
+  ...place(P.tunnel(16),  32, 0, 0),
+  // L-corners controlling the diagonals + seeded cover on the lanes
+  ...place(P.corner(7), -15, -15, 2),
+  ...place(P.corner(7),  15,  15, 0),
+  ...place(P.cover(2), -16, 14, 0),
+  ...place(P.cover(5),  16, -14, 0),
+  ...place(P.cover(1), 0, 0, 0).map(b => ({ ...b, x: b.x - 22 })),   // near DOM A
+  ...place(P.cover(3), 0, 0, 0).map(b => ({ ...b, x: b.x + 22 }))    // near DOM C
+];
 
 // ---- COMPOUND: first map composed entirely from the prefab kit ----
 const COMPOUND = {
