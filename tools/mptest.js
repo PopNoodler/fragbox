@@ -56,6 +56,14 @@ const PORT = 18790;
 
   // Move Alice forward for 1.5s
   await A.page.bringToFront();
+  // walk from a known-clear west-edge lane facing north (map layouts change; spawns may abut prefabs)
+  await A.page.evaluate(() => {
+    const d = window.__dbg;
+    d.player.pos.set(-40, 0, 25); d.player.vel.set(0, 0, 0);
+    d.player.yaw = 0; d.player.pitch = 0;
+    d.NET.ws.send(JSON.stringify({ t:'tp', pos:[-40, 0, 25] }));
+  });
+  await new Promise(r => setTimeout(r, 400));
   await A.page.keyboard.down('KeyW');
   await new Promise(r => setTimeout(r, 1500));
   await A.page.keyboard.up('KeyW');

@@ -684,6 +684,12 @@ function tickBot(b, dt){
     const ml = Math.hypot(mx, mz) || 1; mx = mx/ml*BOT_SPEED*carrySlow; mz = mz/ml*BOT_SPEED*carrySlow;
     b.yaw = Math.atan2(tx, tz);
   } else if(b.target){
+    // unstick: barely moving toward a waypoint for 2s → reroll it
+    if(b._lx !== undefined && Math.hypot(b.pos[0]-b._lx, b.pos[2]-b._lz) < 0.05){
+      b.stuckT = (b.stuckT || 0) + dt;
+      if(b.stuckT > 2){ b.target = randomWaypoint(); b.stuckT = 0; }
+    } else b.stuckT = 0;
+    b._lx = b.pos[0]; b._lz = b.pos[2];
     const tx = b.target[0]-b.pos[0], tz = b.target[2]-b.pos[2];
     const tl = Math.hypot(tx, tz) || 1;
     mx = tx/tl*BOT_SPEED; mz = tz/tl*BOT_SPEED;
