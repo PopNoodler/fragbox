@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FragBox — Low-Poly Arena FPS</title>
 <meta name="description" content="Fast low-poly arena FPS. Fight AI bots in your browser.">
 <link rel="manifest" href="manifest.json">
@@ -200,7 +200,9 @@
   #lookzone { position:absolute; right:0; bottom:0; width:55%; height:100%; pointer-events:auto; }
   .tbtn { position:absolute; border-radius:50%; background:rgba(255,255,255,.14); border:2px solid rgba(255,255,255,.3); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; pointer-events:auto; font-size:13px; letter-spacing:1px; }
   .tbtn:active { background:rgba(79,195,247,.5); }
-  #firebtn { right:36px; bottom:64px; width:92px; height:92px; font-size:16px; }
+  #firebtn { right:max(36px, env(safe-area-inset-right)); bottom:max(64px, env(safe-area-inset-bottom)); width:104px; height:104px; font-size:17px; }
+  #rotatehint { position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; background:rgba(6,8,16,.96); color:#fff; font-size:18px; font-weight:800; letter-spacing:1px; }
+  #rotatehint span { font-size:44px; }
   #jumpbtn { right:150px; bottom:40px; width:64px; height:64px; }
   #swapbtn { right:52px; bottom:180px; width:56px; height:56px; }
   #adsbtn { right:160px; bottom:210px; width:56px; height:56px; font-size:22px; }
@@ -233,6 +235,7 @@
   <div id="tutbanner"></div>
   <div id="flagbanner" style="display:none">⚑ YOU HAVE THE FLAG — RETURN TO YOUR BASE</div>
   <div id="votebar" style="display:none"></div>
+  <div id="rotatehint"><span>📱↻</span>ROTATE YOUR DEVICE<br><small style="opacity:.6;font-size:12px">FragBox plays in landscape</small></div>
   <div id="domchips"></div>
   <div id="domprog" style="display:none"><div id="domprogfill"></div></div>
   <div id="deathpick"><div class="dptitle">CHANGE CLASS</div><div id="deathclasses" class="classgrid"></div></div>
@@ -287,6 +290,7 @@
       <div id="chalrow"></div>
       <div id="settings">
         <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button><button class="setbtn" data-k="map" data-v="skyline">Skyline</button></div>
+        <div class="setrow"><span class="setlabel">Auto-fire (touch)</span><button class="setbtn" data-k="autofire" data-v="1">On</button><button class="setbtn" data-k="autofire" data-v="0">Off</button></div>
         <div class="setrow"><span class="setlabel">Graphics</span><button class="setbtn" data-k="quality" data-v="auto">Auto</button><button class="setbtn" data-k="quality" data-v="low">Low</button><button class="setbtn" data-k="quality" data-v="med">Med</button><button class="setbtn" data-k="quality" data-v="high">High</button></div>
         <div class="setrow"><span class="setlabel">Weather</span><button class="setbtn" data-k="weather" data-v="auto">Auto</button><button class="setbtn" data-k="weather" data-v="clear">Clear</button><button class="setbtn" data-k="weather" data-v="rain">Rain</button><button class="setbtn" data-k="weather" data-v="snow">Snow</button></div>
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
@@ -900,17 +904,42 @@ function setMusicMode(mode){
     }, 210);
   } else if(mode === 'game'){
     MUSIC.gain.gain.value = 0.10;
-    // low wind hum: looped filtered noise
+    // per-map ambient bed: looped filtered noise + drone + flavor events
+    const mapId = (typeof MAP !== 'undefined' && MAP.id) || 'meadow';
+    const cfg = {
+      meadow:  { lp: 260, noiseVol: 0.35, drone: 0,  flavor: 'birds' },
+      depot:   { lp: 140, noiseVol: 0.45, drone: 55, flavor: 'clank' },
+      skyline: { lp: 170, noiseVol: 0.40, drone: 42, flavor: 'siren' }
+    }[mapId] || { lp: 240, noiseVol: 0.35, drone: 0, flavor: null };
     const len = AC.sampleRate * 2;
     const buf = AC.createBuffer(1, len, AC.sampleRate);
     const d = buf.getChannelData(0);
     for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * 0.5;
     const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
-    const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220;
-    const g = AC.createGain(); g.gain.value = 0.35;
+    const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cfg.lp;
+    const g = AC.createGain(); g.gain.value = cfg.noiseVol;
     src.connect(f); f.connect(g); g.connect(MUSIC.gain);
     src.start();
     MUSIC.amb = src;
+    if(cfg.drone){
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = cfg.drone;
+      const og = AC.createGain(); og.gain.value = 0.22;
+      o.connect(og); og.connect(MUSIC.gain); o.start();
+      const oldStop = src.stop.bind(src);
+      src.stop = () => { try { oldStop(); } catch(e){} try { o.stop(); } catch(e){} };
+    }
+    MUSIC.timer = setInterval(() => {
+      if(cfg.flavor === 'birds' && Math.random() < 0.5){
+        const base = 2200 + Math.random()*1400;
+        mtone(base, 0.09, 0.10, 'sine');
+        setTimeout(() => mtone(base*1.25, 0.07, 0.08, 'sine'), 110);
+        if(Math.random() < 0.4) setTimeout(() => mtone(base*0.9, 0.06, 0.06, 'sine'), 230);
+      } else if(cfg.flavor === 'clank' && Math.random() < 0.25){
+        mtone(160 + Math.random()*80, 0.15, 0.10, 'square', 500);
+      } else if(cfg.flavor === 'siren' && Math.random() < 0.12){
+        for(let k = 0; k < 4; k++) setTimeout(() => mtone(k % 2 ? 660 : 520, 0.4, 0.03, 'sine'), k*420);
+      }
+    }, 2600);
   }
 }
 
@@ -1998,7 +2027,7 @@ const ST = { MENU:0, PLAY:1, OVER:2 };
 let state = ST.MENU;
 const KILL_TARGET = 25;
 const DIFFS = [ { skill:0.4, dmg:0.7 }, { skill:0.6, dmg:1.0 }, { skill:0.78, dmg:1.3 } ];
-let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow', music:1, weather:'auto', quality:'auto' };
+let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow', music:1, weather:'auto', quality:'auto', autofire:1 };
 // effective difficulty: mirrors SET.diff unless 'adaptive', which tracks session K/D
 let effDiff = 1;
 function refreshEffDiff(){
@@ -2166,6 +2195,13 @@ canvas.addEventListener('click', ()=>{
 
 // ---------- Touch controls ----------
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+function updateRotateHint(){
+  const el2 = document.getElementById('rotatehint');
+  if(el2) el2.style.display = (isTouch && innerHeight > innerWidth) ? 'flex' : 'none';
+}
+addEventListener('resize', updateRotateHint);
+addEventListener('orientationchange', updateRotateHint);
+setTimeout(updateRotateHint, 500);
 if(isTouch) document.body.classList.add('touch');
 const stick = { on:false, dx:0, dy:0 };
 let touchJump = false;
@@ -2189,7 +2225,11 @@ let touchCrouch = false;
       let dx = t.clientX-(r.left+55), dy = t.clientY-(r.top+55);
       const m = Math.hypot(dx,dy)||1, cl = Math.min(m,50);
       dx = dx/m*cl; dy = dy/m*cl;
-      stick.dx = dx/50; stick.dy = dy/50;
+      let ndx = dx/50, ndy = dy/50;
+      const mag = Math.hypot(ndx, ndy);
+      if(mag < 0.12){ ndx = 0; ndy = 0; }                          // deadzone
+      else { const sc = (mag - 0.12) / (1 - 0.12) / mag; ndx *= sc; ndy *= sc; }
+      stick.dx = ndx; stick.dy = ndy;
       nub.style.left = (35+dx)+'px'; nub.style.top = (35+dy)+'px';
     }
   }, { passive:false });
@@ -3566,6 +3606,31 @@ function updatePlayer(dt){
     if(player.ammo[player.wIdx] <= 0) player.fanN = 0;
   }
 
+  // touch auto-fire: engage when an enemy is within ~2.5° of center with LOS
+  if(isTouch && SET.autofire && player.alive && !paused && state === ST.PLAY && flybyT <= 0){
+    const fwd2 = camera.getWorldDirection(new THREE.Vector3());
+    const eye2 = playerEye();
+    let onTarget = false;
+    const check = (pos, h) => {
+      const to = new THREE.Vector3(pos.x - eye2.x, pos.y + h - eye2.y, pos.z - eye2.z);
+      const dist = to.length();
+      if(dist > 45) return false;
+      to.divideScalar(dist);
+      if(to.dot(fwd2) < 0.9975) return false;                      // ~4° assist cone
+      return castWorld(eye2, to, dist) >= dist - 0.5;
+    };
+    if(mode === 'mp'){
+      for(const r of NET.remotes.values()){
+        if(!r.mesh.visible) continue;
+        if(['tdm','ctf','dom'].includes(NET.gameMode) && r.team === NET.team) continue;
+        if(check(r.mesh.position, 1.0)){ onTarget = true; break; }
+      }
+    } else {
+      for(const b of bots){ if(b.alive && check(b.pos, 1.0)){ onTarget = true; break; } }
+    }
+    player.autoFiring = onTarget;
+  } else player.autoFiring = false;
+
   // footsteps: cadence from speed, silent airborne/sliding, soft crouched
   const hSpeed = Math.hypot(player.vel.x, player.vel.z);
   if(player.grounded && !sliding && hSpeed > 1.4){
@@ -3612,7 +3677,7 @@ function updatePlayer(dt){
     }
   }
   const w = curW();
-  if(mouseDown && (w.auto || player.fireCd<=-0.0001 || player.fireCd<=0) ){
+  if((mouseDown || player.autoFiring) && (w.auto || player.fireCd<=-0.0001 || player.fireCd<=0) ){
     if(w.auto || !player._heldFired) { playerShoot(); player._heldFired = true; }
   } else if(!mouseDown){ player._heldFired = false; }
 }
@@ -3941,7 +4006,7 @@ updateChallengesUI();
 updateXpHUD();
 
 // Debug hook for automated verification (harmless in production)
-window.__dbg = { player, bots, camera, THREE, colliders, NET, MUSIC, get mode(){ return mode; } };
+window.__dbg = { player, bots, camera, THREE, colliders, NET, MUSIC, get mode(){ return mode; }, get SET(){ return SET; }, get isTouch(){ return isTouch; }, get flybyT(){ return flybyT; } };
 
 // ---------- Service worker (real hosts only — playbook §4) ----------
 if('serviceWorker' in navigator && (location.hostname.endsWith('github.io') || location.hostname==='localhost' || location.hostname==='127.0.0.1')){

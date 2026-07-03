@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v059** (2026-07-03 ~02:35): MOBILE POLISH + AMBIENT BEDS (wave 8). Touch: bigger fire
+  button (104px) with safe-area insets, viewport-fit=cover, joystick deadzone (0.12 rescaled),
+  ROTATE YOUR DEVICE overlay in portrait, and AUTO-FIRE assist (settings toggle, default on):
+  fires when an enemy sits within a ~4° crosshair cone with LOS, gated during flyby/pause —
+  verified live (bot 100→66, one 34-dmg AK round). Ambient sound beds per map through the
+  MUSIC bus: Meadow birdsong chirps + soft wind, Depot 55Hz industrial drone + metallic
+  clanks, Skyline 42Hz city rumble + distant two-tone sirens. __dbg exposes SET/isTouch/
+  flybyT for testing. Full suite green. SW → v059.
 - **v058** (2026-07-03 ~02:00): STALE-BUILD FIX + TTK PASS 2 + COVER PASS 2 + ARSENAL
   (user: "still havent reduced TTK / maps too open" — ROOT CAUSE: sw.js served assets
   cache-first, so shared/weapons.mjs + map.mjs stayed STALE across refreshes; users never
