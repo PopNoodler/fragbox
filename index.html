@@ -4336,7 +4336,9 @@ function drawMinimap(){
   const S = 150, sc = S/(ARENA*2 + 6);
   const px = v => (v + ARENA + 3) * sc;
   mmc.clearRect(0, 0, S, S);
-  mmc.fillStyle = 'rgba(8,12,18,.6)';
+  // background tinted toward the map's theme
+  const fc = new THREE.Color(MAP.fog);
+  mmc.fillStyle = 'rgba(' + Math.round(fc.r*36) + ',' + Math.round(fc.g*40) + ',' + Math.round(fc.b*52) + ',.65)';
   mmc.fillRect(0, 0, S, S);
   mmc.fillStyle = 'rgba(255,255,255,.22)';
   for(const c of colliders){

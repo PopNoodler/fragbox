@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v079** (2026-07-03 ~11:45): Minimap background now tints toward each map's fog theme
+  (dusk-blue on Skyline, industrial gray on Depot, etc.); SESSION_NOTES.md brought current
+  through v078 with the session stats line (45 releases / 55+ commits). Full suite green.
+  SW → v079.
 - **v078** (2026-07-03 ~11:15): WATCHTOWER PREFAB + JACKPOT FLASH. New P.watchtower(h):
   4-leg raised cabin with flush stair run, waist-high sills on all sides (protected firing
   slit), post-mounted roof — two placed on Compound's open diagonals (first placement sat

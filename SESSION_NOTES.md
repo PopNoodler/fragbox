@@ -1,6 +1,6 @@
 # FragBox — Overnight Session Notes (2026-07-02 → 03)
 
-**37 releases shipped tonight (v036 → v071), every one test-gated and committed.**
+**45 releases / 55+ commits shipped this session (v036 → v079), every one test-gated.**
 Refresh your browser once (Ctrl+Shift+R the first time) and everything below is live.
 
 ## What shipped tonight, by theme
@@ -39,11 +39,13 @@ FPS auto-tune, footstep audio, per-map ambient beds, announcer stingers, map tip
 bot AI overhaul (classes, lock-on aim, grenades on Hard, unstick), AFK kick, LAN
 COPY INVITE button in the multiplayer pause menu.
 
-**Since the first draft of these notes** (v072-v076): daily challenge pool doubled to 20
+**Since the first draft of these notes** (v072-v078): daily challenge pool doubled to 20
 (slide kills, ability uses, Killhouse grades, all new weapon types), MP death spectate
 (click to cycle a chase-cam), killfeed weapon labels, grenade ARC PREVIEW (hold G to aim
 with a real-physics trajectory line), live ping display in the score pill, and the
 "double-join ghost" turned out to be a test artifact (name field vs localStorage), not a bug.
+Killhouse gained MOVING TARGETS (strafing dummies, separate records); the prefab kit gained a
+WATCHTOWER (raised lookout cabin w/ firing slit — two on Compound); crate jackpots flash gold.
 
 ## Things only you can do
 
