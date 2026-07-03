@@ -18,6 +18,16 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v060** (2026-07-03 ~03:00): RANKED RATING (wave 8). ELO-style profile rating: starts 1000,
+  updates on every solo match end (placement-normalized score vs 900/1100/1300 opponent
+  strength by effective difficulty) and MP round end (placement in standings vs 1000),
+  K-factor 40→32→16 tapering by matches played, floor 400. Rank bands with colored badges:
+  BRONZE <900 / SILVER <1100 / GOLD <1300 / PLATINUM <1500 / DIAMOND — menu chip next to the
+  XP bar, RATING headline cell in career (band-colored) + last-10 sparkline, RATING ±N
+  callout after each match. Fixture-verified exact ELO math (1240 + win → 1250, K32×0.31).
+  Also: tonight's seven engineering lessons appended to GAME_DEV_PLAYBOOK.md §9 (stale-SW
+  delivery trap, CRLF bats, exact-launch testing, atomic writes, headless traps, balance
+  delivery checks, zombie ports). Full suite green. SW → v060.
 - **v059** (2026-07-03 ~02:35): MOBILE POLISH + AMBIENT BEDS (wave 8). Touch: bigger fire
   button (104px) with safe-area insets, viewport-fit=cover, joystick deadzone (0.12 rescaled),
   ROTATE YOUR DEVICE overlay in portrait, and AUTO-FIRE assist (settings toggle, default on):

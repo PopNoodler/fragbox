@@ -73,6 +73,7 @@
   #hitdir { position:absolute; left:50%; top:50%; width:130px; height:130px; transform:translate(-50%,-50%); opacity:0; transition:opacity .25s; pointer-events:none; }
   #hitdir span { position:absolute; left:50%; top:-4px; transform:translateX(-50%); width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent; border-bottom:18px solid rgba(244,67,54,.9); filter:drop-shadow(0 0 6px rgba(244,67,54,.7)); }
   #xpbar { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); display:flex; align-items:center; gap:8px; }
+  #rankchip { font-size:10px; font-weight:900; letter-spacing:1px; padding:3px 10px; border-radius:8px; }
   #lvlnum { background:linear-gradient(135deg,#ffca28,#ff9800); color:#1a1a2e; font-weight:900; font-size:13px; min-width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.4); }
   #xpbg { width:170px; height:6px; background:rgba(0,0,0,.5); border-radius:3px; overflow:hidden; }
   #xpfill { height:100%; width:0%; background:linear-gradient(90deg,#ffca28,#ff9800); border-radius:3px; transition:width .3s; }
@@ -253,7 +254,7 @@
     </div>
   </div>
   <div id="hitdir"><span></span></div>
-  <div id="xpbar"><div id="lvlnum">1</div><div id="xpbg"><div id="xpfill"></div></div></div>
+  <div id="xpbar"><div id="lvlnum">1</div><div id="xpbg"><div id="xpfill"></div></div><div id="rankchip"></div></div>
   <div id="scope"><div id="scopering"></div><span class="sh"></span><span class="sv"></span></div>
   <canvas id="minimap" width="150" height="150"></canvas>
   <div id="killfeed"></div>
@@ -314,6 +315,7 @@
   <div class="pausecard" style="max-width:520px">
     <div class="ptitle">CAREER</div>
     <div id="statshead"></div>
+    <div id="statssparkrow" style="margin:-6px 0 8px"></div>
     <table id="statstable"><thead><tr><th>WEAPON</th><th class="num">KILLS</th><th class="num">ACCURACY</th><th class="num">SHOTS</th></tr></thead><tbody id="statsbody"></tbody></table>
     <div style="margin-top:14px"><button id="statsclose" class="bigbtn" style="font-size:15px; padding:11px 34px">DONE</button></div>
   </div>
@@ -994,6 +996,7 @@ function currentSkin(){
 function renderLocker(){
   renderKillFxRow();
   renderDaily();
+  updateRankChip();
   const box = el('lockerrow');
   if(!box) return;
   box.innerHTML = SKINS.map(sk => {
@@ -1276,16 +1279,61 @@ function fmtPlaytime(ms){
   const m = Math.floor(ms / 60000);
   return m >= 60 ? Math.floor(m/60) + 'h ' + (m%60) + 'm' : m + 'm';
 }
+// ---------- Ranked rating (ELO-style, per profile) ----------
+const RANKS = [
+  [900,  'BRONZE',   '#ad6a3e'],
+  [1100, 'SILVER',   '#b0bec5'],
+  [1300, 'GOLD',     '#ffc107'],
+  [1500, 'PLATINUM', '#80deea'],
+  [Infinity, 'DIAMOND', '#7fb3ff']
+];
+function rankOf(r){ return RANKS.find(x => r < x[0]) || RANKS[RANKS.length-1]; }
+function updateRating(score01, oppStrength){
+  if(stats.rating === undefined){ stats.rating = 1000; stats.ratingHist = [1000]; }
+  const played = stats.matches || 0;
+  const K = played < 10 ? 40 : played < 30 ? 32 : 16;
+  const expected = 1 / (1 + Math.pow(10, (oppStrength - stats.rating) / 400));
+  const before = stats.rating;
+  stats.rating = Math.max(400, Math.round(stats.rating + K * (score01 - expected)));
+  stats.ratingHist = (stats.ratingHist || []).slice(-9).concat(stats.rating);
+  statsDirty++; saveStats();
+  const rk = rankOf(stats.rating);
+  const delta = stats.rating - before;
+  setTimeout(() => showCallout('RATING ' + (delta >= 0 ? '+' : '') + delta + ' → ' + stats.rating + ' ' + rk[1]), 2000);
+  updateRankChip();
+}
+function updateRankChip(){
+  const chip = el('rankchip');
+  if(!chip) return;
+  const r = stats.rating === undefined ? 1000 : stats.rating;
+  const rk = rankOf(r);
+  chip.textContent = rk[1] + ' ' + r;
+  chip.style.background = rk[2];
+  chip.style.color = '#10131c';
+}
+function ratingSparkline(){
+  const h = stats.ratingHist || [1000];
+  if(h.length < 2) return '';
+  const min = Math.min(...h), max = Math.max(...h), range = Math.max(1, max - min);
+  const pts = h.map((v, i) => (i / (h.length-1) * 96 + 2) + ',' + (26 - (v - min) / range * 22)).join(' ');
+  return '<svg width="100" height="30" style="vertical-align:middle"><polyline points="' + pts + '" fill="none" stroke="#4fc3f7" stroke-width="2"/></svg>';
+}
+
 function renderStatsPage(){
   const totalK = Object.values(wkills).reduce((a,b)=>a+b, 0);
   const totalS = Object.values(stats.shots).reduce((a,b)=>a+b, 0);
   const totalH = Object.values(stats.hits).reduce((a,b)=>a+b, 0);
   const kd = stats.deaths ? (totalK/stats.deaths).toFixed(2) : totalK.toFixed(2);
+  const rkVal = stats.rating === undefined ? 1000 : stats.rating;
+  const rk = rankOf(rkVal);
   el('statshead').innerHTML = [
+    ['RATING', '<span style="color:' + rk[2] + '">' + rkVal + '</span><small style="display:block;font-size:8px;color:' + rk[2] + '">' + rk[1] + '</small>'],
     ['LEVEL', levelOf(xp)], ['XP', xp], ['KILLS', totalK], ['K/D', kd],
     ['ACCURACY', totalS ? Math.round(totalH/totalS*100) + '%' : '—'],
     ['MATCHES', stats.matches], ['WINS', stats.wins], ['ASSISTS', stats.assists || 0], ['PLAYTIME', fmtPlaytime(stats.playMs)]
   ].map(([k,v]) => '<div class="statcell"><b>' + v + '</b><span>' + k + '</span></div>').join('');
+  el('statssparkrow').innerHTML = (stats.ratingHist && stats.ratingHist.length > 1)
+    ? '<span style="font-size:9px;color:#8fa3b8;letter-spacing:1px">RATING TREND</span> ' + ratingSparkline() : '';
   el('statsbody').innerHTML = WEAPONS.map(w => {
     const acc = accOf(w.name);
     return '<tr><td>' + w.name + '<span style="color:#ffca28">' + attachStars(w.name) + '</span></td>'
@@ -3078,6 +3126,13 @@ function mpConnect(){
         const winner = m.top && m.top[0] ? m.top[0].name : '—';
         showCallout(winner === localStorage.kh_name ? 'YOU WIN THE ROUND!' : `${winner.toUpperCase()} WINS`);
       }
+      if(m.top && m.top.length > 1){
+        const myIdx = m.top.findIndex(r => r.name === (localStorage.kh_name || ''));
+        if(myIdx >= 0){
+          const score = (m.top.length - 1 - myIdx) / (m.top.length - 1);
+          updateRating(score, 1000);
+        }
+      }
       renderScoreboard();
       if(m.top && m.top.length){
         showPodium(m.top.slice(0, 3).map(r => ({ name: r.name, k: r.k, d: r.d, color: podiumColorFor(r.name) })));
@@ -3434,6 +3489,11 @@ function endMatch(){
   const rows = [{ name:'You', kills:player.kills }, ...bots.map(b=>({ name:b.name, kills:b.kills }))].sort((a,b)=>b.kills-a.kills);
   const won = rows[0].name === 'You';
   if(won){ stats.wins++; statsDirty++; dailyBump('win'); }
+  {
+    const myIdx = rows.findIndex(r => r.name === 'You');
+    const score = rows.length > 1 ? (rows.length - 1 - myIdx) / (rows.length - 1) : 0.5;
+    updateRating(score, 900 + effDiff * 200);
+  }
   el('overtitle').textContent = won ? 'VICTORY!' : 'MATCH OVER';
   el('overtitle').style.color = won ? '#ffca28' : '#fff';
   const matchXp = xp - (player.matchXpStart === undefined ? xp : player.matchXpStart);
