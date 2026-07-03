@@ -18,6 +18,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v058** (2026-07-03 ~02:00): STALE-BUILD FIX + TTK PASS 2 + COVER PASS 2 + ARSENAL
+  (user: "still havent reduced TTK / maps too open" — ROOT CAUSE: sw.js served assets
+  cache-first, so shared/weapons.mjs + map.mjs stayed STALE across refreshes; users never
+  saw v053/v055. SW now network-first for everything with cache as offline fallback.)
+  TTK pass 2 on top of v053: AK 34 (3-SHOT body, 0.20s), MP5 22, M870 18/pellet, M1911 45,
+  M249 28 (4-shot), M14 52 (2-SHOT), Magnum 80, AWP 115 (1-shot) — Kour-speed lethality.
+  Cover pass 2: center-ring walls + N/S pillars on Meadow (44 boxes), platform-flank crates +
+  corner walls on Depot (39), six more street pieces on Skyline (51). ARSENAL EXPANSION:
+  SSG 08 scout sniper (85 dmg — 2-body/1-head, quick 34° scope, verified 100→12hp hit) and
+  FAMAS 3-round burst rifle (30 dmg, 800rpm bursts w/ 0.30s gap); viewmodels for both; new
+  classes Scout (lvl 20, SSG+M1911, 1.1x speed) and Commando (lvl 24, FAMAS+Magnum) extend
+  the grind; Gun Game ladder now 10 rungs (dynamic HUD); bots use both. Attachments/camos/
+  challenges auto-apply by name. Full suite green. SW → v058.
 - **v057** (2026-07-03 ~02:30): FLYBY + ASSISTS + AFK KICK (wave 6). Match intro flyby: 3s
   smoothstep camera arc (high orbit easing down toward the deploy view) behind the class-pick
   screen on every match start; click skips. Kill assists (MP): server logs recent damagers

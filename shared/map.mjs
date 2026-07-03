@@ -44,7 +44,12 @@ const MEADOW = {
     // low crate pairs along the cardinal lanes
     ...[[-7,-18],[7,18],[18,-7],[-18,7]].map(([x,z])=>(
       { x, y:0.75, z, sx:3, sy:1.5, sz:3, color:CRATE, solid:true }
-    ))
+    )),
+    // center-ring chokes (pass 2)
+    ...[[-9,-9],[9,9]].map(([x,z])=>({ x, y:1.3, z, sx:5.5, sy:2.6, sz:1.2, color:WALLC, solid:true })),
+    ...[[-9,9],[9,-9]].map(([x,z])=>({ x, y:1.3, z, sx:1.2, sy:2.6, sz:5.5, color:WALLC, solid:true })),
+    { x:0, y:1.75, z:-16, sx:3, sy:3.5, sz:3, color:BLOCK, solid:true },
+    { x:0, y:1.75, z:16,  sx:3, sy:3.5, sz:3, color:BLOCK, solid:true }
   ],
   SPAWNS: [
     [-38,-38],[38,38],[-38,38],[38,-38],[12,-38],[-12,38],[-38,12],[38,-12],
@@ -99,7 +104,14 @@ const DEPOT = {
     { x:-21, y:0.75, z:6, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
     { x:-22.5, y:2.2, z:6, sx:3, sy:1.4, sz:3, color:CRATE, solid:true },
     { x:24, y:1.4, z:24, sx:1.2, sy:2.8, sz:7, color:CONC, solid:true },
-    { x:-8, y:1.4, z:-20, sx:7, sy:2.8, sz:1.2, color:CONC, solid:true }
+    { x:-8, y:1.4, z:-20, sx:7, sy:2.8, sz:1.2, color:CONC, solid:true },
+    // platform flanks + far-corner chokes (pass 2)
+    { x:-9, y:0.75, z:-8, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:9, y:0.75, z:8, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:9, y:0.75, z:-8, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:-9, y:0.75, z:8, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:28, y:1.4, z:-6, sx:1.2, sy:2.8, sz:6, color:CONC, solid:true },
+    { x:-28, y:1.4, z:14, sx:1.2, sy:2.8, sz:6, color:CONC, solid:true }
   ],
   SPAWNS: [
     [-34,-34],[34,34],[-34,34],[34,-34],[10,-34],[-10,34],[-34,-8],[34,8],
@@ -175,7 +187,14 @@ const SKYLINE = {
     { x:-12, y:1.1, z:-24, sx:3, sy:2.2, sz:3, color:CYELLOW, solid:true },
     { x:14, y:1.1, z:26, sx:3, sy:2.2, sz:3, color:CYELLOW, solid:true },
     { x:-34, y:0.9, z:20, sx:1.6, sy:1.8, sz:3.4, color:0x4a545e, solid:true },
-    { x:34, y:0.9, z:-20, sx:1.6, sy:1.8, sz:3.4, color:0x4a545e, solid:true }
+    { x:34, y:0.9, z:-20, sx:1.6, sy:1.8, sz:3.4, color:0x4a545e, solid:true },
+    // pass 2: fill the remaining street runs
+    { x:-20, y:0.7, z:0, sx:2.2, sy:1.4, sz:4.6, color:0x6e3a3a, solid:true },
+    { x:20, y:0.7, z:-2, sx:2.2, sy:1.4, sz:4.6, color:0x39536e, solid:true },
+    { x:0, y:0.7, z:34, sx:4.6, sy:1.4, sz:2.2, color:0x55406e, solid:true },
+    { x:4, y:0.7, z:-34, sx:4.6, sy:1.4, sz:2.2, color:0x406e50, solid:true },
+    { x:-6, y:1.1, z:18, sx:3, sy:2.2, sz:3, color:CYELLOW, solid:true },
+    { x:6, y:1.1, z:-18, sx:3, sy:2.2, sz:3, color:CYELLOW, solid:true }
   ],
   SPAWNS: [
     [-36,-36],[36,36],[-36,36],[36,-36],[0,-36],[0,36],[-36,0],[36,0],

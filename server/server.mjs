@@ -147,7 +147,7 @@ function ents(){ return [...players.values(), ...bots]; }
 function addBot(){
   const id = nextId++;
   const team = TEAMED ? pickTeam() : -1;
-  const wPool = [0,0,1,1,2,4,5,6,7];        // weighted arsenal (AWP excluded from bots)
+  const wPool = [0,0,1,1,2,4,5,6,7,8,9];    // weighted arsenal (AWP excluded from bots)
   const b = {
     id, ws:null, isBot:true, team, gg: 0, streak: 0, shield: 0,
     wIdx: wPool[Math.floor(Math.random()*wPool.length)],
