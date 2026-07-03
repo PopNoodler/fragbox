@@ -41,3 +41,14 @@ rewarded "try premium class for one match", interstitial every N solo matches.
 
 Everything else — SDK wiring, QA of reward paths, packaging — can be done in the loop
 once account credentials/SDK keys exist.
+
+## Placement 3: Free Daily Crate (rewarded ad) — added v064
+- Crate panel → "▶ FREE DAILY CRATE": runs Monetize.showRewarded; on reward grants +1 supply
+  crate and date-locks (kh_freecrate = YYYY-MM-DD). Reward-exactly-once guarded. Expected
+  live flow: swap provider 'sim' → real SDK; this is the highest-frequency placement (daily
+  habit loop: claim crate → open → cosmetic pull).
+
+## Placement 4: Crate Bundle IAP (stub) — added v064
+- Crate panel → "💳 5 CRATES · $1.99": currently Monetize.buyPremium() COMING SOON stub.
+  Go-live: payment provider (Stripe/portal IAP) grants crates += 5. Anchor price the crate
+  economy: ~1 crate per level (≈20-40 min play) makes $1.99/5 a fair skip.

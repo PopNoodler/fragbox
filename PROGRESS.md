@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v064** (2026-07-03 ~04:30): CRATE MONETIZATION WIRING. Crate panel: FREE DAILY CRATE
+  (rewarded-ad sim → +1 crate, date-gated kh_freecrate, reward-exactly-once audit, button
+  flips to ✓ CLAIMED TODAY) + 5 CRATES $1.99 buy stub (COMING SOON via Monetize.buyPremium).
+  MONETIZATION.md gains placements 3 & 4 with go-live notes (daily-crate = highest-frequency
+  ad slot; bundle anchors crate economy pricing). Verified: ad overlay ran, crate granted
+  once, same-day repeat refused, stub callout. Full suite green. SW → v064.
 - **v063** (2026-07-03 ~04:10): FOURTH MAP "BUNKER" — indoor CQC built for the fast TTK.
   ARENA 30, full ceiling slab (grenades bounce back down, no sky, black overhead), 3x3 room
   grid via wallRun() generator (two horizontal + two vertical runs with 4.4u door gaps at

@@ -345,6 +345,10 @@
       <button id="crateopen" class="bigbtn" style="font-size:15px;padding:11px 30px">OPEN CRATE</button>
       <button id="crateclose" class="bigbtn" style="font-size:15px;padding:11px 30px;background:rgba(255,255,255,.1)">DONE</button>
     </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
+      <button id="cratefree" class="bigbtn" style="font-size:12px;padding:9px 18px;background:rgba(102,187,106,.2);border:1px solid #66bb6a">▶ FREE DAILY CRATE</button>
+      <button id="cratebuy" class="bigbtn" style="font-size:12px;padding:9px 18px;background:rgba(255,202,40,.15);border:1px solid #ffca28">💳 5 CRATES · $1.99</button>
+    </div>
   </div>
 </div>
 
@@ -2270,9 +2274,27 @@ el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('s
 el('trainbtn').addEventListener('click', ()=>{ audio(); el('menu').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; mode = 'solo'; startTrain(); });
 el('trainretry').addEventListener('click', ()=>{ el('trainend').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; startTrain(); });
 el('trainmenu').addEventListener('click', ()=>{ el('trainend').style.display = 'none'; showMenu(); });
-el('cratesbtn').addEventListener('click', ()=>{ audio(); el('cratecount').textContent = crates; el('crateresult').textContent = ''; el('cratestrip').innerHTML = ''; el('cratepanel').style.display = 'flex'; });
+el('cratesbtn').addEventListener('click', ()=>{ audio(); el('cratecount').textContent = crates; el('crateresult').textContent = ''; el('cratestrip').innerHTML = ''; updateFreeCrateBtn(); el('cratepanel').style.display = 'flex'; });
 el('crateopen').addEventListener('click', ()=>{ openCrate(); el('cratecount').textContent = crates; });
 el('crateclose').addEventListener('click', ()=>{ el('cratepanel').style.display = 'none'; });
+el('cratefree').addEventListener('click', ()=>{
+  if(localStorage.kh_freecrate === todayKey()){ showCallout('FREE CRATE ALREADY CLAIMED TODAY'); SFX.empty(); return; }
+  let rewarded = false;                                   // reward-exactly-once audit
+  Monetize.showRewarded(
+    ()=>{ if(rewarded) return; rewarded = true;
+      localStorage.kh_freecrate = todayKey();
+      crates++; localStorage.kh_crates = crates;
+      updateCrateBadge(); el('cratecount').textContent = crates;
+      showCallout('📦 FREE CRATE CLAIMED'); SFX.pickup(); updateFreeCrateBtn(); },
+    ()=>{ showCallout('AD SKIPPED — no crate'); }
+  );
+});
+el('cratebuy').addEventListener('click', ()=>{ Monetize.buyPremium(); });
+function updateFreeCrateBtn(){
+  const claimed = localStorage.kh_freecrate === todayKey();
+  el('cratefree').style.opacity = claimed ? 0.4 : 1;
+  el('cratefree').textContent = claimed ? '✓ CLAIMED TODAY' : '▶ FREE DAILY CRATE';
+}
 el('statsclose').addEventListener('click', ()=>{ saveStats(); el('statspanel').style.display = 'none'; });
 el('invitecopy').addEventListener('click', ()=>{
   navigator.clipboard.writeText(el('invitelink').textContent).then(()=>{
