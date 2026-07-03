@@ -312,12 +312,25 @@
     </div>
     <div id="btnrow">
       <button id="playbtn" class="bigbtn">PLAY</button>
+      <button id="trainbtn" class="bigbtn" style="font-size:14px; padding:10px 26px; background:rgba(255,255,255,.1)">🎯 KILLHOUSE</button>
       <button id="mpbtn" class="bigbtn" style="background:linear-gradient(135deg,#7e57c2,#5e35b1); box-shadow:0 4px 20px rgba(94,53,177,.4)">ONLINE</button>
     </div>
     <div id="mphint" style="margin-top:8px; font-size:12px; opacity:.6"></div>
     <div class="hint">
       <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Ctrl</kbd> crouch/slide · <kbd>G</kbd> grenade<br>
       <kbd>R</kbd> reload · <kbd>1 2</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
+    </div>
+  </div>
+</div>
+
+<div id="trainend" style="position:fixed; inset:0; z-index:42; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.85); pointer-events:auto">
+  <div class="pausecard" style="max-width:440px">
+    <div class="ptitle">KILLHOUSE RESULTS</div>
+    <div id="trainstats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px"></div>
+    <div id="trainbest" style="color:#ffca28; font-size:13px; font-weight:700; margin-bottom:14px"></div>
+    <div style="display:flex; gap:10px; justify-content:center">
+      <button id="trainretry" class="bigbtn" style="font-size:15px; padding:11px 30px">RETRY</button>
+      <button id="trainmenu" class="bigbtn" style="font-size:15px; padding:11px 30px; background:rgba(255,255,255,.1)">MENU</button>
     </div>
   </div>
 </div>
@@ -2254,6 +2267,9 @@ el('volsl').addEventListener('input', ()=>{ SET.vol = +el('volsl').value; saveSE
 function openSettings(){ syncSettingsUI(); el('settingspanel').style.display = 'flex'; }
 el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
 el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('statspanel').style.display = 'flex'; });
+el('trainbtn').addEventListener('click', ()=>{ audio(); el('menu').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; mode = 'solo'; startTrain(); });
+el('trainretry').addEventListener('click', ()=>{ el('trainend').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; startTrain(); });
+el('trainmenu').addEventListener('click', ()=>{ el('trainend').style.display = 'none'; showMenu(); });
 el('cratesbtn').addEventListener('click', ()=>{ audio(); el('cratecount').textContent = crates; el('crateresult').textContent = ''; el('cratestrip').innerHTML = ''; el('cratepanel').style.display = 'flex'; });
 el('crateopen').addEventListener('click', ()=>{ openCrate(); el('cratecount').textContent = crates; });
 el('crateclose').addEventListener('click', ()=>{ el('cratepanel').style.display = 'none'; });
@@ -2511,6 +2527,7 @@ function playerShoot(){
   const sprBase = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
   bloom = Math.min(1, bloom + (w.bloom || 0.1) * (attachTier(w.name) >= 2 ? 0.7 : 1));
   statShot(w.name, w.pellets);
+  if(trainMode) train.shots += w.pellets;
   for(let p=0; p<w.pellets; p++){
     const dir = fireDir(spr).clone();
     const wallHit = castWorldHit(eye, dir, 200);
@@ -2562,6 +2579,13 @@ function raySphere(o, d, c, r){
 }
 
 function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = the player
+  if(b.isDummy){
+    showDmg(new THREE.Vector3(b.pos.x, b.pos.y + 1.8, b.pos.z), dmg, headshot);
+    train.hits++;
+    b.hp -= headshot ? dmg : dmg;
+    if(b.hp <= 0 && b.alive){ b.alive = false; trainKill(); }
+    return;
+  }
   if(!attacker) showDmg(new THREE.Vector3(b.pos.x, b.pos.y + 1.8, b.pos.z), dmg, headshot);
   b.hp -= dmg;
   if(b.hp<=0 && b.alive){
@@ -3531,6 +3555,65 @@ el('namefield').value = localStorage.kh_name || '';
 el('namefield').addEventListener('change', ()=>myName());
 
 // ---------- Match flow ----------
+// ---------- Killhouse aim trainer ----------
+let trainMode = false;
+const train = { targets: 0, shots: 0, hits: 0, ttks: [], spawnT: 0 };
+function spawnDummy(){
+  const b = makeBot(0);
+  const d = bots[bots.length - 1];
+  d.isDummy = true;
+  d.mesh.traverse(o => { if(o.isMesh && o.material && o.material.color) o.material = new THREE.MeshLambertMaterial({ color: 0x9e9e9e }); });
+  // in front-ish of the player, 8-30u, clamped inside the arena
+  const ang = player.yaw + Math.PI + (Math.random() - 0.5) * 2.0;
+  const dist = 8 + Math.random() * 22;
+  let x = player.pos.x + Math.sin(ang) * dist;
+  let z = player.pos.z + Math.cos(ang) * dist;
+  x = Math.max(-ARENA + 4, Math.min(ARENA - 4, x));
+  z = Math.max(-ARENA + 4, Math.min(ARENA - 4, z));
+  d.pos.set(x, 0, z);
+  d.mesh.position.copy(d.pos);
+  d.hp = 100; d.alive = true;
+  train.spawnT = performance.now();
+}
+function trainKill(){
+  train.targets++;
+  train.ttks.push((performance.now() - train.spawnT) / 1000);
+  SFX.kill();
+  killBanner(0, 'TARGET ' + train.targets);
+  const old = bots.pop();
+  if(old) scene.remove(old.mesh);
+  spawnDummy();
+}
+function startTrain(){
+  trainMode = true;
+  train.targets = 0; train.shots = 0; train.hits = 0; train.ttks = [];
+  startMatch();
+  closePause(true);                       // skip the deploy screen — straight in
+  flybyT = 0;
+  matchT = 60;
+  for(const b of bots){ scene.remove(b.mesh); }
+  bots.length = 0;
+  spawnDummy();
+  showCallout('KILLHOUSE — 60 SECONDS');
+}
+function endTrain(){
+  trainMode = false;
+  const acc = train.shots ? Math.round(train.hits / train.shots * 100) : 0;
+  const avgTtk = train.ttks.length ? (train.ttks.reduce((a,b)=>a+b,0) / train.ttks.length).toFixed(2) : '—';
+  const grade = train.targets >= 28 ? 'S' : train.targets >= 22 ? 'A' : train.targets >= 16 ? 'B' : 'C';
+  const best = +(localStorage.kh_train || 0);
+  if(train.targets > best) localStorage.kh_train = train.targets;
+  addXp(100);
+  el('trainstats').innerHTML =
+    '<div class="statcell"><b>' + train.targets + '</b><span>TARGETS</span></div>' +
+    '<div class="statcell"><b>' + acc + '%</b><span>ACCURACY</span></div>' +
+    '<div class="statcell"><b>' + avgTtk + 's</b><span>AVG TTK</span></div>' +
+    '<div class="statcell"><b style="font-size:24px">' + grade + '</b><span>GRADE</span></div>';
+  el('trainbest').textContent = 'BEST: ' + Math.max(best, train.targets) + ' targets · +100 XP';
+  el('trainend').style.display = 'flex';
+  if(document.pointerLockElement) document.exitPointerLock();
+}
+
 function startMatch(){
   refreshEffDiff();
   clearPodium();
@@ -3569,6 +3652,8 @@ function startMatch(){
 }
 function showMenu(){
   state = ST.MENU;
+  trainMode = false;
+  el('trainend').style.display = 'none';
   saveStats();
   clearWeather();
   clearPodium();
@@ -3593,6 +3678,7 @@ function checkMatchEnd(){
   if(top >= KILL_TARGET || matchT <= 0) endMatch();
 }
 function endMatch(){
+  if(trainMode){ endTrain(); state = ST.MENU; el('hud').style.display = 'none'; return; }
   {
     const rows = [{ name:'You', k:player.kills, d:player.deaths }, ...bots.map(b=>({ name:b.name, k:b.kills, d:b.deaths }))]
       .sort((a,b)=>b.k-a.k || a.d-b.d).slice(0,3)
@@ -3859,6 +3945,7 @@ function updatePlayer(dt){
 }
 
 function updateBot(b, dt){
+  if(b.isDummy){ b.mesh.position.copy(b.pos); return; }
   if(!b.alive){
     b.respawnT -= dt;
     if(b.respawnT<=0){

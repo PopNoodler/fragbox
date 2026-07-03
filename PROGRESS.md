@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v062** (2026-07-03 ~03:45): KILLHOUSE AIM TRAINER (wave 8). 🎯 menu button starts a 60s
+  practice run: gray static dummies pop one at a time (8-30u, biased ahead of your view,
+  arena-clamped), destroy → next pops instantly with TARGET n banner; scores shots/hits/
+  time-to-kill per target; results screen with TARGETS/ACCURACY/AVG-TTK/GRADE (S≥28 A≥22
+  B≥16 C), best-run persistence (kh_train), fixed +100 XP (no farming — dummies skip the
+  kill/streak/XP pipeline), RETRY/MENU buttons. Deploy screen and flyby skipped for instant
+  action. Verified full run: 3 targets, 64% acc, 1.03s avg TTK, grade C, best persisted.
+  Full suite green. SW → v062.
 - **v061** (2026-07-03 ~03:20): SUPPLY CRATES (wave 8). Earn 1 crate per level-up + 1 per
   completed daily challenge (📦 callouts); menu 📦 button w/ count badge opens the crate
   screen: 2.2s roulette strip (decoy cards, eased cubic-bezier, gold marker line) landing on
