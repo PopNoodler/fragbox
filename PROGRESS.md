@@ -18,6 +18,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v067** (2026-07-03 ~05:40): MODULAR LEVEL KIT + FIFTH MAP (user: "rework level creation —
+  modular pieces to build levels smartly"). shared/map.mjs now exports place(pieces,x,z,rot)
+  (quarter-turn rotation with sx/sz swap) and a prefab library P: room(w,d,h,doors,roof) —
+  4 walls w/ door gaps per side + optional roof; tower(floors,size) — stacked walkable slabs,
+  corner pillars, AUTO-GENERATED stair run + parapet; bridge(len,y) — elevated walkway on
+  pillars; platform(w,h,d) — sniper perch w/ stairs; cover(seed) — deterministic crate
+  clusters; container(color,axis,stacked); corner(len,h) L-walls; building(w,h,d). New map
+  COMPOUND (ARENA 44) composed 100% from prefabs: central 2-story tower (power position,
+  hp on top), 4 roofed corner rooms w/ inward doors, 2 bridged sniper platforms, container
+  yard, L-corner lanes, seeded cover — 107 boxes from ~20 lines of composition. Verified:
+  tower stairs walkable (height samples 0.9→1.8→3.0→3.2 across the floor), rooms clear of
+  spawns, MP-ready (auto in vote pool + --map=compound). Future maps now take minutes.
+  Full suite green. SW → v067.
 - **v066** (2026-07-03 ~05:10): POLISH SWEEP. Ghost pace HUD moved below the score pill
   (no dom-chip overlap possible); panel-stacking torture passed (modals correctly block
   background buttons); 45s random-input monkey test: ZERO console errors; Bunker verified in

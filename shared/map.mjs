@@ -270,7 +270,159 @@ const BUNKER = {
   DOM: [ { x:-20, z:0, label:'A' }, { x:0, z:0, label:'B' }, { x:20, z:0, label:'C' } ]
 };
 
-export const MAPS = { meadow: MEADOW, depot: DEPOT, skyline: SKYLINE, bunker: BUNKER };
+// ============================================================================
+// MODULAR PREFAB KIT — compose maps from rotatable structure pieces.
+// Every prefab returns local-space BOX arrays; place(pieces, x, z, rot) drops
+// them into the world (rot = 0..3 quarter-turns). Build levels smartly:
+//   BOXES: [ ...walls(44,7), ...place(P.tower(3), -20, -20, 1), ... ]
+// ============================================================================
+function rotXZ(px, pz, r){
+  switch(r & 3){
+    case 0: return [px, pz];
+    case 1: return [pz, -px];
+    case 2: return [-px, -pz];
+    default: return [-pz, px];
+  }
+}
+export function place(pieces, x, z, r = 0){
+  return pieces.map(b => {
+    const [wx, wz] = rotXZ(b.x, b.z, r);
+    const swap = (r % 2) === 1;
+    return { ...b, x: x + wx, z: z + wz, sx: swap ? b.sz : b.sx, sz: swap ? b.sx : b.sz };
+  });
+}
+
+export const P = {
+  // Enclosed room: 4 walls with door gaps per side ('n','e','s','w'), optional roof.
+  room(w = 12, d = 12, h = 4, doors = ['n', 's'], roof = false){
+    const out = [];
+    const hw = w/2, hd = d/2, DW = 2.2;
+    const side = (axis, at, len, hasDoor) => {
+      if(!hasDoor){ out.push(seg(axis, at, -len/2, len/2, h)); return; }
+      out.push(seg(axis, at, -len/2, -DW, h));
+      out.push(seg(axis, at, DW, len/2, h));
+    };
+    side('x', -hd, w, doors.includes('n'));
+    side('x',  hd, w, doors.includes('s'));
+    side('z', -hw, d, doors.includes('w'));
+    side('z',  hw, d, doors.includes('e'));
+    if(roof) out.push({ x:0, y: h + 0.2, z:0, sx: w + 1, sy: 0.4, sz: d + 1, color: 0x23262b, solid: true });
+    return out;
+  },
+  // Multi-floor tower: stacked walkable slabs + corner pillars + stair run to floor 1.
+  tower(floors = 2, size = 8){
+    const out = [];
+    const fh = 3;
+    for(let f = 1; f <= floors; f++){
+      out.push({ x:0, y: f*fh, z:0, sx: size, sy: 0.4, sz: size, color: CONC, solid: true });
+    }
+    const ps = size/2 - 0.5;
+    for(const [px, pz] of [[-ps,-ps],[ps,ps],[-ps,ps],[ps,-ps]]){
+      out.push({ x:px, y: floors*fh/2, z:pz, sx:1, sy: floors*fh, sz:1, color: BLOCK, solid: true });
+    }
+    // stair run up the north face to floor 1
+    out.push(...stairs(0, -(size/2 + 9.9), 0, 1, Math.round(fh / 0.3), 3).map(b => b));
+    // low parapet on the top floor
+    const top = floors*fh;
+    out.push({ x:0, y: top + 0.55, z: -size/2 + 0.15, sx: size, sy: 0.7, sz: 0.3, color: CONC, solid: true });
+    out.push({ x:0, y: top + 0.55, z:  size/2 - 0.15, sx: size, sy: 0.7, sz: 0.3, color: CONC, solid: true });
+    return out;
+  },
+  // Elevated walkway with support pillars every ~6u; connects towers/platforms at height y.
+  bridge(len = 14, y = 3, w = 2.6){
+    const out = [{ x:0, y: y + 0.15, z:0, sx: w, sy: 0.3, sz: len, color: CONC, solid: true }];
+    for(let z = -len/2 + 2; z < len/2; z += 6){
+      out.push({ x:0, y: y/2, z, sx: 0.8, sy: y, sz: 0.8, color: BLOCK, solid: true });
+    }
+    return out;
+  },
+  // Walkable platform slab on pillars (sniper perch / objective pad).
+  platform(w = 6, h = 2.5, d = 6){
+    return [
+      { x:0, y: h, z:0, sx: w, sy: 0.4, sz: d, color: CONC, solid: true },
+      { x:-w/2+0.5, y: h/2, z:-d/2+0.5, sx:1, sy:h, sz:1, color: BLOCK, solid: true },
+      { x: w/2-0.5, y: h/2, z: d/2-0.5, sx:1, sy:h, sz:1, color: BLOCK, solid: true },
+      { x:-w/2+0.5, y: h/2, z: d/2-0.5, sx:1, sy:h, sz:1, color: BLOCK, solid: true },
+      { x: w/2-0.5, y: h/2, z:-d/2+0.5, sx:1, sy:h, sz:1, color: BLOCK, solid: true },
+      ...stairs(0, -(d/2 + 9.35), 0, 1, Math.round(h / 0.3), 2.6)
+    ];
+  },
+  // Deterministic crate/barrier cover cluster (seed varies the arrangement).
+  cover(seed = 1){
+    const arr = [[0,0],[2.6,1.2],[-1.8,2.4],[1.4,-2.2],[-2.8,-1.4]];
+    const out = [];
+    for(let i = 0; i < 3 + (seed % 3); i++){
+      const [cx, cz] = arr[(seed + i * 2) % arr.length];
+      out.push({ x: cx, y: 0.75, z: cz, sx: 3, sy: 1.5, sz: 3, color: CRATE, solid: true });
+    }
+    if(seed % 2) out.push({ x: 0, y: 2.2, z: 0, sx: 3, sy: 1.4, sz: 3, color: CRATE, solid: true });
+    return out;
+  },
+  // Shipping container (existing helper, local space).
+  container(color = RUST, axis = 'z', stacked = false){
+    const out = [cont(0, 0, color, axis)];
+    if(stacked) out.push(cont(0, 0, color === RUST ? CBLUE : RUST, axis, 3.9));
+    return out;
+  },
+  // L-shaped wall corner for lane control.
+  corner(len = 7, h = 2.8){
+    return [
+      { x: len/2, y: h/2, z: 0, sx: len, sy: h, sz: 1.1, color: WALLC, solid: true },
+      { x: 0, y: h/2, z: len/2, sx: 1.1, sy: h, sz: len, color: WALLC, solid: true }
+    ];
+  },
+  // Solid building block (skyline facade texture at 0x3a4652).
+  building(w = 12, h = 6, d = 10){
+    return [{ x:0, y: h/2, z:0, sx: w, sy: h, sz: d, color: 0x3a4652, solid: true }];
+  }
+};
+
+// ---- COMPOUND: first map composed entirely from the prefab kit ----
+const COMPOUND = {
+  id:'compound', name:'Compound', ARENA:44,
+  ground:'asphalt', outer:0x4a4f42, fog:0xa8b5a0, deco:'depot',
+  BOXES: [
+    ...walls(44, 7),
+    // central 2-story tower — the power position
+    ...place(P.tower(2, 9), 0, 0, 0),
+    // four corner rooms, doors facing inward
+    ...place(P.room(13, 13, 4, ['n', 'e'], true), -27, -27, 0),
+    ...place(P.room(13, 13, 4, ['n', 'e'], true),  27, -27, 1),
+    ...place(P.room(13, 13, 4, ['n', 'e'], true),  27,  27, 2),
+    ...place(P.room(13, 13, 4, ['n', 'e'], true), -27,  27, 3),
+    // two sniper platforms mid-edge, bridged toward the tower's airspace
+    ...place(P.platform(6, 2.5, 6), -24, 0, 1),
+    ...place(P.platform(6, 2.5, 6),  24, 0, 3),
+    ...place(P.bridge(12, 2.5), -13, 0, 1),
+    ...place(P.bridge(12, 2.5),  13, 0, 1),
+    // container yard NE lane, L-corners SW lane
+    ...place(P.container(RUST, 'z'), 14, -18, 0),
+    ...place(P.container(CYELLOW, 'x', true), 20, -12, 0),
+    ...place(P.corner(7), -18, 12, 2),
+    ...place(P.corner(7), -12, 18, 0),
+    // cover clusters breaking the diagonals
+    ...place(P.cover(1), -14, -14, 0),
+    ...place(P.cover(2),  14,  14, 0),
+    ...place(P.cover(3),  0, -26, 0),
+    ...place(P.cover(4),  0,  26, 0)
+  ],
+  SPAWNS: [
+    [-38,-38],[38,38],[-38,38],[38,-38],[0,-38],[0,38],[-38,0],[38,0],
+    [-27,-27],[27,27],[0,0,6.2],[24,0,2.9]
+  ],
+  PADS: [
+    { x:-6, z:-6, v:15 }, { x:6, z:6, v:15 },
+    { x:-36, z:20, v:15 }, { x:36, z:-20, v:15 }
+  ],
+  PICKUPS: [
+    { x:0, z:0, kind:'hp', y:6.6 },
+    { x:-27, z:-27, kind:'ammo' }, { x:27, z:27, kind:'ammo' },
+    { x:-24, z:0, kind:'hp', y:3.2 }, { x:24, z:0, kind:'hp', y:3.2 }
+  ],
+  DOM: [ { x:-27, z:-27, label:'A' }, { x:0, z:0, label:'B' }, { x:27, z:27, label:'C' } ]
+};
+
+export const MAPS = { meadow: MEADOW, depot: DEPOT, skyline: SKYLINE, bunker: BUNKER, compound: COMPOUND };
 export function getMap(id){ return MAPS[id] || MEADOW; }
 
 export const PHYS = { GRAV:24, JUMP_V:9.0, WALK:7, SPRINT:10.4, PLAYER_R:0.45, PLAYER_H:1.8, EYE:1.62 };
