@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v052** (2026-07-03 ~02:50): ROUND-OVER PODIUM (wave 4 complete). Round end now stages a
+  ceremony on a floating stage at y60: gold/silver/bronze pedestals, top-3 character rigs in
+  their real colors (skin for You, remote/bot rig colors otherwise) with "1. Name K/D" tags,
+  winner bounce loop, confetti bursts, slow orbiting camera; viewmodel + crosshair hidden for
+  the shot. MP: driven by the over standings during the 7s vote intermission (pairs with the
+  NEXT MAP bar), cleared on respawn. Solo: same ceremony behind the results panel. Verified
+  live: podium up during intermission (cam y62.6), tags visible, clean teardown. Full suite
+  green. SW → v052.
 - **v051** (2026-07-03 ~02:25): MAP VOTING + LIVE MAP SWAP (wave 4 #16). Round end now opens
   a 7s intermission: over msg carries vote options (current + 2 shuffled others), clients get
   a NEXT MAP vote bar over the scoreboard, {t:'vote'} tallied server-side (last vote per

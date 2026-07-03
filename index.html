@@ -2740,6 +2740,71 @@ function makeNameTag(name){
   return sprite;
 }
 
+// ---------- Round-over podium ceremony ----------
+let podium = null;   // { grp, winner, t }
+function showPodium(rows){
+  clearPodium();
+  const grp = new THREE.Group();
+  grp.position.set(0, 60, 0);                          // floating stage, clear of any map
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 6, 0.5, 24),
+    new THREE.MeshLambertMaterial({ color: 0x2b3550 }));
+  grp.add(base);
+  const spots = [ { x:0, h:1.5, c:0xffc107 }, { x:-2.1, h:1.0, c:0xb0bec5 }, { x:2.1, h:0.65, c:0xbf8970 } ];
+  let winnerRig = null;
+  rows.slice(0, 3).forEach((r, i) => {
+    const sp = spots[i];
+    const block = new THREE.Mesh(new THREE.BoxGeometry(1.7, sp.h, 1.7),
+      new THREE.MeshLambertMaterial({ color: sp.c }));
+    block.position.set(sp.x, 0.25 + sp.h/2, 0);
+    grp.add(block);
+    const rig = makeBotMesh(r.color);
+    rig.position.set(sp.x, 0.25 + sp.h, 0);
+    rig.rotation.y = Math.PI;                          // face the camera start
+    const tag = makeNameTag((i+1) + '. ' + r.name + '  ' + r.k + '/' + r.d);
+    tag.position.y = 2.5;
+    rig.add(tag);
+    grp.add(rig);
+    if(i === 0) winnerRig = rig;
+  });
+  scene.add(grp);
+  vmGroup.visible = false;
+  el('crosshair').style.display = 'none';
+  podium = { grp, winner: winnerRig, t: 0, baseY: 0.25 + spots[0].h };
+}
+function clearPodium(){
+  if(podium){
+    scene.remove(podium.grp);
+    podium = null;
+    vmGroup.visible = true;
+    el('crosshair').style.display = '';
+  }
+}
+function updatePodium(dt){
+  if(!podium) return;
+  podium.t += dt;
+  if(podium.winner) podium.winner.position.y = podium.baseY + Math.abs(Math.sin(podium.t * 3.4)) * 0.45;
+  if(Math.floor(podium.t * 2.5) !== Math.floor((podium.t - dt) * 2.5)){
+    const at = new THREE.Vector3(podium.grp.position.x + (Math.random()-0.5)*6, podium.grp.position.y + 3.5, podium.grp.position.z + (Math.random()-0.5)*6);
+    addPuff(at, [0xff5252, 0xffca28, 0x66bb6a, 0x42a5f5][Math.floor(Math.random()*4)], 5, 3);
+  }
+  // orbiting camera
+  const a = podium.t * 0.32 + Math.PI/2;
+  camera.position.set(podium.grp.position.x + Math.cos(a)*7.5, podium.grp.position.y + 2.6, podium.grp.position.z + Math.sin(a)*7.5);
+  camera.lookAt(podium.grp.position.x, podium.grp.position.y + 1.4, podium.grp.position.z);
+}
+function rigColorOf(obj){
+  let col = null;
+  obj.traverse(o => { if(col === null && o.isMesh && o.material && o.material.color) col = o.material.color.getHex(); });
+  return col;
+}
+function podiumColorFor(name){
+  if(name === (localStorage.kh_name || 'You') || name === 'You') return currentSkin().color;
+  if(mode === 'mp') for(const r of NET.remotes.values()) if(r.name === name) return rigColorOf(r.mesh) || 0x8e24aa;
+  const b = bots.find(x => x.name === name);
+  if(b) return rigColorOf(b.mesh) || 0x8e24aa;
+  return 0x8e24aa;
+}
+
 function addRemote(q){
   if(NET.remotes.has(q.id)) return;
   const mesh = makeBotMesh(q.color);
@@ -2860,6 +2925,9 @@ function mpConnect(){
         showCallout(winner === localStorage.kh_name ? 'YOU WIN THE ROUND!' : `${winner.toUpperCase()} WINS`);
       }
       renderScoreboard();
+      if(m.top && m.top.length){
+        showPodium(m.top.slice(0, 3).map(r => ({ name: r.name, k: r.k, d: r.d, color: podiumColorFor(r.name) })));
+      }
       el('scoreboard').style.display = 'block';
       if(m.vote){
         el('votebar').style.display = 'flex';
@@ -3031,6 +3099,7 @@ function mpConnect(){
       if(m.idx > 0){ showCallout('WEAPON UP — ' + WEAPONS[wi].name.toUpperCase()); SFX.streak(); }
     }
     else if(m.t === 'spawn'){
+      clearPodium();
       player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
       player.vel.set(0,0,0);
       player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
@@ -3118,6 +3187,7 @@ el('namefield').addEventListener('change', ()=>myName());
 
 // ---------- Match flow ----------
 function startMatch(){
+  clearPodium();
   buildWeather(resolveWeather());
   // reset
   player.kills = 0; player.deaths = 0; player.alive = true; player.streak = 0;
@@ -3153,6 +3223,7 @@ function showMenu(){
   state = ST.MENU;
   saveStats();
   clearWeather();
+  clearPodium();
   TUT.active = false;
   el('tutbanner').style.display = 'none';
   setMusicMode('menu');
@@ -3174,6 +3245,12 @@ function checkMatchEnd(){
   if(top >= KILL_TARGET || matchT <= 0) endMatch();
 }
 function endMatch(){
+  {
+    const rows = [{ name:'You', k:player.kills, d:player.deaths }, ...bots.map(b=>({ name:b.name, k:b.kills, d:b.deaths }))]
+      .sort((a,b)=>b.k-a.k || a.d-b.d).slice(0,3)
+      .map(r => ({ ...r, color: podiumColorFor(r.name) }));
+    showPodium(rows);
+  }
   if(state!==ST.PLAY) return;
   state = ST.OVER;
   el('hud').style.display = 'none';
@@ -3697,6 +3774,7 @@ function frame(now){
       updatePickups(dt);
       updateNades(dt);
     updateFxSprites(dt);
+    updatePodium(dt);
       if(mode !== 'mp') updateTut(dt);
     }
     updateDmgNums(dt);
