@@ -29,7 +29,7 @@ const PORT = 18790;
     page.on('pageerror', e => errors.push(name + ': ' + e.message));
     await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'domcontentloaded' });
     await new Promise(r => setTimeout(r, 2200));
-    await page.evaluate(n => { localStorage.kh_name = n; }, name);
+    await page.evaluate(n => { localStorage.kh_name = n; const f = document.getElementById('namefield'); if(f) f.value = n; }, name);
     await page.click('#mpbtn');
     await new Promise(r => setTimeout(r, 900));
     await page.click('#resumebtn').catch(()=>{});   // DEPLOY through spawn class picker
@@ -144,7 +144,7 @@ const PORT = 18790;
     page.on('pageerror', e => errors.push('Cara: ' + e.message));
     await page.goto('http://127.0.0.1:18792/', { waitUntil: 'domcontentloaded' });
     await new Promise(r => setTimeout(r, 2200));
-    await page.evaluate(() => { localStorage.kh_name = 'Cara'; });
+    await page.evaluate(() => { localStorage.kh_name = 'Cara'; const f = document.getElementById('namefield'); if(f) f.value = 'Cara'; });
     await page.click('#mpbtn');
     await new Promise(r => setTimeout(r, 900));
     await page.click('#resumebtn').catch(()=>{});   // DEPLOY through spawn class picker

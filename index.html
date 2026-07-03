@@ -2667,7 +2667,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       tutFlag('kill');
       SFX.kill();
       killBanner(headshot ? 150 : 100, (headshot ? 'HEADSHOT · ' : 'ELIMINATED ') + b.name);
-      killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'} <b>${b.name}</b>`);
+      killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'}<small style="opacity:.55"> ${killContext==='nade'?'GRENADE':curW().name}</small> <b>${b.name}</b>`);
       recordWeaponKill(curW().name);
       dailyKill(curW().name, headshot, killContext === 'nade');
       playKillFx(b.pos);
@@ -3436,7 +3436,7 @@ function mpConnect(){
         if(vr) playKillFx(vr.mesh.position);
         SFX.kill();
         killBanner(m.hs ? 150 : 100, (m.hs ? 'HEADSHOT · ' : 'ELIMINATED ') + m.victim);
-        killfeed(`<span class="me">You</span> ${hsIcon} <b>${m.victim}</b>`);
+        killfeed(`<span class="me">You</span> ${hsIcon}<small style="opacity:.55"> ${m.kwn||''}</small> <b>${m.victim}</b>`);
         recordWeaponKill(curW().name);
         dailyKill(m.kwn || curW().name, m.hs, m.kwn === 'Grenade');
         const st = STREAKS[player.streak];
@@ -3444,9 +3444,9 @@ function mpConnect(){
         else if(m.hs) showCallout('HEADSHOT');
         updateStreakHUD();
       } else if(m.victimId === NET.id){
-        killfeed(`<b>${m.killer}</b> ${hsIcon} <span class="me">You</span>`);
+        killfeed(`<b>${m.killer}</b> ${hsIcon}<small style="opacity:.55"> ${m.kwn||''}</small> <span class="me">You</span>`);
       } else {
-        killfeed(`<b>${m.killer}${m.asn ? ' + ' + m.asn : ''}</b> ${hsIcon} <b>${m.victim}</b>`);
+        killfeed(`<b>${m.killer}${m.asn ? ' + ' + m.asn : ''}</b> ${hsIcon}<small style="opacity:.55"> ${m.kwn||''}</small> <b>${m.victim}</b>`);
       }
     }
     else if(m.t === 'dom'){

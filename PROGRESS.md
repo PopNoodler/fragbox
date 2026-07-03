@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v074** (2026-07-03 ~09:10): "Double-join ghost" SOLVED — it never existed. myName()
+  prefers the #namefield input (populated at page boot), so same-profile test tabs inherited
+  tab 1's name and clobbered localStorage; server always had two distinct clients joining
+  once each. mptest now sets the field alongside storage (logs: "Alice joined / Bob joined").
+  Feature: killfeed lines show the kill weapon (solo curW/grenade context; MP kwn field) as a
+  dim label. Full suite green ×2. SW → v074.
 - **v073** (2026-07-03 ~08:40): MP DEATH SPECTATE. Click while dead cycles a chase-cam through
   living players (behind-shoulder at +2.6y, SPECTATING label, auto-falls back to killcam if
   the target dies/leaves, cleared on respawn/round spawn). Live-verified via forced duel.
