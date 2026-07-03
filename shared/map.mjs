@@ -424,6 +424,50 @@ MEADOW.BOXES = [
   ...place(P.cover(3), 0, 0, 0).map(b => ({ ...b, x: b.x + 22 }))    // near DOM C
 ];
 
+// ---- DEPOT 2.0: industrial rebuild with the kit — crane walkway over a container yard ----
+DEPOT.BOXES = [
+  ...walls(40, 7),
+  // central loading dock: platform with stair runs on BOTH ends
+  ...place(P.platform(12, 2.5, 8), 0, 0, 0),
+  ...stairs(0, 4 + 0.55 + 7 * 1.1, 0, -1, 8, 2.6),
+  // crane crossing: two 2-floor stair towers + a high walkway spanning the yard (deck ~6.05)
+  ...place(P.tower(2, 6), -30, 0, 0),
+  ...place(P.tower(2, 6),  30, 0, 0),
+  ...place(P.catwalk(52, 5.75), 0, 0, 1),
+  // container maze quadrants (some stacked = crane-height cover)
+  ...place(P.container(RUST, 'z'), -20, -14, 0),
+  ...place(P.container(CBLUE, 'z', true), -14, -20, 0),
+  ...place(P.container(CYELLOW, 'x'), -22, -26, 0),
+  ...place(P.container(CYELLOW, 'z'), 18, 16, 0),
+  ...place(P.container(RUST, 'z', true), 24, 22, 0),
+  ...place(P.container(CBLUE, 'x'), 14, 26, 0),
+  ...place(P.container(RUST, 'x'), 0, 30, 0),
+  ...place(P.container(CBLUE, 'x'), -4, -30, 0),
+  // tunnel underpass on the south lane
+  ...place(P.tunnel(14), 0, -20, 1),
+  // lane control NW/SE + seeded cover
+  ...place(P.corner(7), -18, 14, 3),
+  ...place(P.corner(7),  18, -14, 1),
+  ...place(P.cover(2), -28, 24, 0),
+  ...place(P.cover(4),  28, -24, 0),
+  ...place(P.cover(1), 10, -8, 0),
+  ...place(P.cover(3), -10, 8, 0)
+];
+DEPOT.PADS = [
+  { x:-10, z:0, v:13 }, { x:10, z:0, v:13 },
+  { x:-30, z:6, v:17.5 }, { x:30, z:-6, v:17.5 }    // hop to the crane towers' top floors
+];
+DEPOT.PICKUPS = [
+  { x:-16, z:16, kind:'hp' }, { x:16, z:-16, kind:'hp' },
+  { x:0, z:0, kind:'hp', y:3.3 },
+  { x:0, z:-18, kind:'ammo' }, { x:0, z:18, kind:'ammo' },
+  { x:0, z:0, kind:'ammo', y:6.6 }                    // crane-walkway prize
+];
+DEPOT.SPAWNS = [
+  [-36,-36],[36,36],[-36,36],[36,-36],[12,-36],[-12,36],[-36,-12],[36,12],
+  [-24,4],[24,-4],[8,-14],[-8,14]
+];
+
 // ---- COMPOUND: first map composed entirely from the prefab kit ----
 const COMPOUND = {
   id:'compound', name:'Compound', ARENA:44,

@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v069** (2026-07-03 ~06:50): DEPOT 2.0 — industrial rebuild with the kit. Central loading
+  dock (platform + stair runs BOTH ends), signature CRANE WALKWAY: two 2-floor stair towers
+  east/west linked by a railed catwalk at deck ~6.1 spanning the whole yard (verified walking
+  x -27→+3 at height; jump pads v17.5 at each tower arc to 6.1 for quick access — flight-
+  sampled), ammo prize on the crane, 8 container placements incl. stacked crane-height cover,
+  tunnel underpass on the south lane (walked through), L-corners + 4 seeded cover clusters,
+  refreshed spawns (validated clear of solids). 108 boxes from kit composition. Both mptest
+  runs green + playtest. SW → v069.
 - **v068** (2026-07-03 ~06:15): MEADOW 2.0 — the original map fully rebuilt with the prefab
   kit (level-design rework continues per user directive). New layout: central 2-story tower
   fort, four walled corner yards (11x11, inward doors) with seeded cover, north/south sniper
