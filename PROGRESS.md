@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v066** (2026-07-03 ~05:10): POLISH SWEEP. Ghost pace HUD moved below the score pill
+  (no dom-chip overlap possible); panel-stacking torture passed (modals correctly block
+  background buttons); 45s random-input monkey test: ZERO console errors; Bunker verified in
+  MP Domination (bots captured indoor points); README fully refreshed (all 4 maps, 5 modes +
+  Killhouse, grenade/ability/inspect/crouch controls table, progression overview, updated
+  server flags). Full suite green. SW → v066.
 - **v065** (2026-07-03 ~04:50): KILLHOUSE REPLAY GHOST. Best run's per-target split times
   persist (kh_trainghost {targets, splits}); later runs race it live: 👻 chip under the timer
   shows the ghost's target count ticking up in real time as its splits pass, plus a ±N.Ns
