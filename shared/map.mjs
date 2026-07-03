@@ -32,6 +32,18 @@ const MEADOW = {
     )),
     ...[[-8,24],[8,-24],[24,8],[-24,-8]].map(([x,z])=>(
       { x, y:0.75, z, sx:3, sy:1.5, sz:3, color:CRATE, solid:true }
+    )),
+    // sightline breakers: walls on the diagonal mids
+    ...[[-13,-13],[13,13],[-13,13],[13,-13]].map(([x,z],i)=>(
+      { x, y:1.4, z, sx: i<2 ? 7 : 1.2, sy:2.8, sz: i<2 ? 1.2 : 7, color:WALLC, solid:true }
+    )),
+    // standing stones between mid and corners
+    ...[[-26,8],[26,-8],[8,26],[-8,-26]].map(([x,z])=>(
+      { x, y:2, z, sx:2.6, sy:4, sz:2.6, color:BLOCK, solid:true }
+    )),
+    // low crate pairs along the cardinal lanes
+    ...[[-7,-18],[7,18],[18,-7],[-18,7]].map(([x,z])=>(
+      { x, y:0.75, z, sx:3, sy:1.5, sz:3, color:CRATE, solid:true }
     ))
   ],
   SPAWNS: [
@@ -78,7 +90,16 @@ const DEPOT = {
     { x:0, y:0.6, z:30, sx:1.2, sy:1.2, sz:4, color:CYELLOW, solid:true },
     // catwalk blocks by the east wall
     { x:36, y:1.5, z:0, sx:6, sy:3, sz:3, color:CONC, solid:true },
-    { x:-36, y:1.5, z:8, sx:6, sy:3, sz:3, color:CONC, solid:true }
+    { x:-36, y:1.5, z:8, sx:6, sy:3, sz:3, color:CONC, solid:true },
+    // sightline breakers: mid-lane containers + pallet stacks
+    cont(0, -14, CBLUE, 'x'),
+    cont(-12, 26, RUST, 'z'),
+    cont(12, -28, CYELLOW, 'x'),
+    { x:-24, y:0.75, z:6, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:-21, y:0.75, z:6, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:-22.5, y:2.2, z:6, sx:3, sy:1.4, sz:3, color:CRATE, solid:true },
+    { x:24, y:1.4, z:24, sx:1.2, sy:2.8, sz:7, color:CONC, solid:true },
+    { x:-8, y:1.4, z:-20, sx:7, sy:2.8, sz:1.2, color:CONC, solid:true }
   ],
   SPAWNS: [
     [-34,-34],[34,34],[-34,34],[34,-34],[10,-34],[-10,34],[-34,-8],[34,8],
@@ -143,7 +164,18 @@ const SKYLINE = {
     { x:-13, y:1.2, z:-10, sx:3, sy:2.4, sz:4, color:CONC, solid:true },
     ...stairs(-13, -3.6, 0, -1, 8, 3),
     { x:13, y:1.2, z:12, sx:3, sy:2.4, sz:4, color:CONC, solid:true },
-    ...stairs(13, 5.6, 0, 1, 8, 3)
+    ...stairs(13, 5.6, 0, 1, 8, 3),
+    // street clutter: more cars, dumpsters, kiosks to cut the canyons
+    { x:-8, y:0.7, z:30, sx:4.6, sy:1.4, sz:2.2, color:0x6d5c2e, solid:true },
+    { x:10, y:0.7, z:-30, sx:4.6, sy:1.4, sz:2.2, color:0x3a5c6e, solid:true },
+    { x:-30, y:0.7, z:-10, sx:2.2, sy:1.4, sz:4.6, color:0x5c3a6e, solid:true },
+    { x:30, y:0.7, z:8, sx:2.2, sy:1.4, sz:4.6, color:0x2f4b7a, solid:true },
+    { x:-2, y:0.65, z:12, sx:2.4, sy:1.3, sz:1.4, color:0x3d5c3a, solid:true },
+    { x:2, y:0.65, z:-12, sx:2.4, sy:1.3, sz:1.4, color:0x3d5c3a, solid:true },
+    { x:-12, y:1.1, z:-24, sx:3, sy:2.2, sz:3, color:CYELLOW, solid:true },
+    { x:14, y:1.1, z:26, sx:3, sy:2.2, sz:3, color:CYELLOW, solid:true },
+    { x:-34, y:0.9, z:20, sx:1.6, sy:1.8, sz:3.4, color:0x4a545e, solid:true },
+    { x:34, y:0.9, z:-20, sx:1.6, sy:1.8, sz:3.4, color:0x4a545e, solid:true }
   ],
   SPAWNS: [
     [-36,-36],[36,36],[-36,36],[36,-36],[0,-36],[0,36],[-36,0],[36,0],

@@ -18,6 +18,18 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v055** (2026-07-03 ~01:40): MAP COVER DENSITY PASS (user: "maps are too open, more stuff
+  blocking sight lines" — extra urgent post-TTK-buff). Meadow +12 pieces (diagonal-mid walls,
+  4 standing stones between mid and corners, crate pairs on cardinal lanes; 26→38 boxes).
+  Depot +8 (three mid-lane containers incl. crossing orientations, double-stacked pallet
+  cluster SW, two concrete walls plugging the wall-hug lanes; 25→33). Skyline +10 street
+  clutter (4 more parked cars, 2 planters mid-plaza, 2 kiosks, 2 dumpsters; 35→45). Server
+  hitscan/nade/bot AABBs inherit automatically via shared map data. Survey screenshots
+  confirm no clean cross-map lanes remain. Full suite green. SW → v055.
+- **v054** (2026-07-03 ~01:30): Graphics quality tiers (wave 5 #18): Auto/Low/Med/High in
+  settings — pixel ratio 2/1/0.75, shadows 2048/1024/off, particle counts ×1/0.7/0.5 (puffs +
+  weather), clouds & skyline silhouettes off on Low; Auto samples 5s of match fps and steps
+  down below 40/55 (persisted, "GRAPHICS AUTO-TUNED" callout); live-applies on setting click.
 - **v053** (2026-07-03 ~01:15): TTK REDUCTION (user: "reduce time to kill") — ~33% damage
   buff across the arsenal in shared/weapons.mjs (drives solo AND server MP identically):
   AK 22→30 (0.30s / 2-tap headshot), MP5 13→18, M870 12→16/pellet (one-pull up close),
