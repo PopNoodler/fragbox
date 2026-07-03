@@ -1,6 +1,6 @@
 # FragBox — Overnight Session Notes (2026-07-02 → 03)
 
-**45 releases / 55+ commits shipped this session (v036 → v079), every one test-gated.**
+**47 releases shipped this session (v036 → v081), every one test-gated.**
 Refresh your browser once (Ctrl+Shift+R the first time) and everything below is live.
 
 ## What shipped tonight, by theme
@@ -46,6 +46,11 @@ with a real-physics trajectory line), live ping display in the score pill, and t
 "double-join ghost" turned out to be a test artifact (name field vs localStorage), not a bug.
 Killhouse gained MOVING TARGETS (strafing dummies, separate records); the prefab kit gained a
 WATCHTOWER (raised lookout cabin w/ firing slit — two on Compound); crate jackpots flash gold.
+
+**COMPLETE UI REWORK (v080-v081, your "modern standards" directive):** token-based design
+system — glassmorphism panels, esports angled buttons with shine sweeps, animated gradient
+logo, hero-first menu (PLAY was below the fold before!), reborn HUD with accent-edged glass
+health/ammo panels, themed minimap, every screen audited. Hard-refresh once to see it.
 
 ## Things only you can do
 
