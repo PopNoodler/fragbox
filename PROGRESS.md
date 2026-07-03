@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v071** (2026-07-03 ~07:45): POLISH BUNDLE. Per-map tactical tips on the deploy screen
+  (3 per map, randomized — "Skyline: buildings B1/B3 are enterable"); warm interior lighting
+  + emissive ceiling panels in the enterable Skyline buildings; announcer stingers — distinct
+  two/three-tone signatures for UAV, Overshield, Airstrike warning, flag captures, and point
+  captures (replacing the generic streak chime). Full suite green. SW → v071.
 - **v070** (2026-07-03 ~07:20): SKYLINE INTERIORS — level rework arc COMPLETE. Two of the four
   corner buildings are now enterable: hollow ground floors (walls to y4 w/ two street-facing
   doors), WINDOW SLITS at eye height (sill 0-1.2 / gap 1.2-1.9 / lintel 1.9-4 — shoot out,

@@ -140,6 +140,7 @@
   #pausemenu { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.72); backdrop-filter:blur(3px); pointer-events:auto; }
   .pausecard { width:min(600px, 92vw); background:rgba(7,9,18,.97); border:1px solid rgba(255,255,255,.14); border-radius:18px; padding:22px 24px; text-align:center; box-shadow:0 16px 70px rgba(0,0,0,.65); }
   .ptitle { color:#ffca28; font-size:20px; font-weight:900; letter-spacing:4px; margin-bottom:14px; }
+  #maptip { font-size:11.5px; color:#8fa3b8; letter-spacing:.4px; margin:-8px 0 10px; min-height:14px; }
   #inviterow { display:flex; gap:8px; align-items:center; justify-content:center; margin:-6px 0 12px; font-size:12px; color:#8fa3b8; }
   #invitelink { font-family:monospace; background:rgba(0,0,0,.4); padding:4px 10px; border-radius:6px; }
   #invitecopy { background:rgba(79,195,247,.2); border:1px solid #4fc3f7; color:#fff; border-radius:6px; padding:4px 12px; font-size:11px; font-weight:700; cursor:pointer; }
@@ -255,6 +256,7 @@
   <div id="pausemenu">
     <div class="pausecard">
       <div class="ptitle" id="ptitle">PAUSED</div>
+      <div id="maptip"></div>
       <div id="inviterow" style="display:none"><span id="invitelink"></span><button id="invitecopy">COPY INVITE</button></div>
       <div id="pauseclasses" class="classgrid"></div>
       <div style="display:flex; gap:10px; margin-top:16px; justify-content:center">
@@ -758,6 +760,16 @@ function buildMeadowDeco(){
   }
 }
 function buildSkylineDeco(){
+  // warm interior lights for the enterable buildings
+  for(const [x, z] of [[-22, -18], [-20, 20]]){
+    const lamp = new THREE.PointLight(0xffd9a0, 1.6, 14);
+    lamp.position.set(x, 3.2, z);
+    worldGroup.add(lamp);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.1, 2.5),
+      new THREE.MeshLambertMaterial({ color: 0xfff3d0, emissive: 0xffe0a0, emissiveIntensity: 0.9 }));
+    panel.position.set(x, 3.9, z);
+    worldGroup.add(panel);
+  }
   const darkMat = new THREE.MeshLambertMaterial({ color: 0x20262e });
   const acMat = new THREE.MeshLambertMaterial({ color: 0x4a545e });
   const glowMat = new THREE.MeshLambertMaterial({ color: 0xff5252, emissive: 0xb71c1c, emissiveIntensity: 1 });
@@ -880,6 +892,16 @@ const SFX = {
   streak(){ tone(523, 0.08, 0.18, 'square'); setTimeout(()=>tone(659, 0.08, 0.18, 'square'), 70); setTimeout(()=>tone(784, 0.14, 0.2, 'square'), 140); },
   pickup(){ tone(660, 0.07, 0.15, 'square'); setTimeout(()=>tone(990, 0.1, 0.15, 'square'), 70); },
   boom(v=1){ noiseBurst(0.5, 0.7*v, 350); tone(45, 0.5, 0.5*v, 'sawtooth'); setTimeout(()=>noiseBurst(0.35, 0.25*v, 180), 90); },
+  stinger(kind){
+    const seq = {
+      uav:      [[520,0],[780,120]],
+      shield:   [[440,0],[440,110],[660,220]],
+      airstrike:[[220,0],[180,180],[220,360],[180,540]],
+      capture:  [[523,0],[659,110],[784,220]],
+      point:    [[600,0],[900,90]]
+    }[kind];
+    if(seq) for(const [f, t] of seq) setTimeout(()=>tone(f, 0.16, 0.3, 'square'), t);
+  },
   boing(){ tone(180, 0.05, 0.2, 'sine'); setTimeout(()=>tone(420, 0.18, 0.22, 'sine'), 40); }
 };
 
@@ -2807,13 +2829,13 @@ let uavT = 0;
 function grantStreakReward(tier){
   if(tier === 3){
     uavT = 10;
-    setTimeout(()=>{ showCallout('UAV ONLINE — enemies revealed'); SFX.streak(); }, 700);
+    setTimeout(()=>{ showCallout('UAV ONLINE — enemies revealed'); SFX.stinger('uav'); }, 700);
   } else if(tier === 5){
     player.shield = 50;
     updateHpHUD();
-    setTimeout(()=>{ showCallout('OVERSHIELD +50'); SFX.streak(); }, 700);
+    setTimeout(()=>{ showCallout('OVERSHIELD +50'); SFX.stinger('shield'); }, 700);
   } else if(tier === 7){
-    setTimeout(()=>{ showCallout('⚠ AIRSTRIKE INBOUND'); SFX.boom(0.4); }, 700);
+    setTimeout(()=>{ showCallout('⚠ AIRSTRIKE INBOUND'); SFX.stinger('airstrike'); }, 700);
     if(mode !== 'mp') setTimeout(soloAirstrike, 2200);
   }
   updateStreakHUD();
@@ -3421,7 +3443,7 @@ function mpConnect(){
           dailyBump('caps');
           showCallout('POINT ' + m.label + ' CAPTURED  +150');
         } else showCallout('YOUR TEAM CAPTURED ' + m.label);
-        SFX.streak();
+        SFX.stinger('point');
       } else if(player.alive) showCallout(tn + ' CAPTURED ' + m.label);
     }
     else if(m.t === 'flag'){
@@ -3434,7 +3456,7 @@ function mpConnect(){
         killfeed(`<span style="color:${col}">⚑ ${tn} flag CAPTURED${m.by ? ' by <b>' + m.by + '</b>' : ''}</span>`);
         showCallout(m.by === myName() ? 'FLAG CAPTURED  +300' : (m.team === NET.team ? 'ENEMY SCORED ON YOUR FLAG' : 'YOUR TEAM CAPTURED THE FLAG'));
         if(m.by === myName()){ addXp(300); dailyBump('caps'); }
-        SFX.streak();
+        SFX.stinger('capture');
       }
     }
     else if(m.t === 'assist'){
@@ -3526,10 +3548,19 @@ el('mpbtn').addEventListener('click', ()=>{ audio(); if(!NET.ws) mpConnect(); })
 // ---------- Pause menu (in-game: change class / resume / quit) ----------
 let paused = false;
 let deployMode = false;
+const MAP_TIPS = {
+  meadow: ['Ride the catwalk spine: platform → tower → platform', 'The tunnels flank east and west — their roofs are walkable', 'Tower top holds the health prize — pads get you there fast'],
+  depot: ['The crane walkway crosses the whole yard — pads at each tower', 'An ammo prize sits mid-crane. Exposed, but worth it', 'The tunnel under the south lane is a quiet flank'],
+  skyline: ['Corner buildings B1/B3 are ENTERABLE — watch the window slits', 'Pad chains reach the tower crown and its health pack', 'Rooftop bridges connect the east and west blocks'],
+  bunker: ['Grenades bounce off the ceiling — cook them around corners', 'Hold the center room: three Domination points line the corridor', 'Shotguns and SMGs rule these halls'],
+  compound: ['The central tower sees everything — and everyone sees it', 'Corner rooms have roofs: safe from airstrikes', 'Bridged platforms cover the east-west lanes']
+};
 function openSpawnPick(){
   deployMode = true;
   paused = true;
   renderClassCards();
+  const tips = MAP_TIPS[MAP.id] || [];
+  el('maptip').textContent = tips.length ? 'TIP: ' + tips[Math.floor(Math.random() * tips.length)] : '';
   el('ptitle').textContent = 'CHOOSE YOUR CLASS';
   el('resumebtn').textContent = 'DEPLOY';
   el('pausemenu').style.display = 'flex';
@@ -3544,6 +3575,7 @@ function updateInviteRow(){
   } else row.style.display = 'none';
 }
 function openPause(){
+  el('maptip').textContent = '';
   updateInviteRow();
   if(state !== ST.PLAY || !player.alive || paused) return;
   paused = true;
