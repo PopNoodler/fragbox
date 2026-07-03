@@ -1617,7 +1617,44 @@ function spawnNadeVisual(o, v, owner, doDamage){
   scene.add(mesh);
   nades.push({ mesh, pos:o.clone(), vel:v.clone(), t:0, owner, doDamage });
 }
+let nadeAim = false;
+let nadeArc = null;    // { line, ring }
+function ensureNadeArc(){
+  if(nadeArc) return;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(68 * 3), 3));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffca28, transparent: true, opacity: 0.75 }));
+  line.frustumCulled = false;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.62, 20),
+    new THREE.MeshBasicMaterial({ color: 0xffca28, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2;
+  line.visible = ring.visible = false;
+  scene.add(line); scene.add(ring);
+  nadeArc = { line, ring };
+}
+function updateNadeArc(){
+  if(!nadeAim || !player.alive || paused){ if(nadeArc){ nadeArc.line.visible = nadeArc.ring.visible = false; } return; }
+  ensureNadeArc();
+  const dir = camera.getWorldDirection(new THREE.Vector3());
+  const g = { pos: playerEye().clone().add(dir.clone().multiplyScalar(0.5)),
+              vel: dir.multiplyScalar(NADE.speed) };
+  g.vel.y += NADE.up;
+  const attr = nadeArc.line.geometry.attributes.position;
+  const dt = 1 / 30;
+  let i = 0;
+  attr.setXYZ(i++, g.pos.x, g.pos.y, g.pos.z);
+  for(let t = 0; t < NADE.fuse && i < 68; t += dt){
+    nadeStep(g, dt);
+    attr.setXYZ(i++, g.pos.x, g.pos.y, g.pos.z);
+  }
+  for(let j = i; j < 68; j++) attr.setXYZ(j, g.pos.x, g.pos.y, g.pos.z);
+  attr.needsUpdate = true;
+  nadeArc.ring.position.set(g.pos.x, Math.max(0.05, g.pos.y - 0.05), g.pos.z);
+  nadeArc.line.visible = nadeArc.ring.visible = true;
+}
 function throwNade(){
+  nadeAim = false;
+  if(nadeArc){ nadeArc.line.visible = nadeArc.ring.visible = false; }
   if(state !== ST.PLAY || !player.alive || paused || (player.nades|0) <= 0) return;
   player.nades--;
   updateNadeHUD();
@@ -2380,7 +2417,7 @@ addEventListener('keydown', e=>{
   if(e.code==='KeyR') tryReload();
   if(e.code==='Digit1') switchWeapon(0);
   if(e.code==='Digit2') switchWeapon(1);
-  if(e.code==='KeyG' && !e.repeat) throwNade();
+  if(e.code==='KeyG' && !e.repeat && state===ST.PLAY && player.alive && !paused && (player.nades|0) > 0) nadeAim = true;
   if(e.code==='KeyQ' && !e.repeat) useAbility();
   if(e.code==='KeyF' && !e.repeat && state===ST.PLAY && player.alive && !paused && !ads
      && player.reloadT<=0 && (player.inspectT||0)<=0) player.inspectT = 1.2;
@@ -2393,6 +2430,7 @@ addEventListener('keydown', e=>{
 });
 addEventListener('keyup', e=>{
   keys[e.code] = false;
+  if(e.code==='KeyG' && nadeAim) throwNade();
   if(e.code==='Tab'){ sbOpen = false; el('scoreboard').style.display='none'; }
 });
 let ads = false;
@@ -2520,7 +2558,8 @@ let touchCrouch = false;
   bindBtn('swapbtn', ()=>switchWeapon((player.wIdx+1)%player.loadout.length));
   bindBtn('adsbtn', ()=>{ ads = !ads; });
   bindBtn('relbtn', ()=>tryReload());
-  bindBtn('nadebtn', ()=>throwNade());
+  bindBtn('nadebtn', ()=>{ if(state===ST.PLAY && player.alive && !paused && (player.nades|0) > 0) nadeAim = true; },
+                    ()=>{ if(nadeAim) throwNade(); });
   bindBtn('crouchbtn', ()=>{ touchCrouch = !touchCrouch; el('crouchbtn').classList.toggle('on', touchCrouch); });
   bindBtn('pausebtn', ()=>{ if(paused) closePause(false); else openPause(); });
   addEventListener('contextmenu', e=>{ if(state===ST.PLAY) e.preventDefault(); });
@@ -4362,6 +4401,7 @@ function frame(now){
       for(const b of bots) updateBot(b, dt);
       updatePickups(dt);
       updateNades(dt);
+      updateNadeArc();
     updateFxSprites(dt);
     updatePodium(dt);
       if(mode !== 'mp') updateTut(dt);

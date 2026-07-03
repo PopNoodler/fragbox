@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v075** (2026-07-03 ~09:40): GRENADE ARC PREVIEW. Hold G (or the 🧨 touch button) to aim:
+  a gold trajectory line simulates the real bounce physics (same nadeStep the grenade uses —
+  wall bounces and rolls included) with a landing ring; release to throw. Cancels cleanly on
+  death/pause. Verified: line visible while held, throw fires on release (2→1 nades), line
+  hidden after. Full suite green. SW → v075.
 - **v074** (2026-07-03 ~09:10): "Double-join ghost" SOLVED — it never existed. myName()
   prefers the #namefield input (populated at page boot), so same-profile test tabs inherited
   tab 1's name and clobbered localStorage; server always had two distinct clients joining
