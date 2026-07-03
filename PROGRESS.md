@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v077** (2026-07-03 ~10:45): KILLHOUSE MOVING TARGETS. Results screen gains a MOVING
+  TARGETS button (toggles per retry): dummies strafe sinusoidally ±2.6u perpendicular to
+  your approach (arena-clamped); separate best scores and replay ghosts per mode (kh_trainM /
+  kh_trainghostM), results labeled STATIC/MOVING. Verified: static drift 0, moving path 8.2u
+  sinusoid sampled. Full suite green. SW → v077.
 - **v076** (2026-07-03 ~10:10): LIVE PING. Client pings every 2s ({t:'ping',ts} → server pong
   echo), RTT shown in the score pill color-coded (green <60ms / yellow <120 / red), cleaned
   up on disconnect. Verified live: 36ms chip. SESSION_NOTES.md refreshed with v072-v076.

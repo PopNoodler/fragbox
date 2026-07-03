@@ -334,6 +334,7 @@
     <div id="trainbest" style="color:#ffca28; font-size:13px; font-weight:700; margin-bottom:14px"></div>
     <div style="display:flex; gap:10px; justify-content:center">
       <button id="trainretry" class="bigbtn" style="font-size:15px; padding:11px 30px">RETRY</button>
+      <button id="trainmoving" class="bigbtn" style="font-size:15px; padding:11px 22px; background:rgba(126,87,194,.35); border:1px solid #7e57c2">MOVING TARGETS</button>
       <button id="trainmenu" class="bigbtn" style="font-size:15px; padding:11px 30px; background:rgba(255,255,255,.1)">MENU</button>
     </div>
   </div>
@@ -2344,6 +2345,7 @@ el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
 el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('statspanel').style.display = 'flex'; });
 el('trainbtn').addEventListener('click', ()=>{ audio(); el('menu').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; mode = 'solo'; startTrain(); });
 el('trainretry').addEventListener('click', ()=>{ el('trainend').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; startTrain(); });
+el('trainmoving').addEventListener('click', ()=>{ train.moving = !train.moving; el('trainmoving').textContent = train.moving ? 'STATIC TARGETS' : 'MOVING TARGETS'; el('trainend').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; startTrain(); });
 el('trainmenu').addEventListener('click', ()=>{ el('trainend').style.display = 'none'; showMenu(); });
 el('cratesbtn').addEventListener('click', ()=>{ audio(); el('cratecount').textContent = crates; el('crateresult').textContent = ''; el('cratestrip').innerHTML = ''; updateFreeCrateBtn(); el('cratepanel').style.display = 'flex'; });
 el('crateopen').addEventListener('click', ()=>{ openCrate(); el('cratecount').textContent = crates; });
@@ -3686,11 +3688,13 @@ el('namefield').addEventListener('change', ()=>myName());
 // ---------- Match flow ----------
 // ---------- Killhouse aim trainer ----------
 let trainMode = false;
-const train = { targets: 0, shots: 0, hits: 0, ttks: [], spawnT: 0, splits: [], ghost: null };
+const train = { targets: 0, shots: 0, hits: 0, ttks: [], spawnT: 0, splits: [], ghost: null, moving: false };
+function trainKey(base){ return base + (train.moving ? 'M' : ''); }
 function spawnDummy(){
   const b = makeBot(0);
   const d = bots[bots.length - 1];
   d.isDummy = true;
+  d.strafePhase = Math.random() * 6.28;
   d.mesh.traverse(o => { if(o.isMesh && o.material && o.material.color) o.material = new THREE.MeshLambertMaterial({ color: 0x9e9e9e }); });
   // in front-ish of the player, 8-30u, clamped inside the arena
   const ang = player.yaw + Math.PI + (Math.random() - 0.5) * 2.0;
@@ -3700,6 +3704,8 @@ function spawnDummy(){
   x = Math.max(-ARENA + 4, Math.min(ARENA - 4, x));
   z = Math.max(-ARENA + 4, Math.min(ARENA - 4, z));
   d.pos.set(x, 0, z);
+  d.baseX = x; d.baseZ = z;
+  d.strafeAng = ang + Math.PI / 2;               // strafe perpendicular to the approach
   d.mesh.position.copy(d.pos);
   d.hp = 100; d.alive = true;
   train.spawnT = performance.now();
@@ -3717,7 +3723,7 @@ function trainKill(){
 function startTrain(){
   trainMode = true;
   train.targets = 0; train.shots = 0; train.hits = 0; train.ttks = []; train.splits = [];
-  try { train.ghost = JSON.parse(localStorage.kh_trainghost || 'null'); } catch(e){ train.ghost = null; }
+  try { train.ghost = JSON.parse(localStorage[trainKey('kh_trainghost')] || 'null'); } catch(e){ train.ghost = null; }
   el('ghostpace').style.display = train.ghost ? 'block' : 'none';
   startMatch();
   closePause(true);                       // skip the deploy screen — straight in
@@ -3734,12 +3740,12 @@ function endTrain(){
   const avgTtk = train.ttks.length ? (train.ttks.reduce((a,b)=>a+b,0) / train.ttks.length).toFixed(2) : '—';
   const grade = train.targets >= 28 ? 'S' : train.targets >= 22 ? 'A' : train.targets >= 16 ? 'B' : 'C';
   if(grade !== 'C') dailyBump('train');
-  const best = +(localStorage.kh_train || 0);
-  if(train.targets > best) localStorage.kh_train = train.targets;
+  const best = +(localStorage[trainKey('kh_train')] || 0);
+  if(train.targets > best) localStorage[trainKey('kh_train')] = train.targets;
   const g = train.ghost;
   if(g && train.targets > g.targets) setTimeout(() => { showCallout('👻 GHOST BEATEN — ' + train.targets + ' vs ' + g.targets); SFX.streak(); }, 800);
   if(!g || train.targets > g.targets){
-    localStorage.kh_trainghost = JSON.stringify({ targets: train.targets, splits: train.splits });
+    localStorage[trainKey('kh_trainghost')] = JSON.stringify({ targets: train.targets, splits: train.splits });
   }
   el('ghostpace').style.display = 'none';
   addXp(100);
@@ -3748,7 +3754,7 @@ function endTrain(){
     '<div class="statcell"><b>' + acc + '%</b><span>ACCURACY</span></div>' +
     '<div class="statcell"><b>' + avgTtk + 's</b><span>AVG TTK</span></div>' +
     '<div class="statcell"><b style="font-size:24px">' + grade + '</b><span>GRADE</span></div>';
-  el('trainbest').textContent = 'BEST: ' + Math.max(best, train.targets) + ' targets · +100 XP';
+  el('trainbest').textContent = (train.moving ? 'MOVING · ' : 'STATIC · ') + 'BEST: ' + Math.max(best, train.targets) + ' targets · +100 XP';
   el('trainend').style.display = 'flex';
   if(document.pointerLockElement) document.exitPointerLock();
 }
@@ -4113,7 +4119,16 @@ function updatePlayer(dt){
 }
 
 function updateBot(b, dt){
-  if(b.isDummy){ b.mesh.position.copy(b.pos); return; }
+  if(b.isDummy){
+    if(train.moving && b.alive){
+      b.strafePhase = (b.strafePhase || 0) + dt * 1.3;
+      const off = Math.sin(b.strafePhase) * 2.6;
+      b.pos.x = Math.max(-ARENA + 2, Math.min(ARENA - 2, b.baseX + Math.cos(b.strafeAng) * off));
+      b.pos.z = Math.max(-ARENA + 2, Math.min(ARENA - 2, b.baseZ + Math.sin(b.strafeAng) * off));
+    }
+    b.mesh.position.copy(b.pos);
+    return;
+  }
   if(!b.alive){
     b.respawnT -= dt;
     if(b.respawnT<=0){
