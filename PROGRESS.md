@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v056** (2026-07-03 ~02:05): ADAPTIVE BOTS + INSPECT + INVITE (wave 5 complete). Adaptive
+  difficulty option in settings: effective tier re-resolves each respawn from session K/D
+  (<0.8 easy, 0.8-1.6 normal, >1.6 hard — skill/aim-lock/damage/bot-grenades all route
+  through effDiff; "BOTS STEPPING UP" callouts on shift). Gun inspect: F key 1.2s flourish
+  (Y-spin + tilt + raise on the viewmodel; blocked during ADS/reload, canceled by firing).
+  Invite friends: server ships its LAN IPv4s in welcome; MP pause menu shows http://ip:port
+  with a COPY INVITE button (clipboard + COPIED! feedback) — anyone on the network joins your
+  lobby. All verified live (invite showed http://192.168.0.170:PORT). Full suite green.
+  SW → v056.
 - **v055** (2026-07-03 ~01:40): MAP COVER DENSITY PASS (user: "maps are too open, more stuff
   blocking sight lines" — extra urgent post-TTK-buff). Meadow +12 pieces (diagonal-mid walls,
   4 standing stones between mid and corners, crate pairs on cardinal lanes; 26→38 boxes).

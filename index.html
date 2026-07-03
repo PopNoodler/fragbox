@@ -138,6 +138,9 @@
   #pausemenu { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.72); backdrop-filter:blur(3px); pointer-events:auto; }
   .pausecard { width:min(600px, 92vw); background:rgba(7,9,18,.97); border:1px solid rgba(255,255,255,.14); border-radius:18px; padding:22px 24px; text-align:center; box-shadow:0 16px 70px rgba(0,0,0,.65); }
   .ptitle { color:#ffca28; font-size:20px; font-weight:900; letter-spacing:4px; margin-bottom:14px; }
+  #inviterow { display:flex; gap:8px; align-items:center; justify-content:center; margin:-6px 0 12px; font-size:12px; color:#8fa3b8; }
+  #invitelink { font-family:monospace; background:rgba(0,0,0,.4); padding:4px 10px; border-radius:6px; }
+  #invitecopy { background:rgba(79,195,247,.2); border:1px solid #4fc3f7; color:#fff; border-radius:6px; padding:4px 12px; font-size:11px; font-weight:700; cursor:pointer; }
   .phint { margin-top:12px; font-size:11px; opacity:.45; color:#fff; }
   .clscard { pointer-events:auto; background:#141a2a; border:2px solid #2b3550; border-radius:12px; padding:11px 4px 9px; cursor:pointer; display:flex; flex-direction:column; gap:3px; transition:border-color .12s, background .12s, transform .08s; text-align:center; }
   .clscard:hover:not(.locked) { transform:translateY(-2px); border-color:#3d4a6e; }
@@ -236,6 +239,7 @@
   <div id="pausemenu">
     <div class="pausecard">
       <div class="ptitle" id="ptitle">PAUSED</div>
+      <div id="inviterow" style="display:none"><span id="invitelink"></span><button id="invitecopy">COPY INVITE</button></div>
       <div id="pauseclasses" class="classgrid"></div>
       <div style="display:flex; gap:10px; margin-top:16px; justify-content:center">
         <button id="resumebtn" class="bigbtn" style="font-size:15px; padding:11px 30px">RESUME</button>
@@ -286,7 +290,7 @@
         <div class="setrow"><span class="setlabel">Graphics</span><button class="setbtn" data-k="quality" data-v="auto">Auto</button><button class="setbtn" data-k="quality" data-v="low">Low</button><button class="setbtn" data-k="quality" data-v="med">Med</button><button class="setbtn" data-k="quality" data-v="high">High</button></div>
         <div class="setrow"><span class="setlabel">Weather</span><button class="setbtn" data-k="weather" data-v="auto">Auto</button><button class="setbtn" data-k="weather" data-v="clear">Clear</button><button class="setbtn" data-k="weather" data-v="rain">Rain</button><button class="setbtn" data-k="weather" data-v="snow">Snow</button></div>
         <div class="setrow"><span class="setlabel">Bots</span><button class="setbtn" data-k="bots" data-v="3">3</button><button class="setbtn" data-k="bots" data-v="5">5</button><button class="setbtn" data-k="bots" data-v="7">7</button></div>
-        <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button></div>
+        <div class="setrow"><span class="setlabel">Difficulty</span><button class="setbtn" data-k="diff" data-v="0">Easy</button><button class="setbtn" data-k="diff" data-v="1">Normal</button><button class="setbtn" data-k="diff" data-v="2">Hard</button><button class="setbtn" data-k="diff" data-v="adaptive">Adaptive</button></div>
         <div class="setrow"><span class="setlabel">Match time</span><button class="setbtn" data-k="len" data-v="180">3m</button><button class="setbtn" data-k="len" data-v="300">5m</button><button class="setbtn" data-k="len" data-v="600">10m</button></div>
       </div>
     </div>
@@ -1595,7 +1599,7 @@ function makeBot(i){
     enemy: null,           // current combat target: player object or another bot
     fireT: 0, thinkT: 0, respawnT: 0, strafeDir: 1, strafeT: 0, seeT: 0,
     burst: 0, burstT: 0, aimErr: 1, crouchT: 0, crouching: false, nadeCd: 5 + Math.random()*6,
-    skill: Math.min(0.95, DIFFS[SET.diff].skill + Math.random()*0.25)   // accuracy/aggression 0..1
+    skill: Math.min(0.95, DIFFS[effDiff].skill + Math.random()*0.25)   // accuracy/aggression 0..1
   };
   b.pos.copy(spawnPoint(player.pos));   // never spawn a bot on top of the player
   bots.push(b);
@@ -1976,6 +1980,15 @@ let state = ST.MENU;
 const KILL_TARGET = 25;
 const DIFFS = [ { skill:0.4, dmg:0.7 }, { skill:0.6, dmg:1.0 }, { skill:0.78, dmg:1.3 } ];
 let SET = { bots:5, diff:1, len:300, cls:0, sens:100, fov:75, vol:100, map:'meadow', music:1, weather:'auto', quality:'auto' };
+// effective difficulty: mirrors SET.diff unless 'adaptive', which tracks session K/D
+let effDiff = 1;
+function refreshEffDiff(){
+  if(SET.diff !== 'adaptive'){ effDiff = +SET.diff || 0; return; }
+  const kd = player.deaths > 0 ? player.kills / player.deaths : player.kills;
+  const next = kd < 0.8 ? 0 : kd <= 1.6 ? 1 : 2;
+  if(next !== effDiff && state === ST.PLAY) showCallout('BOTS ' + ['EASING OFF', 'BALANCED', 'STEPPING UP'][next]);
+  effDiff = next;
+}
 try { SET = Object.assign(SET, JSON.parse(localStorage.kh_set||'{}')); } catch(e){}
 let matchT = SET.len;
 
@@ -2033,6 +2046,12 @@ function openSettings(){ syncSettingsUI(); el('settingspanel').style.display = '
 el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
 el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('statspanel').style.display = 'flex'; });
 el('statsclose').addEventListener('click', ()=>{ saveStats(); el('statspanel').style.display = 'none'; });
+el('invitecopy').addEventListener('click', ()=>{
+  navigator.clipboard.writeText(el('invitelink').textContent).then(()=>{
+    el('invitecopy').textContent = 'COPIED!';
+    setTimeout(()=>{ el('invitecopy').textContent = 'COPY INVITE'; }, 1500);
+  });
+});
 el('gearbtn2').addEventListener('click', ()=>openSettings());
 el('musicbtn').addEventListener('click', ()=>{
   SET.music = SET.music ? 0 : 1; saveSET();
@@ -2079,6 +2098,8 @@ addEventListener('keydown', e=>{
   if(e.code==='Digit2') switchWeapon(1);
   if(e.code==='KeyG' && !e.repeat) throwNade();
   if(e.code==='KeyQ' && !e.repeat) useAbility();
+  if(e.code==='KeyF' && !e.repeat && state===ST.PLAY && player.alive && !paused && !ads
+     && player.reloadT<=0 && (player.inspectT||0)<=0) player.inspectT = 1.2;
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
   if(e.code==='Escape' && !document.pointerLockElement){
@@ -2257,6 +2278,7 @@ function playerShoot(){
 
   const eye = playerEye().clone();
   let hitSomething = false;
+  player.inspectT = 0;
   const spr = currentSpread(w);
   const sprBase = ads ? (w.adsSpread !== undefined ? w.adsSpread : w.spread*0.4) : w.spread;
   bloom = Math.min(1, bloom + (w.bloom || 0.1) * (attachTier(w.name) >= 2 ? 0.7 : 1));
@@ -2380,7 +2402,7 @@ function botShoot(b, e){
     if(b.crouching) pHit *= 1.12;
     if(Math.random() < pHit){
       const per = w.pellets > 1 ? w.dmg * 2.2 : w.dmg;    // shotgun = pellets that connect
-      const dmg = Math.round(per * DIFFS[SET.diff].dmg * (0.85 + Math.random()*0.3));
+      const dmg = Math.round(per * DIFFS[effDiff].dmg * (0.85 + Math.random()*0.3));
       if(e===player) damagePlayer(dmg, b);
       else damageBot(e, dmg, false, b);
     }
@@ -2941,6 +2963,7 @@ function mpConnect(){
   ws.onmessage = ev=>{
     let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
     if(m.t === 'welcome'){
+      NET.hostIps = m.ips || [];
       NET.id = m.id;
       mode = 'mp';
       NET.gameMode = m.mode || 'ffa';
@@ -3156,6 +3179,7 @@ function mpConnect(){
       player.vel.set(0,0,0);
       player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
       player.alive = true;
+      refreshEffDiff();
       resetLoadout(); buildViewmodel();
       player.hp = player.maxHp;
       player.killcam = null;
@@ -3203,7 +3227,16 @@ function openSpawnPick(){
   el('pausemenu').style.display = 'flex';
   if(document.pointerLockElement) document.exitPointerLock();
 }
+function updateInviteRow(){
+  const row = el('inviterow');
+  if(mode === 'mp' && NET.hostIps && NET.hostIps.length){
+    const url = 'http://' + NET.hostIps[0] + ':' + (location.port || 8080);
+    el('invitelink').textContent = url;
+    row.style.display = 'flex';
+  } else row.style.display = 'none';
+}
 function openPause(){
+  updateInviteRow();
   if(state !== ST.PLAY || !player.alive || paused) return;
   paused = true;
   renderClassCards();
@@ -3239,6 +3272,7 @@ el('namefield').addEventListener('change', ()=>myName());
 
 // ---------- Match flow ----------
 function startMatch(){
+  refreshEffDiff();
   clearPodium();
   startFpsProbe();
   buildWeather(resolveWeather());
@@ -3497,6 +3531,7 @@ function updatePlayer(dt){
   const moving = wish.lengthSq()>0 && player.grounded;
   vmBob += dt * (moving ? (sprinting?13:9) : 2);
   vmKick = Math.max(0, vmKick - dt*8);
+  if(player.inspectT > 0) player.inspectT -= dt;
   if(vmMesh){
     vmMesh.position.set(
       0.26 + Math.sin(vmBob)*0.008*(moving?1:0.3),
@@ -3504,6 +3539,13 @@ function updatePlayer(dt){
       -0.55 + vmKick*0.09
     );
     vmMesh.rotation.x = vmKick*0.18;
+    if(player.inspectT > 0){
+      const ip = 1 - player.inspectT / 1.2;               // 0→1 over the flourish
+      vmMesh.rotation.y = Math.sin(ip * Math.PI) * 1.15;
+      vmMesh.rotation.z = Math.sin(ip * Math.PI * 2) * 0.28;
+      vmMesh.position.y += Math.sin(ip * Math.PI) * 0.06;
+      vmMesh.position.x -= Math.sin(ip * Math.PI) * 0.08;
+    } else { vmMesh.rotation.y = 0; vmMesh.rotation.z = 0; }
   }
 
   // shooting
@@ -3593,7 +3635,7 @@ function updateBot(b, dt){
     }
   }
 
-  const aimRate = [0.5, 0.95, 1.6][SET.diff] || 0.95;
+  const aimRate = [0.5, 0.95, 1.6][effDiff] || 0.95;
   if(canSee) b.aimErr = Math.max(0, b.aimErr - aimRate*dt);
   else b.aimErr = Math.min(1, b.aimErr + 1.6*dt);
   b.crouchT -= dt;
@@ -3601,7 +3643,7 @@ function updateBot(b, dt){
   b.crouching = b.crouchT > 0;
   const cScale = b.crouching ? 0.66 : 1;
   b.mesh.scale.y += (cScale - b.mesh.scale.y) * Math.min(1, dt*10);
-  if(SET.diff === 2 && canSee && enemy && dist > 8 && dist < 26){
+  if(effDiff === 2 && canSee && enemy && dist > 8 && dist < 26){
     b.nadeCd -= dt;
     if(b.nadeCd <= 0){
       b.nadeCd = 9 + Math.random()*5;

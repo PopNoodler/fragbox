@@ -2,6 +2,7 @@
 // Usage: node server/server.mjs [port]   (default 8080)
 // Iteration scope: join/leave + validated movement sync @20Hz. Combat next.
 import http from 'http';
+import os from 'os';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -201,7 +202,9 @@ wss.on('connection', ws => {
       players.set(id, p);
       if(players.size === 1) roundEnd = Date.now() + ROUND_LEN;   // first human starts the round
       balanceBots();
-      send(ws, { t:'welcome', id, pos:p.pos, color:p.color, map: MAP.id, mode: MODE, team: p.team,
+      const lanIps = Object.values(os.networkInterfaces()).flat()
+        .filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
+      send(ws, { t:'welcome', id, pos:p.pos, color:p.color, map: MAP.id, mode: MODE, team: p.team, ips: lanIps,
         roster: ents().map(q=>({ id:q.id, name:q.name, color:q.color, pos:q.pos, yaw:q.yaw, lvl:q.lvl, team:q.team })) });
       broadcast({ t:'joined', id, name:p.name, color:p.color, pos:p.pos, team:p.team }, id);
       console.log(`[+] ${p.name} (#${id}) joined — ${players.size} human(s), ${bots.length} bot(s)`);
