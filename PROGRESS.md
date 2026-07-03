@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v081** (2026-07-03): UI AUDIT PASS 2 — screenshot-verified the remaining screens under
+  the v080 design system: settings (cyan sliders, glass card, angled buttons), in-game
+  scoreboard (glass, gold header, level chips, crown, cyan self-row), pause menu; killhouse
+  results / round-over / crates inherit the shared .pausecard/.statcell/.overlay tokens.
+  No stragglers found beyond v080's fixes. Full suite green. SW → v081.
 - **v080** (2026-07-03 ~mid-morning): COMPLETE UI SYSTEM REWORK (user: "full complete UI
   style rework, more flash, modern standards"). New token-based design system replacing the
   entire 222-line stylesheet: CSS custom properties (color/radius/shadow/clip tokens),
