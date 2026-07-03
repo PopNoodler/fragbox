@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v057** (2026-07-03 ~02:30): FLYBY + ASSISTS + AFK KICK (wave 6). Match intro flyby: 3s
+  smoothstep camera arc (high orbit easing down toward the deploy view) behind the class-pick
+  screen on every match start; click skips. Kill assists (MP): server logs recent damagers
+  per victim (4s window, ≥25 dmg, non-killer) → {t:'assist'} to each helper (+50 XP, "ASSIST ·
+  name" callout, career ASSISTS stat) and the killfeed shows "Killer + Helper 🔫 Victim".
+  AFK kick: humans silent 90s → {t:'kicked'} + close; client returns to menu with a
+  DISCONNECTED callout. Verified: flyby cam y32.7 sweep, live 3-client assist (Ann chipped
+  Bob to 10hp, Cid finished, Ann got the assist callout). Full suite green. SW → v057.
 - **v056** (2026-07-03 ~02:05): ADAPTIVE BOTS + INSPECT + INVITE (wave 5 complete). Adaptive
   difficulty option in settings: effective tier re-resolves each respawn from session K/D
   (<0.8 easy, 0.8-1.6 normal, >1.6 hard — skill/aim-lock/damage/bot-grenades all route

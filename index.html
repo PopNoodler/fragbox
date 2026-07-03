@@ -1251,7 +1251,7 @@ function renderStatsPage(){
   el('statshead').innerHTML = [
     ['LEVEL', levelOf(xp)], ['XP', xp], ['KILLS', totalK], ['K/D', kd],
     ['ACCURACY', totalS ? Math.round(totalH/totalS*100) + '%' : '—'],
-    ['MATCHES', stats.matches], ['WINS', stats.wins], ['PLAYTIME', fmtPlaytime(stats.playMs)]
+    ['MATCHES', stats.matches], ['WINS', stats.wins], ['ASSISTS', stats.assists || 0], ['PLAYTIME', fmtPlaytime(stats.playMs)]
   ].map(([k,v]) => '<div class="statcell"><b>' + v + '</b><span>' + k + '</span></div>').join('');
   el('statsbody').innerHTML = WEAPONS.map(w => {
     const acc = accOf(w.name);
@@ -2113,6 +2113,7 @@ addEventListener('keyup', e=>{
 });
 let ads = false;
 addEventListener('mousedown', e=>{
+  if(flybyT > 0) flybyT = 0;
   if(paused) return;
   if(e.button===0) mouseDown = true;
   if(e.button===2 && state===ST.PLAY) ads = true;
@@ -2814,6 +2815,21 @@ function makeNameTag(name){
   return sprite;
 }
 
+// ---------- Match intro flyby ----------
+let flybyT = 0;
+function startFlyby(){ flybyT = 3; }
+function updateFlyby(dt){
+  if(flybyT <= 0) return;
+  flybyT -= dt;
+  const p01 = 1 - Math.max(0, flybyT) / 3;                     // 0→1
+  const ease = p01 * p01 * (3 - 2 * p01);                      // smoothstep
+  const a = -0.7 + ease * 1.6;
+  const r = ARENA * (1.05 - ease * 0.45);
+  const h = 34 - ease * 22;
+  camera.position.set(Math.cos(a) * r, h, Math.sin(a) * r);
+  camera.lookAt(0, 2, 0);
+}
+
 // ---------- Round-over podium ceremony ----------
 let podium = null;   // { grp, winner, t }
 function showPodium(rows){
@@ -3109,7 +3125,7 @@ function mpConnect(){
       } else if(m.victimId === NET.id){
         killfeed(`<b>${m.killer}</b> ${hsIcon} <span class="me">You</span>`);
       } else {
-        killfeed(`<b>${m.killer}</b> ${hsIcon} <b>${m.victim}</b>`);
+        killfeed(`<b>${m.killer}${m.asn ? ' + ' + m.asn : ''}</b> ${hsIcon} <b>${m.victim}</b>`);
       }
     }
     else if(m.t === 'dom'){
@@ -3138,6 +3154,16 @@ function mpConnect(){
         if(m.by === myName()){ addXp(300); dailyBump('caps'); }
         SFX.streak();
       }
+    }
+    else if(m.t === 'assist'){
+      addXp(50);
+      stats.assists = (stats.assists || 0) + 1;
+      statsDirty++;
+      showCallout('ASSIST · ' + m.victim + '  +50');
+    }
+    else if(m.t === 'kicked'){
+      showMenu();
+      showCallout('DISCONNECTED: ' + (m.reason || 'kicked'));
     }
     else if(m.t === 'streak'){
       if(m.sh !== undefined) player.shield = m.sh;
@@ -3274,6 +3300,7 @@ el('namefield').addEventListener('change', ()=>myName());
 function startMatch(){
   refreshEffDiff();
   clearPodium();
+  startFlyby();
   startFpsProbe();
   buildWeather(resolveWeather());
   // reset
@@ -3841,6 +3868,7 @@ function frame(now){
   if(dt>0.05) dt = 0.05;                       // clamp — playbook §9
 
   if(state===ST.PLAY){
+    if(!podium) updateFlyby(dt);
     tickFpsProbe();
     updateWeather(dt, performance.now() / 1000);
     stats.playMs += dt * 1000;

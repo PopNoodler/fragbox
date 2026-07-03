@@ -194,7 +194,8 @@ wss.on('connection', ws => {
         pos: spawnPos(), yaw: 0, pitch: 0,
         hp: 100, kills: 0, deaths: 0,
         alive: true, deadUntil: 0, lastFire: 0,
-        lastMove: Date.now()
+        lastMove: Date.now(),
+        lastInput: Date.now()
       };
       if(TEAMED) p.color = TEAM_COLORS[p.team];
       p.pos = spawnPos(p.team);
@@ -287,6 +288,7 @@ wss.on('connection', ws => {
       p.yaw = +m.yaw || 0;
       p.pitch = +m.pitch || 0;
       p.crouch = !!m.c;
+      p.lastInput = Date.now();
     }
     } catch(err){ console.error('[!] message handler error:', err.message); }
   });
@@ -513,6 +515,9 @@ function ggWin(winner){
 
 function applyDamage(victim, dmg, attacker, headshot){
   if(!victim.alive) return;
+  if(!victim.recentDmg) victim.recentDmg = [];
+  victim.recentDmg.push({ id: attacker.id, dmg, t: Date.now() });
+  if(victim.recentDmg.length > 12) victim.recentDmg.shift();
   if((victim.shield|0) > 0){
     const abs = Math.min(victim.shield, dmg);
     victim.shield -= abs;
@@ -552,7 +557,20 @@ function applyDamage(victim, dmg, attacker, headshot){
     }
   }
   send(victim.ws, { t:'die', by:attacker.name, bhp:Math.max(1, Math.round(attacker.hp)), kid:attacker.id, kw:lastKillWeapon });
-  broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot, kwn:lastKillWeapon });
+  // assists: ≥25 dmg in the last 4s from someone other than the killer
+  const cutoff = Date.now() - 4000;
+  const contrib = {};
+  for(const r of (victim.recentDmg || [])) if(r.t >= cutoff && r.id !== attacker.id) contrib[r.id] = (contrib[r.id] || 0) + r.dmg;
+  let asn;
+  for(const idStr in contrib){
+    if(contrib[idStr] < 25) continue;
+    const helper = ents().find(e => e.id === +idStr && e.alive !== undefined);
+    if(!helper) continue;
+    if(!asn) asn = helper.name;
+    send(helper.ws, { t:'assist', victim: victim.name });
+  }
+  victim.recentDmg = [];
+  broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot, kwn:lastKillWeapon, asn });
   console.log(`[x] ${attacker.name} killed ${victim.name}${headshot?' (headshot)':''}`);
 }
 
@@ -733,6 +751,15 @@ setInterval(() => {
     roundEnd = now + ROUND_LEN;
   }
 
+  // AFK kick: humans silent for 90s get dropped
+  for(const p of players.values()){
+    if(now - (p.lastInput || now) > 90000){
+      console.log('[⏻] kicked ' + p.name + ' (AFK)');
+      send(p.ws, { t:'kicked', reason: 'AFK' });
+      try { p.ws.close(); } catch(e){}
+      p.lastInput = now;   // avoid double-kick before close completes
+    }
+  }
   tickFlags(dt);
   tickDom(dt);
   for(let i = liveNades.length-1; i >= 0; i--){
