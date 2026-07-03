@@ -387,6 +387,28 @@ export const P = {
     }
     return out;
   },
+  // Raised lookout cabin: legs, stair run, waist-high sills with an open firing slit, roof.
+  watchtower(h = 3){
+    const out = [];
+    for(const [px, pz] of [[-1.4,-1.4],[1.4,1.4],[-1.4,1.4],[1.4,-1.4]]){
+      out.push({ x:px, y: h/2, z:pz, sx:0.5, sy:h, sz:0.5, color: 0x6b5b45, solid: true });
+    }
+    out.push({ x:0, y: h + 0.15, z:0, sx:3.8, sy:0.3, sz:3.8, color: 0x8a6f4d, solid: true });
+    // waist-high sills on all four sides (slit above them up to the roof)
+    out.push({ x:0, y: h + 0.75, z:-1.8, sx:3.8, sy:0.9, sz:0.25, color: 0x6b5b45, solid: true });
+    out.push({ x:0, y: h + 0.75, z: 1.8, sx:3.8, sy:0.9, sz:0.25, color: 0x6b5b45, solid: true });
+    out.push({ x:-1.8, y: h + 0.75, z:0, sx:0.25, sy:0.9, sz:3.8, color: 0x6b5b45, solid: true });
+    out.push({ x: 1.8, y: h + 0.75, z:0, sx:0.25, sy:0.9, sz:3.8, color: 0x6b5b45, solid: true });
+    // roof on slim corner posts
+    for(const [px, pz] of [[-1.7,-1.7],[1.7,1.7],[-1.7,1.7],[1.7,-1.7]]){
+      out.push({ x:px, y: h + 1.85, z:pz, sx:0.22, sy:1.4, sz:0.22, color: 0x6b5b45, solid: true });
+    }
+    out.push({ x:0, y: h + 2.7, z:0, sx:4.4, sy:0.3, sz:4.4, color: 0x4d4237, solid: true });
+    // stair run ending flush at the cabin floor (south approach)
+    const c = Math.round((h + 0.3) / 0.3);
+    out.push(...stairs(0, -(1.9 + 0.55) - (c - 1) * 1.1, 0, 1, c, 2.4));
+    return out;
+  },
   // Enclosed corridor: two walls + low roof (roof top is itself walkable).
   tunnel(len = 14, w = 3.6, h = 2.6){
     return [
@@ -524,7 +546,10 @@ const COMPOUND = {
     ...place(P.cover(1), -14, -14, 0),
     ...place(P.cover(2),  14,  14, 0),
     ...place(P.cover(3),  0, -26, 0),
-    ...place(P.cover(4),  0,  26, 0)
+    ...place(P.cover(4),  0,  26, 0),
+    // lookout watchtowers on the open diagonals
+    ...place(P.watchtower(3), 10, -28, 0),
+    ...place(P.watchtower(3), -10, 28, 2)
   ],
   SPAWNS: [
     [-38,-38],[38,38],[-38,38],[38,-38],[0,-38],[0,38],[-38,0],[38,0],

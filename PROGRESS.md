@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v078** (2026-07-03 ~11:15): WATCHTOWER PREFAB + JACKPOT FLASH. New P.watchtower(h):
+  4-leg raised cabin with flush stair run, waist-high sills on all sides (protected firing
+  slit), post-mounted roof — two placed on Compound's open diagonals (first placement sat
+  inside a corner-room footprint and blocked the stairs; relocated — kit lesson: check prefab
+  footprint overlap). Climb-verified 0.9→3.3 into the cabin, sills hold. Crate screen:
+  gold radial flash + capture stinger on JACKPOT and new-skin pulls (verified via RNG stub).
+  Full suite green. SW → v078.
 - **v077** (2026-07-03 ~10:45): KILLHOUSE MOVING TARGETS. Results screen gains a MOVING
   TARGETS button (toggles per retry): dummies strafe sinusoidally ±2.6u perpendicular to
   your approach (arena-clamped); separate best scores and replay ghosts per mode (kh_trainM /
