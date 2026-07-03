@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v076** (2026-07-03 ~10:10): LIVE PING. Client pings every 2s ({t:'ping',ts} → server pong
+  echo), RTT shown in the score pill color-coded (green <60ms / yellow <120 / red), cleaned
+  up on disconnect. Verified live: 36ms chip. SESSION_NOTES.md refreshed with v072-v076.
+  Full suite green ×2. SW → v076.
 - **v075** (2026-07-03 ~09:40): GRENADE ARC PREVIEW. Hold G (or the 🧨 touch button) to aim:
   a gold trajectory line simulates the real bounce physics (same nadeStep the grenade uses —
   wall bounces and rolls included) with a landing ring; release to throw. Cancels cleanly on

@@ -39,6 +39,12 @@ FPS auto-tune, footstep audio, per-map ambient beds, announcer stingers, map tip
 bot AI overhaul (classes, lock-on aim, grenades on Hard, unstick), AFK kick, LAN
 COPY INVITE button in the multiplayer pause menu.
 
+**Since the first draft of these notes** (v072-v076): daily challenge pool doubled to 20
+(slide kills, ability uses, Killhouse grades, all new weapon types), MP death spectate
+(click to cycle a chase-cam), killfeed weapon labels, grenade ARC PREVIEW (hold G to aim
+with a real-physics trajectory line), live ping display in the score pill, and the
+"double-join ghost" turned out to be a test artifact (name field vs localStorage), not a bug.
+
 ## Things only you can do
 
 1. **Folder rename** `KourHero` → `FragBox`: still locked by some process on your

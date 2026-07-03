@@ -272,7 +272,7 @@
   <div id="scope"><div id="scopering"></div><span class="sh"></span><span class="sv"></span></div>
   <canvas id="minimap" width="150" height="150"></canvas>
   <div id="killfeed"></div>
-  <div id="scorepill"><span id="ffascore"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D</span><span id="tdmscore" style="display:none"><span style="color:#ff8a80">RED <b id="tred">0</b></span> &nbsp;·&nbsp; <span style="color:#82b1ff"><b id="tblue">0</b> BLUE</span></span><span id="ggscore" style="display:none; color:#ffca28">GUN <b id="ggnum">1</b>/<span id="ggden">10</span></span> <span id="timeleft">5:00</span></div>
+  <div id="scorepill"><span id="ffascore"><span class="k">0</span> K &nbsp;·&nbsp; <span class="d">0</span> D</span><span id="tdmscore" style="display:none"><span style="color:#ff8a80">RED <b id="tred">0</b></span> &nbsp;·&nbsp; <span style="color:#82b1ff"><b id="tblue">0</b> BLUE</span></span><span id="ggscore" style="display:none; color:#ffca28">GUN <b id="ggnum">1</b>/<span id="ggden">10</span></span> <span id="timeleft">5:00</span> <span id="pingchip" style="display:none; font-size:10px"></span></div>
   <div id="touchui">
     <div id="lookzone"></div>
     <div id="stickzone"><div id="stickbase"><div id="sticknub"></div></div></div>
@@ -3346,6 +3346,10 @@ function mpConnect(){
       player.yaw = Math.atan2(player.pos.x, player.pos.z);   // face arena center from server spawn
       for(const q of m.roster) if(q.id !== NET.id) addRemote(q);
       NET.sendT = setInterval(sendInput, 50);
+      clearInterval(NET.pingT);
+      NET.pingT = setInterval(() => {
+        if(NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify({ t:'ping', ts: performance.now() }));
+      }, 2000);
     }
     else if(m.t === 'joined'){ addRemote(m); killfeed(`<b>${m.name}</b> joined`); SFX.pickup(); }
     else if(m.t === 'left'){
@@ -3515,6 +3519,15 @@ function mpConnect(){
         SFX.stinger('capture');
       }
     }
+    else if(m.t === 'pong'){
+      NET.rtt = Math.round(performance.now() - m.ts);
+      const el2 = document.getElementById('pingchip');
+      if(el2){
+        el2.textContent = NET.rtt + 'ms';
+        el2.style.color = NET.rtt < 60 ? '#69f0ae' : NET.rtt < 120 ? '#ffca28' : '#ff8a80';
+        el2.style.display = '';
+      }
+    }
     else if(m.t === 'assist'){
       addXp(50);
       stats.assists = (stats.assists || 0) + 1;
@@ -3591,6 +3604,8 @@ function mpDisconnect(){
   NET.ws = null; NET.id = null; NET.roundT = undefined; NET.lastOver = null;
   NET.fl = null;
   NET.dm = null;
+  clearInterval(NET.pingT);
+  el('pingchip').style.display = 'none';
   el('votebar').style.display = 'none';
   clearDomBeacons();
   el('domchips').innerHTML = '';

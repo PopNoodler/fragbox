@@ -228,6 +228,8 @@ wss.on('connection', ws => {
       return;
     }
 
+    if(m.t === 'ping'){ send(p.ws, { t:'pong', ts: m.ts }); return; }
+
     if(m.t === 'vote' && typeof m.map === 'string'){
       if(intermission && voteOpts && voteOpts.includes(m.map)) votes.set(p.id, m.map);
       return;
