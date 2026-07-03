@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v073** (2026-07-03 ~08:40): MP DEATH SPECTATE. Click while dead cycles a chase-cam through
+  living players (behind-shoulder at +2.6y, SPECTATING label, auto-falls back to killcam if
+  the target dies/leaves, cleared on respawn/round spawn). Live-verified via forced duel.
+  Backlog note: tests show clients double-joining the ws server (ghost remote of self) —
+  investigate the join handshake someday. Full suite green. SW → v073.
 - **v072** (2026-07-03 ~08:10): Daily challenge pool 12→20 entries: DMR/revolver/scout/burst/
   LMG type kills (new weapons now surface in dailies automatically), kill-while-SLIDING,
   use-8-abilities (hooked useAbility), Killhouse grade B+ (hooked endTrain). Fixture-verified

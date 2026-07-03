@@ -2396,8 +2396,15 @@ addEventListener('keyup', e=>{
   if(e.code==='Tab'){ sbOpen = false; el('scoreboard').style.display='none'; }
 });
 let ads = false;
+function cycleSpectate(){
+  const alive = [...NET.remotes.entries()].filter(([id, r]) => r.mesh.visible);
+  if(!alive.length) return;
+  const cur = alive.findIndex(([id]) => id === player.specId);
+  player.specId = alive[(cur + 1) % alive.length][0];
+}
 addEventListener('mousedown', e=>{
   if(flybyT > 0) flybyT = 0;
+  if(!player.alive && mode === 'mp' && state === ST.PLAY){ cycleSpectate(); return; }
   if(paused) return;
   if(e.button===0) mouseDown = true;
   if(e.button===2 && state===ST.PLAY) ads = true;
@@ -3515,10 +3522,12 @@ function mpConnect(){
     }
     else if(m.t === 'spawn'){
       clearPodium();
+      player.specId = null;
       player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
       player.vel.set(0,0,0);
       player.yaw = Math.atan2(player.pos.x, player.pos.z); player.pitch = 0;
       player.alive = true;
+      player.specId = null;
       refreshEffDiff();
       resetLoadout(); buildViewmodel();
       player.hp = player.maxHp;
@@ -3803,6 +3812,19 @@ function updatePlayer(dt){
   if(!player.alive){
     player.respawnT -= dt;
     if(Math.abs(camera.fov - SET.fov) > 0.1){ camera.fov += (SET.fov - camera.fov)*Math.min(1, dt*10); camera.updateProjectionMatrix(); }
+    // spectate (MP, engaged by clicking while dead): chase-cam behind the target
+    if(mode === 'mp' && player.specId !== null && player.specId !== undefined){
+      const sr = NET.remotes.get(player.specId);
+      if(sr && sr.mesh.visible){
+        const back = new THREE.Vector3(Math.sin(sr.yaw || 0), 0, Math.cos(sr.yaw || 0));
+        camera.position.set(sr.mesh.position.x + back.x * 4.2, sr.mesh.position.y + 2.6, sr.mesh.position.z + back.z * 4.2);
+        camera.lookAt(sr.mesh.position.x, sr.mesh.position.y + 1.3, sr.mesh.position.z);
+        el('killcamlabel').style.display = 'block';
+        el('killcamlabel').innerHTML = 'SPECTATING <b>' + sr.name + '</b> · click to cycle';
+        return;
+      }
+      player.specId = null;   // target died/left — fall through to killcam
+    }
     // killcam: orbit the killer if we can see them
     let kcTarget = null;
     if(player.killcam){
