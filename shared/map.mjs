@@ -215,7 +215,62 @@ const SKYLINE = {
   DOM: [ { x:0, z:-24, label:'A' }, { x:-12, z:9, label:'B' }, { x:13, z:12, label:'C' } ]
 };
 
-export const MAPS = { meadow: MEADOW, depot: DEPOT, skyline: SKYLINE };
+// interior wall run along an axis with door gaps (door half-width 2.2)
+function wallRun(axis, at, from, to, doors, h = 5){
+  const out = [];
+  let start = from;
+  const cuts = [...doors].sort((a,b) => a-b);
+  for(const d of cuts){
+    if(d - 2.2 > start) out.push(seg(axis, at, start, d - 2.2, h));
+    start = d + 2.2;
+  }
+  if(to > start) out.push(seg(axis, at, start, to, h));
+  return out;
+}
+function seg(axis, at, a, b, h){
+  const mid = (a + b) / 2, len = b - a;
+  return axis === 'x'
+    ? { x: mid, y: h/2, z: at, sx: len, sy: h, sz: 1, color: CONC, solid: true }
+    : { x: at, y: h/2, z: mid, sx: 1, sy: h, sz: len, color: CONC, solid: true };
+}
+
+const BUNKER = {
+  id:'bunker', name:'Bunker', ARENA:30,
+  ground:'asphalt', outer:0x1a1c20, fog:0x1c2027, deco:'none',
+  sky: { top:0x0b0d12, mid:0x151920, bot:0x232830 },
+  sun: { color:0xfff2cc, intensity:0.7, hemi:1.5 },
+  BOXES: [
+    ...walls(30, 5),
+    // full ceiling — grenades bounce, no sky
+    { x:0, y:4.85, z:0, sx:62, sy:0.5, sz:62, color:0x23262b, solid:true },
+    // 3x3 room grid: two horizontal + two vertical wall runs, doors at ±12 and 0
+    ...wallRun('x', -10, -30, 30, [-12, 12]),
+    ...wallRun('x',  10, -30, 30, [-12, 12]),
+    ...wallRun('z', -10, -30, 30, [0]),
+    ...wallRun('z',  10, -30, 30, [0]),
+    // room furniture: crates and low cover
+    { x:0, y:0.75, z:0, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:-20, y:0.75, z:-20, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:20, y:0.75, z:20, sx:3, sy:1.5, sz:3, color:CRATE, solid:true },
+    { x:20, y:0.6, z:-20, sx:4, sy:1.2, sz:1.2, color:CYELLOW, solid:true },
+    { x:-20, y:0.6, z:20, sx:1.2, sy:1.2, sz:4, color:CYELLOW, solid:true },
+    { x:-20, y:1.1, z:2, sx:2.6, sy:2.2, sz:2.6, color:RUST, solid:true },
+    { x:20, y:1.1, z:-2, sx:2.6, sy:2.2, sz:2.6, color:CBLUE, solid:true }
+  ],
+  SPAWNS: [
+    [-24,-24],[24,24],[-24,24],[24,-24],[0,-24],[0,24],[-24,0],[24,0],
+    [-24,-4],[24,4],[4,-24],[-4,24]
+  ],
+  PADS: [],
+  PICKUPS: [
+    { x:0, z:4, kind:'hp' },
+    { x:-20, z:-24, kind:'ammo' }, { x:20, z:24, kind:'ammo' },
+    { x:-24, z:20, kind:'hp' }, { x:24, z:-20, kind:'hp' }
+  ],
+  DOM: [ { x:-20, z:0, label:'A' }, { x:0, z:0, label:'B' }, { x:20, z:0, label:'C' } ]
+};
+
+export const MAPS = { meadow: MEADOW, depot: DEPOT, skyline: SKYLINE, bunker: BUNKER };
 export function getMap(id){ return MAPS[id] || MEADOW; }
 
 export const PHYS = { GRAV:24, JUMP_V:9.0, WALK:7, SPRINT:10.4, PLAYER_R:0.45, PLAYER_H:1.8, EYE:1.62 };

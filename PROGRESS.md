@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v063** (2026-07-03 ~04:10): FOURTH MAP "BUNKER" — indoor CQC built for the fast TTK.
+  ARENA 30, full ceiling slab (grenades bounce back down, no sky, black overhead), 3x3 room
+  grid via wallRun() generator (two horizontal + two vertical runs with 4.4u door gaps at
+  ±12/0), crate + barrel furniture per room, hp/ammo spread across rooms, DOM A/B/C down the
+  center corridor, 12 room/corridor spawns, NO jump pads. Dark fog + flat bright hemi (0.7
+  sun / 1.5 hemi) for even indoor light; deco:'none' branch added. Auto-joins the map-vote
+  pool and server --map=bunker. Verified: bots roam between rooms, corridor sightlines
+  screenshot (auto-tuner + rank chip visible working too). Full suite green. SW → v063.
 - **v062** (2026-07-03 ~03:45): KILLHOUSE AIM TRAINER (wave 8). 🎯 menu button starts a 60s
   practice run: gray static dummies pop one at a time (8-30u, biased ahead of your view,
   arena-clamped), destroy → next pops instantly with TARGET n banner; scores shots/hits/

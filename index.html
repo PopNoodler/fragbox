@@ -301,7 +301,7 @@
       <div id="dailybox"></div>
       <div id="chalrow"></div>
       <div id="settings">
-        <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button><button class="setbtn" data-k="map" data-v="skyline">Skyline</button></div>
+        <div class="setrow"><span class="setlabel">Map</span><button class="setbtn" data-k="map" data-v="meadow">Meadow</button><button class="setbtn" data-k="map" data-v="depot">Depot</button><button class="setbtn" data-k="map" data-v="skyline">Skyline</button><button class="setbtn" data-k="map" data-v="bunker">Bunker</button></div>
         <div class="setrow"><span class="setlabel">Auto-fire (touch)</span><button class="setbtn" data-k="autofire" data-v="1">On</button><button class="setbtn" data-k="autofire" data-v="0">Off</button></div>
         <div class="setrow"><span class="setlabel">Graphics</span><button class="setbtn" data-k="quality" data-v="auto">Auto</button><button class="setbtn" data-k="quality" data-v="low">Low</button><button class="setbtn" data-k="quality" data-v="med">Med</button><button class="setbtn" data-k="quality" data-v="high">High</button></div>
         <div class="setrow"><span class="setlabel">Weather</span><button class="setbtn" data-k="weather" data-v="auto">Auto</button><button class="setbtn" data-k="weather" data-v="clear">Clear</button><button class="setbtn" data-k="weather" data-v="rain">Rain</button><button class="setbtn" data-k="weather" data-v="snow">Snow</button></div>
@@ -2145,7 +2145,7 @@ function buildWorld(mapId){
   for(const p of MAP.PICKUPS) makePickup(p.x, p.z, p.kind, p.y !== undefined ? p.y : 0.7);
   if(MAP.deco === 'meadow') buildMeadowDeco();
   else if(MAP.deco === 'skyline') buildSkylineDeco();
-  else buildDepotDeco();
+  else if(MAP.deco !== 'none') buildDepotDeco();
 }
 buildWorld(MAP.id);
 
