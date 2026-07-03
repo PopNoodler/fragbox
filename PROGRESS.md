@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v061** (2026-07-03 ~03:20): SUPPLY CRATES (wave 8). Earn 1 crate per level-up + 1 per
+  completed daily challenge (📦 callouts); menu 📦 button w/ count badge opens the crate
+  screen: 2.2s roulette strip (decoy cards, eased cubic-bezier, gold marker line) landing on
+  a weighted pull — 60% XP 250-750, 25% crate-exclusive skin you lack (new: Neon/Copper/
+  Midnight in cosmetics.mjs, crate:true — only obtainable here, tracked in kh_owned),
+  12% kill FX you lack (kh_ownedfx bypasses the level gate), 3% JACKPOT 2000 XP; dupes →
+  +300 XP. Locker shows crate skins locked until pulled. Verified: 5-crate session pulled
+  XP + Skull + Lightning FX, all persisted. Full suite green. SW → v061.
 - **v060** (2026-07-03 ~03:00): RANKED RATING (wave 8). ELO-style profile rating: starts 1000,
   updates on every solo match end (placement-normalized score vs 900/1100/1300 opponent
   strength by effective difficulty) and MP round end (placement in standings vs 1000),

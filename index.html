@@ -172,6 +172,16 @@
   #gearbtn:hover { background:rgba(255,255,255,.16); }
   #statsbtn { pointer-events:auto; position:absolute; top:14px; right:60px; width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); font-size:17px; cursor:pointer; }
   #statsbtn:hover { background:rgba(255,255,255,.16); }
+  #cratesbtn { pointer-events:auto; position:absolute; top:14px; right:106px; width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); font-size:17px; cursor:pointer; }
+  #cratesbtn:hover { background:rgba(255,255,255,.16); }
+  #cratebadge { position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; border-radius:9px; background:#ffca28; color:#10131c; font-size:11px; font-weight:900; display:none; align-items:center; justify-content:center; padding:0 4px; }
+  #cratepanel { position:fixed; inset:0; z-index:41; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.8); backdrop-filter:blur(3px); pointer-events:auto; }
+  #cratewindow { width:320px; height:80px; overflow:hidden; margin:0 auto 14px; border:2px solid #ffca28; border-radius:10px; position:relative; background:rgba(0,0,0,.5); }
+  #cratewindow::after { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:#ffca28; }
+  #cratestrip { display:flex; height:100%; }
+  .cratecard { flex:0 0 66px; margin:7px 4px; border-radius:8px; background:#1b2337; display:flex; align-items:center; justify-content:center; font-size:28px; }
+  .cratecard.win { background:#2c3a5c; }
+  #crateresult { min-height:22px; color:#ffca28; font-weight:800; letter-spacing:1px; font-size:14px; margin-bottom:10px; }
   #statspanel { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(6,8,16,.75); backdrop-filter:blur(3px); pointer-events:auto; }
   #statshead { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:14px; }
   .statcell { background:#141a2a; border:1.5px solid #2b3550; border-radius:10px; padding:9px 4px; text-align:center; }
@@ -278,6 +288,7 @@
   <div class="panel">
     <button id="gearbtn" title="Settings">⚙</button>
     <button id="statsbtn" title="Career stats">📊</button>
+    <button id="cratesbtn" title="Supply crates">📦<span id="cratebadge"></span></button>
     <div class="logo">FRAGBOX</div>
     <div class="tagline">Fast low-poly arena FPS</div>
     <div id="setupcard">
@@ -307,6 +318,19 @@
     <div class="hint">
       <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> shoot · <kbd>RMB</kbd> aim · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Ctrl</kbd> crouch/slide · <kbd>G</kbd> grenade<br>
       <kbd>R</kbd> reload · <kbd>1 2</kbd> / <kbd>Scroll</kbd> weapons · <kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu
+    </div>
+  </div>
+</div>
+
+<div id="cratepanel">
+  <div class="pausecard" style="max-width:420px">
+    <div class="ptitle">SUPPLY CRATES</div>
+    <div style="font-size:12px;color:#8fa3b8;margin:-8px 0 12px">Earn crates from level-ups and daily challenges<br>You have <b id="cratecount" style="color:#ffca28">0</b></div>
+    <div id="cratewindow"><div id="cratestrip"></div></div>
+    <div id="crateresult"></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button id="crateopen" class="bigbtn" style="font-size:15px;padding:11px 30px">OPEN CRATE</button>
+      <button id="crateclose" class="bigbtn" style="font-size:15px;padding:11px 30px;background:rgba(255,255,255,.1)">DONE</button>
     </div>
   </div>
 </div>
@@ -979,6 +1003,7 @@ function addXp(pts){
   if(lv > before){
     showCallout('LEVEL UP — ' + lv);
     SFX.streak();
+    grantCrate('LEVEL ' + lv);
     const unlocked = CLASSES.filter(c => !c.premium && !c.soon && c.lvl > before && c.lvl <= lv);
     unlocked.forEach((c, i) => setTimeout(()=>{ showCallout('UNLOCKED: ' + c.name.toUpperCase()); SFX.streak(); }, 1600*(i+1)));
     renderClassCards();          // new unlocks may be available
@@ -988,7 +1013,12 @@ function addXp(pts){
 }
 // ---------- Skins (cosmetic, level-gated, server-validated) ----------
 let skinId = localStorage.kh_skin || 'ember';
-function skinUnlocked(sk){ return !sk.premium && !sk.soon && levelOf(xp) >= (sk.lvl || 1); }
+let owned = [];
+try { owned = JSON.parse(localStorage.kh_owned || '[]'); } catch(e){}
+function skinUnlocked(sk){
+  if(sk.crate) return owned.includes(sk.id);
+  return !sk.premium && !sk.soon && levelOf(xp) >= (sk.lv || sk.lvl || 1);
+}
 function currentSkin(){
   const sk = SKINS.find(k => k.id === skinId);
   return (sk && skinUnlocked(sk)) ? sk : SKINS[0];
@@ -997,6 +1027,7 @@ function renderLocker(){
   renderKillFxRow();
   renderDaily();
   updateRankChip();
+  updateCrateBadge();
   const box = el('lockerrow');
   if(!box) return;
   box.innerHTML = SKINS.map(sk => {
@@ -1076,6 +1107,7 @@ function dailyBump(key, amt = 1){
       daily.done[i] = true;
       setTimeout(() => { showCallout('DAILY COMPLETE: ' + def.txt.toUpperCase() + '  +' + def.xp); SFX.streak(); }, 1200);
       addXp(def.xp);
+      grantCrate('DAILY CHALLENGE');
     }
   }
   if(changed){ saveDaily(); renderDaily(); }
@@ -1111,7 +1143,10 @@ const KILLFX = [
   { id:'lightning', name:'Lightning', lvl:15, icon:'⚡' }
 ];
 let killfxId = localStorage.kh_killfx || 'confetti';
-function killfxUnlocked(k){ return levelOf(xp) >= k.lvl; }
+function killfxUnlocked(k){
+  try { if(JSON.parse(localStorage.kh_ownedfx || '[]').includes(k.id)) return true; } catch(e){}
+  return levelOf(xp) >= k.lvl;
+}
 function renderKillFxRow(){
   const box = el('killfxrow');
   if(!box) return;
@@ -1279,6 +1314,84 @@ function fmtPlaytime(ms){
   const m = Math.floor(ms / 60000);
   return m >= 60 ? Math.floor(m/60) + 'h ' + (m%60) + 'm' : m + 'm';
 }
+// ---------- Supply crates ----------
+let crates = +(localStorage.kh_crates || 0);
+function grantCrate(reason){
+  crates++;
+  localStorage.kh_crates = crates;
+  updateCrateBadge();
+  setTimeout(() => { showCallout('📦 SUPPLY CRATE EARNED — ' + reason); SFX.pickup(); }, 2600);
+}
+function updateCrateBadge(){
+  const b = el('cratebadge');
+  if(b){ b.textContent = crates; b.style.display = crates > 0 ? 'flex' : 'none'; }
+}
+function cratePull(){
+  const roll = Math.random();
+  const missingSkins = SKINS.filter(k => k.crate && !owned.includes(k.id));
+  const missingFx = KILLFX.filter(k => k.id !== 'none' && !killfxUnlocked(k));
+  if(roll < 0.03) return { kind:'jackpot', xp: 2000, label:'JACKPOT +2000 XP', icon:'💰' };
+  if(roll < 0.28 && missingSkins.length){
+    const sk = missingSkins[Math.floor(Math.random() * missingSkins.length)];
+    return { kind:'skin', skin: sk, label: sk.name.toUpperCase() + ' SKIN', icon:'🎨', color: sk.color };
+  }
+  if(roll < 0.40 && missingFx.length){
+    const fx = missingFx[Math.floor(Math.random() * missingFx.length)];
+    return { kind:'fx', fx, label: fx.name.toUpperCase() + ' KILL FX', icon: fx.icon };
+  }
+  const xp2 = 250 + Math.floor(Math.random() * 3) * 250;
+  return { kind:'xp', xp: xp2, label: '+' + xp2 + ' XP', icon:'✨' };
+}
+function applyPull(pull){
+  if(pull.kind === 'skin'){
+    if(owned.includes(pull.skin.id)){ addXp(300); return pull.label + ' (DUPE → +300 XP)'; }
+    owned.push(pull.skin.id);
+    localStorage.kh_owned = JSON.stringify(owned);
+    renderLocker();
+    return pull.label + ' UNLOCKED';
+  }
+  if(pull.kind === 'fx'){
+    // fx are level-gated; crate grants by lowering the bar via owned-list trick: store as ownedfx
+    let ofx = [];
+    try { ofx = JSON.parse(localStorage.kh_ownedfx || '[]'); } catch(e){}
+    if(!ofx.includes(pull.fx.id)){ ofx.push(pull.fx.id); localStorage.kh_ownedfx = JSON.stringify(ofx); }
+    renderKillFxRow();
+    return pull.label + ' UNLOCKED';
+  }
+  addXp(pull.xp);
+  return pull.label;
+}
+let spinning = false;
+function openCrate(){
+  if(spinning || crates <= 0){ if(crates <= 0) SFX.empty(); return; }
+  spinning = true;
+  crates--; localStorage.kh_crates = crates;
+  updateCrateBadge();
+  const pull = cratePull();
+  const strip = el('cratestrip');
+  // build a strip of decoys ending on the real pull
+  const decoys = [];
+  for(let i = 0; i < 24; i++){
+    const d = cratePull();
+    decoys.push('<div class="cratecard">' + d.icon + '</div>');
+  }
+  decoys.push('<div class="cratecard win">' + pull.icon + '</div>');
+  strip.innerHTML = decoys.join('');
+  strip.style.transition = 'none';
+  strip.style.transform = 'translateX(0)';
+  requestAnimationFrame(() => {
+    strip.style.transition = 'transform 2.2s cubic-bezier(.15,.85,.25,1)';
+    strip.style.transform = 'translateX(' + (-(24 * 74) + 148) + 'px)';
+  });
+  setTimeout(() => {
+    const msg = applyPull(pull);
+    el('crateresult').textContent = msg;
+    showCallout('📦 ' + msg);
+    SFX.streak();
+    spinning = false;
+  }, 2400);
+}
+
 // ---------- Ranked rating (ELO-style, per profile) ----------
 const RANKS = [
   [900,  'BRONZE',   '#ad6a3e'],
@@ -2141,6 +2254,9 @@ el('volsl').addEventListener('input', ()=>{ SET.vol = +el('volsl').value; saveSE
 function openSettings(){ syncSettingsUI(); el('settingspanel').style.display = 'flex'; }
 el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
 el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('statspanel').style.display = 'flex'; });
+el('cratesbtn').addEventListener('click', ()=>{ audio(); el('cratecount').textContent = crates; el('crateresult').textContent = ''; el('cratestrip').innerHTML = ''; el('cratepanel').style.display = 'flex'; });
+el('crateopen').addEventListener('click', ()=>{ openCrate(); el('cratecount').textContent = crates; });
+el('crateclose').addEventListener('click', ()=>{ el('cratepanel').style.display = 'none'; });
 el('statsclose').addEventListener('click', ()=>{ saveStats(); el('statspanel').style.display = 'none'; });
 el('invitecopy').addEventListener('click', ()=>{
   navigator.clipboard.writeText(el('invitelink').textContent).then(()=>{

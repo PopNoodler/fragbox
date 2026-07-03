@@ -9,5 +9,8 @@ export const SKINS = [
   { id:'gold',  name:'Gold',  color:0xffb300, lvl:9 },
   { id:'frost', name:'Frost', color:0x4dd0e1, lvl:12 },
   { id:'void',  name:'Void',  color:0x263238, lvl:15 },
-  { id:'rose',  name:'Rose',  color:0xec407a, premium:true, soon:true }
+  { id:'rose',  name:'Rose',  color:0xec407a, premium:true, soon:true },
+  { id:'neon',     name:'Neon',     color:0x39ff14, crate:true },
+  { id:'copper',   name:'Copper',   color:0xb87333, crate:true },
+  { id:'midnight', name:'Midnight', color:0x1a1a4e, crate:true }
 ];
