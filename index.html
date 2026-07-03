@@ -1106,7 +1106,15 @@ const DAILY_POOL = [
   { k:'sniper', n:5, xp:550, txt:'Get 5 sniper kills' },
   { k:'shotgun', n:8, xp:400, txt:'Get 8 shotgun kills' },
   { k:'pistol', n:6, xp:450, txt:'Get 6 pistol kills' },
-  { k:'rifle', n:12, xp:350, txt:'Get 12 rifle kills' }
+  { k:'rifle', n:12, xp:350, txt:'Get 12 rifle kills' },
+  { k:'dmr', n:8, xp:450, txt:'Get 8 DMR kills' },
+  { k:'revolver', n:6, xp:500, txt:'Get 6 revolver kills' },
+  { k:'scout', n:5, xp:550, txt:'Get 5 scout rifle kills' },
+  { k:'burst', n:10, xp:400, txt:'Get 10 burst-rifle kills' },
+  { k:'lmg', n:10, xp:350, txt:'Get 10 LMG kills' },
+  { k:'slide', n:3, xp:550, txt:'Kill 3 enemies while sliding' },
+  { k:'ability', n:8, xp:300, txt:'Use 8 class abilities' },
+  { k:'train', n:1, xp:400, txt:'Grade B or better in the Killhouse' }
 ];
 function mulberry32(seed){
   return function(){
@@ -1157,6 +1165,7 @@ function dailyKill(wname, headshot, viaNade){
   dailyBump('kills');
   if(headshot) dailyBump('hs');
   if(player.crouch) dailyBump('crouch');
+  if(player.slideT > 0) dailyBump('slide');
   if(viaNade) dailyBump('nade');
   else { const w = WEAPONS.find(x => x.name === wname); if(w) dailyBump(w.type); }
   if(player.streak >= 5) dailyBump('streak5');
@@ -1325,6 +1334,7 @@ function useAbility(){
   const ab = myAbility();
   if(!ab || (player.abilityCd || 0) > 0) return;
   player.abilityCd = ABILITY_CD;
+  dailyBump('ability');
   ab.use();
   showCallout(ab.name);
   SFX.streak();
@@ -3660,6 +3670,7 @@ function endTrain(){
   const acc = train.shots ? Math.round(train.hits / train.shots * 100) : 0;
   const avgTtk = train.ttks.length ? (train.ttks.reduce((a,b)=>a+b,0) / train.ttks.length).toFixed(2) : '—';
   const grade = train.targets >= 28 ? 'S' : train.targets >= 22 ? 'A' : train.targets >= 16 ? 'B' : 'C';
+  if(grade !== 'C') dailyBump('train');
   const best = +(localStorage.kh_train || 0);
   if(train.targets > best) localStorage.kh_train = train.targets;
   const g = train.ghost;

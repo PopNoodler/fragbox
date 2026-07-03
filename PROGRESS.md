@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v072** (2026-07-03 ~08:10): Daily challenge pool 12→20 entries: DMR/revolver/scout/burst/
+  LMG type kills (new weapons now surface in dailies automatically), kill-while-SLIDING,
+  use-8-abilities (hooked useAbility), Killhouse grade B+ (hooked endTrain). Fixture-verified
+  ability tick 0→1 on Q. Full suite green. SW → v072.
 - **v071** (2026-07-03 ~07:45): POLISH BUNDLE. Per-map tactical tips on the deploy screen
   (3 per map, randomized — "Skyline: buildings B1/B3 are enterable"); warm interior lighting
   + emissive ceiling panels in the enterable Skyline buildings; announcer stingers — distinct
