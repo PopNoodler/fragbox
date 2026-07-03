@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v053** (2026-07-03 ~01:15): TTK REDUCTION (user: "reduce time to kill") — ~33% damage
+  buff across the arsenal in shared/weapons.mjs (drives solo AND server MP identically):
+  AK 22→30 (0.30s / 2-tap headshot), MP5 13→18, M870 12→16/pellet (one-pull up close),
+  AWP 90→115 (BODY ONE-SHOT — even 115hp Breachers), M1911 30→40, M249 18→24, M14 34→45
+  (3-shot), Magnum 55→72 (2-tap). Bots inherit the same lethality (symmetric). Full suite
+  green. SW → v053.
 - **v052** (2026-07-03 ~02:50): ROUND-OVER PODIUM (wave 4 complete). Round end now stages a
   ceremony on a floating stage at y60: gold/silver/bronze pedestals, top-3 character rigs in
   their real colors (skin for You, remote/bot rig colors otherwise) with "1. Name K/D" tags,
