@@ -19,7 +19,7 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 
 ## Releases (newest first)
 - **v083** (2026-07-04): DEPLOY COUNTDOWN + LOW-AMMO WARNING. 3-2-1-GO overlay pops on every
-  deploy (cyan digits, gold GO, scale-pop animation + tick sounds — visual only, никак no fire
+  deploy (cyan digits, gold GO, scale-pop animation + tick sounds — visual only, no fire
   block so tests/duels unaffected); ammo numeral turns amber with a glow pulse at ≤25% mag.
   Verified: full countdown sequence observed, low class engages at 2 rounds. Full suite
   green. SW → v083.
