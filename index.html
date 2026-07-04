@@ -890,6 +890,7 @@ function audio(){
   return AC;
 }
 function noiseBurst(dur, vol, freq, type='lowpass'){
+  if(window.__sfxLog) window.__sfxLog.push(['noise', freq, +vol.toFixed(3), type]);
   const ac = audio(); if(!ac) return;
   const len = Math.floor(ac.sampleRate*dur);
   const buf = ac.createBuffer(1, len, ac.sampleRate);
@@ -902,6 +903,7 @@ function noiseBurst(dur, vol, freq, type='lowpass'){
   src.connect(f); f.connect(g); g.connect(masterGain); src.start();
 }
 function tone(freq, dur, vol, type='square'){
+  if(window.__sfxLog) window.__sfxLog.push(['tone', freq, +vol.toFixed(3), type]);
   const ac = audio(); if(!ac) return;
   const o = ac.createOscillator(); o.type = type; o.frequency.value = freq;
   const g = ac.createGain(); g.gain.value = vol;
@@ -929,9 +931,20 @@ function stepSound(vol, sharp){
 const SFX = {
   shoot(w, vol=1){
     const loud = (w.loud !== undefined ? w.loud : 0.3) * vol;
+    const heavy = w.type === 'sniper' || w.type === 'shotgun' || w.type === 'revolver' || w.type === 'lmg';
+    if(vol < 0.55){
+      // distant gunfire: muffled boom, no high detail
+      noiseBurst(0.12, loud * 1.15, heavy ? 380 : 520);
+      tone(heavy ? 56 : 72, 0.1, loud * 0.5, 'sine');
+      return;
+    }
+    tone(heavy ? 52 : 64, heavy ? 0.13 : 0.07, loud * (heavy ? 0.5 : 0.3), 'sine');   // body thump
+    noiseBurst(0.012, loud * 0.55, 5200, 'highpass');                                 // crack transient
     const recipe = SHOT_RECIPES[w.type];
     if(recipe){ w._v = loud; recipe(w); }
     else { noiseBurst(0.11, loud, 1800); tone(160+Math.random()*40, 0.07, loud*0.5, 'sawtooth'); }
+    if(typeof MAP !== 'undefined' && MAP && MAP.id === 'bunker')
+      setTimeout(() => noiseBurst(0.09, loud * 0.22, 650), 72);                       // indoor slapback
   },
   hit(){ tone(1200, 0.05, 0.12, 'square'); },
   kill(){ tone(520, 0.09, 0.2, 'square'); setTimeout(()=>tone(780, 0.12, 0.2, 'square'), 80); },

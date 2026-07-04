@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v089** (2026-07-05): WEAPON AUDIO LAYERING (core-feel #3). Every close shot now stacks
+  three layers: a sub-bass body thump (52Hz heavies / 64Hz lights, heavier class = deeper +
+  longer), a 12ms high-pass crack transient for snap, then the per-class timbre recipe.
+  DISTANT gunfire (bots/remotes past ~35u) collapses to a muffled low boom instead of a
+  quieter copy of the near sound — reads as battlefield ambience. Bunker adds a 72ms indoor
+  slapback echo to every shot. noiseBurst/tone gained a window.__sfxLog test hook; verified
+  the full layer stack + distant muffle + slapback in the log on Bunker. Full suite green.
+  SW → v089.
 - **v088** (2026-07-05): RELOAD ANIMATION (core-feel #2). The viewmodel now performs a real
   reload: drops 0.15u + tilts 0.42rad over the first 30% (mag out), holds a low fiddle pose
   with subtle wiggle, snaps back up with overshoot in the last 32%. Staged audio replaces the
