@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v087** (2026-07-05): COMBAT READABILITY — first iteration of the user's new CORE-FEEL
+  directive ("refine feel/UX/sounds/animation/models, no new modes"). Characters no longer
+  vanish on death: they TIP OVER sideways (0.36s fall with forward lean), lie for a beat,
+  sink into the ground and only then hide — solo bots AND MP remotes (client-side, keyed off
+  the snap alive-flag transition). Non-fatal hits now FLINCH the target (0.16s back-jerk).
+  Bots emit a muzzle spark when firing (matching their tracers). Verified: fall to -1.45rad
+  then cleanup, flinch peak 0.082rad. Full suite green. SW → v087.
 - **v086** (2026-07-05): FIRST BLOOD + REVENGE. 🩸 FIRST BLOOD (+50 XP, UAV stinger) for the
   match's literal first kill — consumed by ANY kill including bot-vs-bot (solo damageBot +
   all MP killfeed branches); ⚔ REVENGE (+75 XP) for killing whoever last killed you (solo +
