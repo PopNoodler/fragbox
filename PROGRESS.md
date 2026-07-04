@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v082** (2026-07-04): COMBAT FEEDBACK + MENU MOTION. Crosshair customization in settings:
+  style (Cross/Dot/Circle) + reticle color (White/Cyan/Green/Gold) via CSS classes + --xh
+  var, applied at boot and on click. KILL-CONFIRM hitmarker: gold, 1.7x scale pop with eased
+  settle (solo + MP kill paths; plain hit markers can't stomp a fresh kill marker for 280ms).
+  Menu background now has a slow orbital camera parallax over the 3D world. Fixed: patch had
+  landed applyCrosshair inside the quality-button branch (anchor collision — first-occurrence
+  hazard when a call site exists in two places). Verified: st-circle+green at boot, gold
+  marker on kill, camera drift. Full suite green. SW → v082.
 - **v081** (2026-07-03): UI AUDIT PASS 2 — screenshot-verified the remaining screens under
   the v080 design system: settings (cyan sliders, glass card, angled buttons), in-game
   scoreboard (glass, gold header, level chips, crown, cyan self-row), pause menu; killhouse
