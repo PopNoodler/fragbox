@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v093** (2026-07-05): PICKUP FEEDBACK (core-feel #7). Health pickups now flash a green
+  edge vignette + float a rising "+40 HP" beside the crosshair; ammo pickups float
+  "+ AMMO · NADE" in gold. Exact healed amount shown (clamped at max hp). Verified live:
+  hp 30→70 with float + vignette cycle on Meadow's west pickup. Full suite green. SW → v093.
 - **v092** (2026-07-05): MOVEMENT FEEL (core-feel #6). Landing from a fall dips the camera
   (amplitude + duration scale with impact speed, capped 0.22u/0.3s) with a landing thud
   scaled likewise; sprinting widens FOV by +3 (folded into the single ADS fov-lerp target so
