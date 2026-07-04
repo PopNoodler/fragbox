@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v083** (2026-07-04): DEPLOY COUNTDOWN + LOW-AMMO WARNING. 3-2-1-GO overlay pops on every
+  deploy (cyan digits, gold GO, scale-pop animation + tick sounds — visual only, никак no fire
+  block so tests/duels unaffected); ammo numeral turns amber with a glow pulse at ≤25% mag.
+  Verified: full countdown sequence observed, low class engages at 2 rounds. Full suite
+  green. SW → v083.
 - **v082** (2026-07-04): COMBAT FEEDBACK + MENU MOTION. Crosshair customization in settings:
   style (Cross/Dot/Circle) + reticle color (White/Cyan/Green/Gold) via CSS classes + --xh
   var, applied at boot and on click. KILL-CONFIRM hitmarker: gold, 1.7x scale pop with eased

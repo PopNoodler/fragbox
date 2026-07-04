@@ -68,6 +68,8 @@
 
   #ammobox { position:absolute; right:24px; bottom:24px; text-align:right; color:#fff; background:var(--glass); border:1px solid var(--line); border-right:3px solid var(--acc); border-radius:var(--r-m); padding:10px 16px 12px; backdrop-filter:blur(10px); min-width:180px; }
   #ammonum { font-size:36px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; text-shadow:0 0 16px rgba(56,189,248,.4); }
+  #ammonum.low { color:var(--gold); animation:ammolow .9s ease-in-out infinite; }
+  @keyframes ammolow { 0%,100% { text-shadow:0 0 10px rgba(251,191,36,.3); } 50% { text-shadow:0 0 24px rgba(251,191,36,.85); } }
   #ammores { font-size:15px; color:var(--dim); font-weight:700; }
   #wname { font-size:12px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; font-weight:700; margin:2px 0; }
   #nadehud { font-size:14px; margin-top:4px; opacity:.9; }
@@ -99,6 +101,9 @@
   #tutbanner { position:absolute; left:50%; top:12%; transform:translateX(-50%); display:none; background:var(--glass); border:1px solid var(--gold); border-radius:var(--r-m); padding:10px 24px; color:#fff; font-size:16px; font-weight:700; letter-spacing:.5px; pointer-events:none; animation:tutpulse 1.6s ease-in-out infinite; backdrop-filter:blur(8px); }
   #tutbanner b { color:var(--gold); }
   @keyframes tutpulse { 0%,100% { box-shadow:0 0 0 rgba(251,191,36,0); } 50% { box-shadow:0 0 22px rgba(251,191,36,.5); } }
+  #countnum { position:absolute; left:50%; top:34%; transform:translate(-50%,-50%); font-size:110px; font-weight:900; color:var(--acc); text-shadow:0 0 40px rgba(56,189,248,.55), 0 4px 16px rgba(0,0,0,.8); pointer-events:none; display:none; letter-spacing:4px; }
+  #countnum.pop { animation:countpop .85s ease-out; }
+  @keyframes countpop { 0% { opacity:0; transform:translate(-50%,-50%) scale(1.8); } 25% { opacity:1; transform:translate(-50%,-50%) scale(1); } 80% { opacity:1; } 100% { opacity:0; transform:translate(-50%,-50%) scale(.9); } }
   #killbanner { position:absolute; left:50%; top:62%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .18s; pointer-events:none; color:var(--gold); font-size:16px; font-weight:900; letter-spacing:2px; text-shadow:0 0 14px rgba(251,191,36,.4), 0 2px 8px rgba(0,0,0,.85); text-transform:uppercase; }
   #hitdir { position:absolute; left:50%; top:50%; width:130px; height:130px; transform:translate(-50%,-50%); opacity:0; transition:opacity .25s; pointer-events:none; }
   #hitdir span { position:absolute; left:50%; top:-4px; transform:translateX(-50%); width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent; border-bottom:18px solid rgba(248,113,113,.9); filter:drop-shadow(0 0 8px rgba(248,113,113,.7)); }
@@ -284,6 +289,7 @@
   <div id="respawnmsg"></div>
   <div id="killcamlabel" style="display:none"></div>
   <div id="killbanner"></div>
+  <div id="countnum"></div>
   <div id="tutbanner"></div>
   <div id="flagbanner" style="display:none">⚑ YOU HAVE THE FLAG — RETURN TO YOUR BASE</div>
   <div id="votebar" style="display:none"></div>
@@ -3018,6 +3024,7 @@ function updateAmmoHUD(){
   el('wname').textContent = w.name;
   el('ammonum').textContent = player.ammo[player.wIdx];
   el('ammores').textContent = '/ ' + player.res[player.wIdx];
+  el('ammonum').classList.toggle('low', player.ammo[player.wIdx] <= Math.max(2, Math.ceil(wMag(w) * 0.25)));
 }
 function updateScoreHUD(){
   const k = el('scorepill').querySelector('.k');
@@ -3721,6 +3728,22 @@ function openPause(){
   el('pausemenu').style.display = 'flex';
   if(document.pointerLockElement) document.exitPointerLock();
 }
+let countdownTimers = [];
+function startCountdown(){
+  countdownTimers.forEach(clearTimeout); countdownTimers = [];
+  const cn = el('countnum');
+  const steps = [['3', 0], ['2', 850], ['1', 1700], ['GO', 2550]];
+  for(const [txt, at] of steps){
+    countdownTimers.push(setTimeout(() => {
+      cn.textContent = txt;
+      cn.style.color = txt === 'GO' ? 'var(--gold)' : 'var(--acc)';
+      cn.style.display = 'block';
+      cn.classList.remove('pop'); void cn.offsetWidth; cn.classList.add('pop');
+      SFX.swap();
+    }, at));
+  }
+  countdownTimers.push(setTimeout(() => { cn.style.display = 'none'; }, 3450));
+}
 function closePause(relock){
   if(deployMode){
     deployMode = false;
@@ -3728,6 +3751,7 @@ function closePause(relock){
     player.hp = player.maxHp;
     updateHpHUD(); updateAmmoHUD();
     if(mode !== 'mp' && !localStorage.kh_tut) tutStart();
+    startCountdown();
   }
   paused = false;
   el('ptitle').textContent = 'PAUSED';
