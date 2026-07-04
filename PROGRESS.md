@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v091** (2026-07-05): SHELLS + IMPACT DEBRIS (core-feel #5). Every trigger pull ejects a
+  spinning brass casing right+up from the breech (camera-relative) with gravity and a
+  dampened floor bounce; bullet wall-impacts kick out 2 gray chips along the surface normal.
+  Shared debris pool (cap 30, shared geometry + per-color material cache, skipped entirely on
+  the low quality tier). Verified in-page: 15 simultaneous pieces during autofire, arcs to
+  y0.95, floor bounce at 0.04, full decay after fire stops. Full suite green. SW → v091.
 - **v090** (2026-07-05): CHARACTER MODELS (core-feel #4). Held weapons now MATCH the
   carrier's loadout — six silhouettes (long scoped sniper/dmr, stubby wood shotgun, short
   long-mag SMG, one-handed pistol/revolver, box-mag LMG, rifle default) rebuilt live via
