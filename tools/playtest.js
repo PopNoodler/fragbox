@@ -42,6 +42,8 @@ const server = http.createServer((req, res) => {
   await page.click('#playbtn');
   await new Promise(r => setTimeout(r, 500));
   await page.click('#resumebtn');            // DEPLOY through the spawn class picker
+  // durable test player: fast TTK means bots can kill us mid-assert otherwise
+  await page.evaluate(() => { const d = window.__dbg; d.player.maxHp = 2000; d.player.hp = 2000; });
   await new Promise(r => setTimeout(r, 700));
   await page.screenshot({ path: path.join(SHOTS, '2-spawn.png') });
 
