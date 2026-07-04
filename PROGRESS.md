@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v084** (2026-07-04): BIG-HIT FEEDBACK + MVP HIGHLIGHT. Taking >35 damage in a single hit
+  punches the FOV +5 (recovers via the frame lerp), flashes a deeper 170px red vignette, and
+  nudges camera shake — wired in both the solo damage path and the MP dmg handler (delta
+  computed before hp reassignment). Scoreboard leader row now carries a gold left edge +
+  faint gold wash beside the crown. Verified: AWP bot hit (115 dmg) punched fov 75→80;
+  MVP class renders. Full suite green. SW → v084.
 - **v083** (2026-07-04): DEPLOY COUNTDOWN + LOW-AMMO WARNING. 3-2-1-GO overlay pops on every
   deploy (cyan digits, gold GO, scale-pop animation + tick sounds — visual only, no fire
   block so tests/duels unaffected); ammo numeral turns amber with a glow pulse at ≤25% mag.

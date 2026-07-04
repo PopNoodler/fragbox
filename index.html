@@ -143,6 +143,8 @@
   #sbtable td { padding:6px 10px; }
   #sbtable tbody tr:nth-child(odd) { background:rgba(255,255,255,.035); }
   #sbtable tr.self td { color:var(--acc); font-weight:700; }
+  #sbtable tr.mvp td:first-child { border-left:3px solid var(--gold); }
+  #sbtable tr.mvp { background:rgba(251,191,36,.06) !important; }
   .lvlchip { display:inline-block; background:rgba(251,191,36,.15); color:var(--gold); padding:0 7px; font-size:11px; font-weight:800; clip-path:var(--clip-chip); }
 
   /* ---------- Menus ---------- */
@@ -2826,6 +2828,13 @@ function botShoot(b, e){
   }
 }
 
+function bigHit(){
+  camera.fov = Math.min(camera.fov + 5, SET.fov + 12);
+  camera.updateProjectionMatrix();
+  el('dmgvig').style.boxShadow = 'inset 0 0 170px rgba(255,0,0,.85)';
+  setTimeout(()=>{ el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,0)'; }, 200);
+  camShake = Math.max(camShake, 0.028);
+}
 function damagePlayer(dmg, from){
   if(!player.alive) return;
   if(player.fortifyT > 0) dmg *= 0.5;
@@ -2839,6 +2848,7 @@ function damagePlayer(dmg, from){
   showHitDir(from.pos.x, from.pos.z);
   el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,.55)';
   setTimeout(()=>{ el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,0)'; }, 120);
+  if(dmg > 35) bigHit();
   if(player.hp<=0){
     player.hp = 0; player.alive = false;
     player.deaths++; from.kills++;
@@ -3059,7 +3069,8 @@ function renderScoreboard(){
     const crown = (i===0 && r.kills>0) ? '👑 ' : '';
     const dot = (mode==='mp' && ['tdm','ctf','dom'].includes(NET.gameMode) && r.team>=0) ? `<span style="color:${r.team===0?'#ff8a80':'#82b1ff'}">●</span> ` : '';
     const ggTag = isGG ? ` <span style="color:#ffca28; font-size:11px">⟨${Math.min((r.g||0)+1, GG_LADDER.length)}/${GG_LADDER.length}⟩</span>` : '';
-    return `<tr${r.self?' class="self"':''}><td><span class="lvlchip">${r.lvl}</span></td><td>${dot}${crown}${r.name}${ggTag}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
+    const rowCls = [r.self?'self':'', (i===0 && r.kills>0)?'mvp':''].filter(Boolean).join(' ');
+    return `<tr${rowCls?` class="${rowCls}"`:''}><td><span class="lvlchip">${r.lvl}</span></td><td>${dot}${crown}${r.name}${ggTag}</td><td class="num">${r.kills}</td><td class="num">${r.deaths}</td><td class="num">${kd}</td></tr>`;
   }).join('');
 }
 
@@ -3517,9 +3528,11 @@ function mpConnect(){
       if(m.pos) showDmg(new THREE.Vector3(m.pos[0], m.pos[1] + 1.8, m.pos[2]), m.dmg || 0, m.hs);
     }
     else if(m.t === 'dmg'){
+      const dtaken = player.hp - m.hp;
       player.hp = m.hp;
       if(m.sh !== undefined) player.shield = m.sh;
       SFX.hurt();
+      if(dtaken > 35) bigHit();
       if(m.apos) showHitDir(m.apos[0], m.apos[2]);
       el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,.55)';
       setTimeout(()=>{ el('dmgvig').style.boxShadow = 'inset 0 0 120px rgba(255,0,0,0)'; }, 120);
