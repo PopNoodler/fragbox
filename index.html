@@ -937,6 +937,12 @@ const SFX = {
   kill(){ tone(520, 0.09, 0.2, 'square'); setTimeout(()=>tone(780, 0.12, 0.2, 'square'), 80); },
   hurt(){ tone(110, 0.15, 0.25, 'sawtooth'); },
   reload(){ tone(300, 0.06, 0.12, 'square'); setTimeout(()=>tone(430, 0.06, 0.12,'square'), 120); },
+  reloadStaged(dur){
+    const ms = dur * 1000;
+    tone(280, 0.07, 0.14, 'square');                                   // mag out
+    setTimeout(()=>tone(210, 0.05, 0.12, 'square'), ms * 0.5);         // mag in
+    setTimeout(()=>{ tone(430, 0.05, 0.14, 'square'); setTimeout(()=>tone(560, 0.04, 0.12, 'square'), 55); }, ms * 0.82);  // rack
+  },
   jump(){ tone(220, 0.08, 0.08, 'sine'); },
   die(){ noiseBurst(0.4, 0.3, 500); tone(90, 0.4, 0.3, 'sawtooth'); },
   empty(){ tone(180, 0.05, 0.1, 'square'); },
@@ -2641,7 +2647,8 @@ function switchWeapon(i){
 function tryReload(){
   const w = curW();
   if(player.reloadT>0 || player.ammo[player.wIdx]>=wMag(w) || player.res[player.wIdx]<=0) return;
-  player.reloadT = w.reload; SFX.reload();
+  player.reloadT = w.reload; player.reloadDur = w.reload;
+  SFX.reloadStaged(w.reload);
   el('reloadmsg').style.display = 'block';
 }
 
@@ -4245,7 +4252,16 @@ function updatePlayer(dt){
       -0.55 + vmKick*0.09
     );
     vmMesh.rotation.x = vmKick*0.18;
-    if(player.inspectT > 0){
+    if(player.reloadT > 0 && player.reloadDur){
+      const rp = 1 - player.reloadT / player.reloadDur;   // 0→1 over the reload
+      let dip, tilt;
+      if(rp < 0.3){ const t = rp / 0.3; dip = t; tilt = t; }                       // mag out: drop + tilt
+      else if(rp < 0.68){ dip = 1 + Math.sin((rp - 0.3) * 18) * 0.06; tilt = 1; }  // fiddle low
+      else { const t = (rp - 0.68) / 0.32; dip = 1 - t * (1 + 0.12 * Math.sin(t * Math.PI)); tilt = 1 - t; }  // snap up w/ overshoot
+      vmMesh.position.y -= dip * 0.14;
+      vmMesh.rotation.z = tilt * 0.42;
+      vmMesh.rotation.y = tilt * 0.1;
+    } else if(player.inspectT > 0){
       const ip = 1 - player.inspectT / 1.2;               // 0→1 over the flourish
       vmMesh.rotation.y = Math.sin(ip * Math.PI) * 1.15;
       vmMesh.rotation.z = Math.sin(ip * Math.PI * 2) * 0.28;

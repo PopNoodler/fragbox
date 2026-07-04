@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v088** (2026-07-05): RELOAD ANIMATION (core-feel #2). The viewmodel now performs a real
+  reload: drops 0.15u + tilts 0.42rad over the first 30% (mag out), holds a low fiddle pose
+  with subtle wiggle, snaps back up with overshoot in the last 32%. Staged audio replaces the
+  flat two-tone: mag-out thunk at 0%, mag-in at 50%, double-click rack at 82% (scaled to each
+  weapon's reload time). Reload pose owns the viewmodel over the inspect flourish. Verified
+  via in-page rAF capture (61 samples, rz peak 0.42, y dip to -0.385); headless probing note:
+  use anti-throttle flags + in-page rAF sampling, external polls can hit stalled frames.
+  Full suite green. SW → v088.
 - **v087** (2026-07-05): COMBAT READABILITY — first iteration of the user's new CORE-FEEL
   directive ("refine feel/UX/sounds/animation/models, no new modes"). Characters no longer
   vanish on death: they TIP OVER sideways (0.36s fall with forward lean), lie for a beat,
