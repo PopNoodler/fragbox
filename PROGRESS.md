@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v086** (2026-07-05): FIRST BLOOD + REVENGE. 🩸 FIRST BLOOD (+50 XP, UAV stinger) for the
+  match's literal first kill — consumed by ANY kill including bot-vs-bot (solo damageBot +
+  all MP killfeed branches); ⚔ REVENGE (+75 XP) for killing whoever last killed you (solo +
+  MP tracking, cleared on payback). Round resets re-arm first blood in MP. showCallout gained
+  a window.__calloutLog test hook. Verified: full revenge cycle in the log; first-blood
+  consumption confirmed by bots winning the race. Full suite green. SW → v086.
 - **v085** (2026-07-04): DEATH RECAP + SWITCH ANIMATION. The killcam label now shows who else
   hurt you this life ("also hurt by Vex 62") — client-side damage-source ledger (solo
   damagePlayer + MP dmg handler), killer excluded, top 2 by damage, reset per life. Weapon

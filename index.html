@@ -2758,6 +2758,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
   b.hp -= dmg;
   if(b.hp<=0 && b.alive){
     b.alive = false;
+    firstBloodTaken = true;   // any kill anywhere consumes first blood
     b.deaths++;
     b.respawnT = 2.5;
     b.mesh.visible = false;
@@ -2777,6 +2778,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       dailyKill(curW().name, headshot, killContext === 'nade');
       playKillFx(b.pos);
       showHitmarker(true);
+      killFlavor(b.name);
       const st = STREAKS[player.streak];
       if(st){ showCallout(st[0] + '  +' + st[1]); addXp(st[1]); }
       else if(headshot) showCallout('HEADSHOT');
@@ -2831,6 +2833,19 @@ function botShoot(b, e){
 }
 
 let dmgTakenBy = {};   // name → total damage this life (death recap)
+let firstBloodTaken = false;   // reset each match/round
+let lastKilledByName = null;   // revenge tracking
+function killFlavor(victimName){
+  if(!firstBloodTaken){
+    firstBloodTaken = true;
+    setTimeout(() => { showCallout('🩸 FIRST BLOOD'); SFX.stinger('uav'); }, 350);
+    addXp(50);
+  } else if(lastKilledByName && victimName === lastKilledByName){
+    setTimeout(() => { showCallout('⚔ REVENGE'); SFX.stinger('point'); }, 350);
+    addXp(75);
+    lastKilledByName = null;
+  }
+}
 function recordDmgTaken(name, dmg){ if(name) dmgTakenBy[name] = (dmgTakenBy[name] || 0) + Math.round(dmg); }
 function deathRecap(excludeName){
   const rows = Object.entries(dmgTakenBy).filter(([n2]) => n2 !== excludeName)
@@ -2865,6 +2880,7 @@ function damagePlayer(dmg, from){
     stats.deaths++; statsDirty++;
     player.killedBy = { name: from.name, hp: Math.max(1, Math.round(from.hp)) };
     player.deathRecapTxt = deathRecap(from.name);
+    lastKilledByName = from.name;
     player.killcam = (from.mesh && from.alive !== false) ? { bot: from } : null;
     player.killcamA = Math.random() * Math.PI * 2;
     player.respawnT = 3;
@@ -3013,6 +3029,7 @@ function updateStreakHUD(){
 }
 let calloutTimer = null;
 function showCallout(text){
+  if(window.__calloutLog) window.__calloutLog.push(String(arguments[0]));
   const c = el('callout');
   c.textContent = text;
   c.classList.add('show');
@@ -3575,6 +3592,7 @@ function mpConnect(){
         const vr = NET.remotes.get(m.victimId);
         if(vr) playKillFx(vr.mesh.position);
         showHitmarker(true);
+        killFlavor(m.victim);
         SFX.kill();
         killBanner(m.hs ? 150 : 100, (m.hs ? 'HEADSHOT · ' : 'ELIMINATED ') + m.victim);
         killfeed(`<span class="me">You</span> ${hsIcon}<small style="opacity:.55"> ${m.kwn||''}</small> <b>${m.victim}</b>`);
@@ -3585,8 +3603,11 @@ function mpConnect(){
         else if(m.hs) showCallout('HEADSHOT');
         updateStreakHUD();
       } else if(m.victimId === NET.id){
+        firstBloodTaken = true;
+        lastKilledByName = m.killer;
         killfeed(`<b>${m.killer}</b> ${hsIcon}<small style="opacity:.55"> ${m.kwn||''}</small> <span class="me">You</span>`);
       } else {
+        firstBloodTaken = true;
         killfeed(`<b>${m.killer}${m.asn ? ' + ' + m.asn : ''}</b> ${hsIcon}<small style="opacity:.55"> ${m.kwn||''}</small> <b>${m.victim}</b>`);
       }
     }
@@ -3672,6 +3693,7 @@ function mpConnect(){
     }
     else if(m.t === 'spawn'){
       clearPodium();
+      firstBloodTaken = false;   // round reset — first blood is live again
       player.specId = null;
       player.pos.set(m.pos[0], m.pos[1], m.pos[2]);
       player.vel.set(0,0,0);
@@ -3873,6 +3895,8 @@ function endTrain(){
 }
 
 function startMatch(){
+  firstBloodTaken = false;
+  lastKilledByName = null;
   refreshEffDiff();
   clearPodium();
   startFlyby();
