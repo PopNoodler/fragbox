@@ -1909,22 +1909,58 @@ function makeBotMesh(color){
   box(0.56, 0.46, 0.46, dark, 0, 1.16, 0);                  // vest
   box(0.2, 0.14, 0.48, 0x2c3540, 0, 1.02, 0);               // vest pouch
   box(0.68, 0.1, 0.42, 0x2c3540, 0, 0.78, 0);               // belt
-  // arms reaching forward to the gun
+  // shoulder pads
+  box(0.2, 0.16, 0.3, dark, -0.4, 1.46, 0);
+  box(0.2, 0.16, 0.3, dark, 0.4, 1.46, 0);
+  // arms reaching forward to the gun (kept for the swing cycle)
   const armL = box(0.16, 0.5, 0.16, color, -0.42, 1.3, 0.08); armL.rotation.x = -1.0;
   const armR = box(0.16, 0.5, 0.16, color, 0.42, 1.3, 0.08);  armR.rotation.x = -1.0;
   box(0.13, 0.13, 0.13, 0xf5d0a9, -0.42, 1.18, 0.32);       // hands
   box(0.13, 0.13, 0.13, 0xf5d0a9, 0.42, 1.18, 0.32);
-  // two-handed rifle
-  box(0.09, 0.13, 0.72, 0x21282e, 0, 1.2, 0.44);
-  box(0.05, 0.06, 0.22, 0x14181c, 0, 1.26, 0.84);           // barrel
-  box(0.07, 0.16, 0.08, 0x14181c, 0, 1.08, 0.42);           // mag
+  // held weapon — its own group so it can be rebuilt per weapon class
+  const gunG = new THREE.Group(); g.add(gunG);
+  g.userData.gun = gunG;
+  buildHeldGun(gunG, 'rifle');
   // head, helmet, visor
-  box(0.38, 0.36, 0.36, 0xf5d0a9, 0, 1.62, 0);
+  box(0.36, 0.36, 0.34, 0xf5d0a9, 0, 1.62, 0);
   box(0.44, 0.2, 0.42, dark, 0, 1.8, 0);                    // helmet
   box(0.46, 0.07, 0.44, dark, 0, 1.72, 0);                  // helmet rim
   box(0.4, 0.1, 0.05, 0x1c2733, 0, 1.64, 0.19);             // visor strip
   g.userData.legs = [legL, legR];
+  g.userData.arms = [armL, armR];
   return g;
+}
+// class-shaped held weapons (rebuilt when the entity's weapon type changes)
+function buildHeldGun(gunG, type){
+  if(gunG.userData.type === type) return;
+  gunG.userData.type = type;
+  while(gunG.children.length) gunG.remove(gunG.children[0]);
+  const mk = (sx, sy, sz, c, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), new THREE.MeshLambertMaterial({ color: c }));
+    m.position.set(x, y, z); gunG.add(m);
+  };
+  if(type === 'sniper' || type === 'dmr'){
+    mk(0.08, 0.12, 0.9, 0x21282e, 0, 1.2, 0.5);
+    mk(0.045, 0.05, 0.42, 0x14181c, 0, 1.25, 1.05);          // long barrel
+    mk(0.07, 0.09, 0.22, 0x0e1215, 0, 1.32, 0.42);           // scope
+  } else if(type === 'shotgun'){
+    mk(0.11, 0.15, 0.6, 0x2d2320, 0, 1.2, 0.4);              // wood-toned stubby
+    mk(0.06, 0.07, 0.24, 0x14181c, 0, 1.24, 0.76);
+  } else if(type === 'smg'){
+    mk(0.09, 0.12, 0.46, 0x21282e, 0, 1.2, 0.38);
+    mk(0.05, 0.05, 0.12, 0x14181c, 0, 1.24, 0.66);
+    mk(0.06, 0.18, 0.07, 0x14181c, 0, 1.06, 0.4);            // long mag
+  } else if(type === 'pistol' || type === 'revolver'){
+    mk(0.07, 0.1, 0.26, 0x21282e, 0.2, 1.2, 0.4);            // one-handed
+  } else if(type === 'lmg'){
+    mk(0.1, 0.16, 0.78, 0x21282e, 0, 1.2, 0.46);
+    mk(0.055, 0.06, 0.24, 0x14181c, 0, 1.26, 0.9);
+    mk(0.12, 0.18, 0.14, 0x2c3540, 0, 1.05, 0.4);            // box mag
+  } else {  // rifle default
+    mk(0.09, 0.13, 0.72, 0x21282e, 0, 1.2, 0.44);
+    mk(0.05, 0.06, 0.22, 0x14181c, 0, 1.26, 0.84);
+    mk(0.07, 0.16, 0.08, 0x14181c, 0, 1.08, 0.42);
+  }
 }
 
 function spawnPoint(avoidPos){
@@ -3449,7 +3485,13 @@ function updateRemotes(dt){
     if(legs){
       legs[0].rotation.x = Math.sin(r.animT) * 0.6 * moving;
       legs[1].rotation.x = -Math.sin(r.animT) * 0.6 * moving;
+      const arms = r.mesh.userData.arms;
+      if(arms){
+        arms[0].rotation.x = -1.0 + Math.sin(r.animT) * 0.18 * moving;
+        arms[1].rotation.x = -1.0 - Math.sin(r.animT) * 0.18 * moving;
+      }
     }
+    if(r.lastW !== undefined && r.mesh.userData.gun) buildHeldGun(r.mesh.userData.gun, (WEAPONS[r.lastW] || WEAPONS[0]).type);
   }
 }
 function sendInput(){
@@ -3583,6 +3625,8 @@ function mpConnect(){
       addTracer(o.clone().add(d.clone().multiplyScalar(1)), o.clone().add(d.clone().multiplyScalar(dist)));
       const dp = o.distanceTo(playerEye());
       SFX.shoot(WEAPONS[m.w] || WEAPONS[0], Math.max(0.08, 1 - dp*0.013));
+      const shooter = NET.remotes.get(m.id);
+      if(shooter) shooter.lastW = m.w;
       if(r) r.mesh.rotation.y = Math.atan2(d.x, d.z);
     }
     else if(m.t === 'hitfx'){
@@ -4449,7 +4493,13 @@ function updateBot(b, dt){
     const m = Math.min(1, bSp/3);
     bLegs[0].rotation.x = Math.sin(b.animT) * 0.6 * m;
     bLegs[1].rotation.x = -Math.sin(b.animT) * 0.6 * m;
+    const bArms = b.mesh.userData.arms;
+    if(bArms){
+      bArms[0].rotation.x = -1.0 + Math.sin(b.animT) * 0.18 * m;
+      bArms[1].rotation.x = -1.0 - Math.sin(b.animT) * 0.18 * m;
+    }
   }
+  if(b.weapon && b.mesh.userData.gun) buildHeldGun(b.mesh.userData.gun, b.weapon.type);
 
   // shoot: reaction window, then weapon-appropriate bursts
   b.fireT -= dt;

@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v090** (2026-07-05): CHARACTER MODELS (core-feel #4). Held weapons now MATCH the
+  carrier's loadout — six silhouettes (long scoped sniper/dmr, stubby wood shotgun, short
+  long-mag SMG, one-handed pistol/revolver, box-mag LMG, rifle default) rebuilt live via
+  buildHeldGun when a bot swaps (gungame!) or a remote's shoot msg reveals a new weapon.
+  Arms now counter-swing with the leg walk cycle (bots + remotes). Added shoulder pads,
+  narrowed the head. Verified: 3-bot lineup screenshot + per-type gun group check
+  (sniper/shotgun/lmg). Full suite green. SW → v090.
 - **v089** (2026-07-05): WEAPON AUDIO LAYERING (core-feel #3). Every close shot now stacks
   three layers: a sub-bass body thump (52Hz heavies / 64Hz lights, heavier class = deeper +
   longer), a 12ms high-pass crack transient for snap, then the per-class timbre recipe.
