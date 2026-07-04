@@ -2762,7 +2762,8 @@ function playerShoot(){
   player.recoil += w.kick;
   vmFlashT = 0.045;
   flash.position.copy(playerEye()).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(0.8));
-  flash.intensity = 3;
+  flash.intensity = (w.type === 'sniper' || w.type === 'shotgun' || w.type === 'revolver' || w.type === 'lmg') ? 4.5
+    : (w.type === 'smg' || w.type === 'pistol') ? 2.2 : 3.2;
   {  // eject a brass shell right+up from the breech
     const camR = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
     const camU = new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);
@@ -4362,14 +4363,16 @@ function updatePlayer(dt){
   vmKick = Math.max(0, vmKick - dt*8);
   if(player.inspectT > 0) player.inspectT -= dt;
   if(player.vmSwitchT > 0) player.vmSwitchT -= dt;
+  player.adsT = Math.max(0, Math.min(1, (player.adsT || 0) + (ads ? dt*7 : -dt*7)));
   if(vmMesh){
+    const at = player.adsT, sway = 1 - at*0.85;   // bob/sway fades as sights come up
     vmMesh.position.set(
-      0.26 + Math.sin(vmBob)*0.008*(moving?1:0.3),
-      -0.24 + Math.abs(Math.cos(vmBob))*0.012*(moving?1:0.3) + vmKick*0.03
+      (0.26 - at*0.2) + Math.sin(vmBob)*0.008*(moving?1:0.3)*sway,
+      (-0.24 + at*0.05) + Math.abs(Math.cos(vmBob))*0.012*(moving?1:0.3)*sway + vmKick*0.03*(1 - at*0.45)
         - (player.vmSwitchT > 0 ? Math.sin((player.vmSwitchT/0.24)*Math.PI)*0.16 : 0),
-      -0.55 + vmKick*0.09
+      (-0.55 + at*0.07) + vmKick*0.09*(1 - at*0.45)
     );
-    vmMesh.rotation.x = vmKick*0.18;
+    vmMesh.rotation.x = vmKick*0.18*(1 - at*0.45);
     if(player.reloadT > 0 && player.reloadDur){
       const rp = 1 - player.reloadT / player.reloadDur;   // 0→1 over the reload
       let dip, tilt;

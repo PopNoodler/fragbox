@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v094** (2026-07-05): ADS + HANDLING SMOOTHING (core-feel #8). Aiming down sights is now
+  an animated glide (adsT 0→1 lerp at 7/s): the viewmodel slides from hip (x .26) to screen
+  center (x .06), rises slightly, and its bob/sway fades 85% while aimed; recoil kick on the
+  viewmodel is damped 45% in ADS. Muzzle flash light now scales by class (heavies 4.5,
+  smg/pistol 2.2, rifles 3.2). Verified via rAF capture: full slide in/out cycle. Full suite
+  green. SW → v094.
 - **v093** (2026-07-05): PICKUP FEEDBACK (core-feel #7). Health pickups now flash a green
   edge vignette + float a rising "+40 HP" beside the crosshair; ammo pickups float
   "+ AMMO · NADE" in gold. Exact healed amount shown (clamped at max hp). Verified live:
