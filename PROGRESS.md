@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v085** (2026-07-04): DEATH RECAP + SWITCH ANIMATION. The killcam label now shows who else
+  hurt you this life ("also hurt by Vex 62") — client-side damage-source ledger (solo
+  damagePlayer + MP dmg handler), killer excluded, top 2 by damage, reset per life. Weapon
+  switching dips the viewmodel down-and-up over 0.24s. Verified live: chip-then-finish
+  scenario produced "KILLED BY Piko · M249 · 110 HP / also hurt by Vex 62". Full suite
+  green. SW → v085.
 - **v084** (2026-07-04): BIG-HIT FEEDBACK + MVP HIGHLIGHT. Taking >35 damage in a single hit
   punches the FOV +5 (recovers via the frame lerp), flashes a deeper 170px red vignette, and
   nudges camera shake — wired in both the solo damage path and the MP dmg handler (delta
