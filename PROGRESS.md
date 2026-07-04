@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v092** (2026-07-05): MOVEMENT FEEL (core-feel #6). Landing from a fall dips the camera
+  (amplitude + duration scale with impact speed, capped 0.22u/0.3s) with a landing thud
+  scaled likewise; sprinting widens FOV by +3 (folded into the single ADS fov-lerp target so
+  nothing fights) plus a subtle 9Hz camera roll oscillation while grounded. Verified in-page:
+  14u drop → full 0.22 dip curve; sprint fov 75→78.8 and back. Full suite green. SW → v092.
 - **v091** (2026-07-05): SHELLS + IMPACT DEBRIS (core-feel #5). Every trigger pull ejects a
   spinning brass casing right+up from the breech (camera-relative) with gravity and a
   dampened floor bounce; bullet wall-impacts kick out 2 gray chips along the surface normal.
