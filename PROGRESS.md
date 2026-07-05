@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v101** (2026-07-05): VIEWMODEL LOOK-SWAY (core-feel #15). The gun now lags behind camera
+  turns (yaw/pitch deltas → clamped, smoothed offsets applied to viewmodel rotation +
+  position, damped 70% in ADS, eases back at 9/s). Verified: swayX 0→0.044 during a fast
+  spin, decays to ~0 at rest. Headless note: capture viewmodel node references fresh —
+  the async GLB-arrival rebuild orphans old references. Full suite green. SW → v101.
 - **v100** (2026-07-05): MILESTONE — BOT AIM TELEGRAPHING + arc wrap. While a bot has you in
   its sights during its pre-fire reaction window, a red muzzle glint flashes on its gun
   (visible from ~35% of the reaction time until the first shot) — deaths from ambush now

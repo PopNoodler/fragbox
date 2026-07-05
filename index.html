@@ -4448,6 +4448,13 @@ function updatePlayer(dt){
   if(player.inspectT > 0) player.inspectT -= dt;
   if(player.vmSwitchT > 0) player.vmSwitchT -= dt;
   player.adsT = Math.max(0, Math.min(1, (player.adsT || 0) + (ads ? dt*7 : -dt*7)));
+  {  // look-sway: the gun lags behind camera turns, then eases back
+    const dy = player.yaw - (player._swayYaw !== undefined ? player._swayYaw : player.yaw);
+    const dp = player.pitch - (player._swayPitch !== undefined ? player._swayPitch : player.pitch);
+    player._swayYaw = player.yaw; player._swayPitch = player.pitch;
+    player.swayX = (player.swayX || 0) + (Math.max(-0.05, Math.min(0.05, dy * 0.5)) - (player.swayX || 0)) * Math.min(1, dt * 9);
+    player.swayY = (player.swayY || 0) + (Math.max(-0.04, Math.min(0.04, dp * 0.5)) - (player.swayY || 0)) * Math.min(1, dt * 9);
+  }
   if(vmMesh){
     const at = player.adsT, sway = 1 - at*0.85;   // bob/sway fades as sights come up
     vmMesh.position.set(
@@ -4456,7 +4463,10 @@ function updatePlayer(dt){
         - (player.vmSwitchT > 0 ? Math.sin((player.vmSwitchT/0.24)*Math.PI)*0.16 : 0),
       (-0.55 + at*0.07) + vmKick*0.09*(1 - at*0.45)
     );
-    vmMesh.rotation.x = vmKick*0.18*(1 - at*0.45);
+    vmMesh.rotation.x = vmKick*0.18*(1 - at*0.45) + player.swayY * (1 - at*0.7);
+    vmMesh.rotation.y = player.swayX * (1 - at*0.7);
+    vmMesh.position.x += player.swayX * 0.35 * (1 - at*0.7);
+    vmMesh.position.y += player.swayY * 0.2 * (1 - at*0.7);
     if(player.reloadT > 0 && player.reloadDur){
       const rp = 1 - player.reloadT / player.reloadDur;   // 0→1 over the reload
       let dip, tilt;
@@ -4472,7 +4482,7 @@ function updatePlayer(dt){
       vmMesh.rotation.z = Math.sin(ip * Math.PI * 2) * 0.28;
       vmMesh.position.y += Math.sin(ip * Math.PI) * 0.06;
       vmMesh.position.x -= Math.sin(ip * Math.PI) * 0.08;
-    } else { vmMesh.rotation.y = 0; vmMesh.rotation.z = 0; }
+    } else { vmMesh.rotation.y = player.swayX * (1 - at*0.7); vmMesh.rotation.z = 0; }
   }
 
   // shooting
