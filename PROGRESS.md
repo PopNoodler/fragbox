@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v099** (2026-07-05): SURFACE AUDIO (core-feel #13). Landing thuds now read the ground:
+  soft 300Hz on grass maps, 520Hz + a 1600Hz click on asphalt/concrete (Depot/Bunker/
+  Skyline). Sliding plays a 0.4s friction scrape pitched by surface (900Hz hard / 550Hz
+  grass). Jump pads already had their boing. Verified via __sfxLog: Depot landing = 520+1600,
+  slide = 900. Full suite green. SW → v099.
 - **v098** (2026-07-05): WORLD PROP MODELS (core-feel #12). tools/make_props.py →
   models/props.glb: medkit (rounded white case, glowing red cross both faces, steel latch/
   hinge/handle) and ammo crate (olive box, dark stencil bands, 4 brass shells w/ steel tips,

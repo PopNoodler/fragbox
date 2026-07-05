@@ -4292,6 +4292,7 @@ function updatePlayer(dt){
   if(crouchIntent && player.sprinting && player.grounded && player.slideT <= 0 && !player.crouch){
     // sprint + crouch = slide: momentum burst, keep it while slideT runs
     player.slideT = 0.55;
+    noiseBurst(0.4, 0.16, MAP.ground === 'asphalt' || MAP.ground === 'concrete' ? 900 : 550);   // friction scrape
     const dir = wish.clone().normalize();
     player.vel.x = dir.x * SPRINT * 1.35;
     player.vel.z = dir.z * SPRINT * 1.35;
@@ -4322,7 +4323,9 @@ function updatePlayer(dt){
     player.landDipT = Math.min(0.3, 0.1 + fallSpeed * 0.012);
     player.landDipMax = player.landDipT;
     player.landDipAmp = Math.min(0.22, fallSpeed * 0.011);
-    noiseBurst(0.07, Math.min(0.3, fallSpeed * 0.016), 300);   // landing thud
+    const hardGround = MAP.ground === 'asphalt' || MAP.ground === 'concrete';
+    noiseBurst(0.07, Math.min(0.3, fallSpeed * 0.016), hardGround ? 520 : 300);   // landing thud
+    if(hardGround) noiseBurst(0.02, Math.min(0.18, fallSpeed * 0.01), 1600);      // hard-surface click
   }
   checkPad(player.pos, player.vel, true);
 
