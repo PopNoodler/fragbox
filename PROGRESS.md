@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v096** (2026-07-05): BLENDER WEAPON VIEWMODELS (core-feel #10). First three hero guns
+  modeled in Blender (tools/make_weapons.py → models/weapons.glb, 180KB): AK-47 (cylinder
+  barrel + gas tube, front sight, muzzle brake, wood handguard/stock w/ rear taper, 3-segment
+  curved mag, angled grip), M1911 (beveled slide, hammer, sights, angled grip, trigger
+  guard), M870 (barrel + mag tube, silver bead, 3-ring pump, tapered stock). Client uses the
+  GLB when the weapon has one (AK-47/M1911/M870), procedural boxes remain for the rest +
+  offline fallback; camo skins now also match GLB furniture via the cm_ name prefix
+  (color-hex matching breaks under glTF color management). Screenshot-verified both in hand.
+  Full suite green. SW → v096 + weapons.glb precached.
 - **v095** (2026-07-05): BLENDER CHARACTER MODELS (core-feel #9 — user installed Blender and
   asked for it to be used for modeling). New asset pipeline: tools/make_soldier.py runs
   Blender 5.1 headless → models/soldier.glb (170KB) loaded via vendored GLTFLoader +
