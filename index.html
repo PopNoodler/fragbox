@@ -2175,7 +2175,9 @@ function buildViewmodel(){
   const box = (sx,sy,sz,c,x,y,z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), mat(c)); m.position.set(x,y,z); g.add(m); return m; };
   let tipZ;
   const WOOD = 0x8a5a2b, DARKWOOD = 0x5d3a1a, GUNMETAL = 0x2a3238, BLACK = 0x16191c;
-  const GLB_VM = { 'AK-47': ['vm_ak47', -0.66], 'M1911': ['vm_m1911', -0.23], 'M870': ['vm_m870', -0.57] };
+  const GLB_VM = { 'AK-47': ['vm_ak47', -0.66], 'M1911': ['vm_m1911', -0.23], 'M870': ['vm_m870', -0.57],
+    'MP5': ['vm_mp5', -0.5], 'AWP': ['vm_awp', -0.8], 'M249': ['vm_m249', -0.7], 'M14': ['vm_m14', -0.62],
+    '.44 Magnum': ['vm_magnum', -0.33], 'SSG 08': ['vm_ssg', -0.7], 'FAMAS': ['vm_famas', -0.55] };
   const glbSpec = weaponsTpl && GLB_VM[w.name];
   const glbGun = glbSpec && weaponsTpl.getObjectByName(glbSpec[0]);
   if(glbGun){

@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v097** (2026-07-05): ALL 10 WEAPONS BLENDER-MODELED (core-feel #11). Added the remaining
+  seven viewmodels to models/weapons.glb (554KB total): MP5 (suppressor tip + folding stock
+  bar), AWP (fluted barrel, big scope w/ lens rings, side bolt, green chassis), M249 (bipod
+  legs, olive box mag, carry handle), M14 (full-length wood stock + top metal), .44 Magnum
+  (silver vent-rib + fluted cylinder), SSG 08 (tan scout chassis + compact scope), FAMAS
+  (bullpup wedge + carry handle on legs). GLB_VM covers every weapon name; procedural boxes
+  remain solely as the offline fallback. Screenshot-verified magnum/awp/mp5/m249/famas in
+  hand. Full suite green. SW → v097.
 - **v096** (2026-07-05): BLENDER WEAPON VIEWMODELS (core-feel #10). First three hero guns
   modeled in Blender (tools/make_weapons.py → models/weapons.glb, 180KB): AK-47 (cylinder
   barrel + gas tube, front sight, muzzle brake, wood handguard/stock w/ rear taper, 3-segment
