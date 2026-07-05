@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v100** (2026-07-05): MILESTONE — BOT AIM TELEGRAPHING + arc wrap. While a bot has you in
+  its sights during its pre-fire reaction window, a red muzzle glint flashes on its gun
+  (visible from ~35% of the reaction time until the first shot) — deaths from ambush now
+  telegraph fairly. Verified: glint on at seeT 0.2, off at fire. SESSION_NOTES.md fully
+  rewritten around the core-feel arc (v082-v100: UX feedback, animation, layered audio,
+  Blender models across characters/arsenal/props, movement feel, surface audio). 66 releases
+  this session. Full suite green. SW → v100.
 - **v099** (2026-07-05): SURFACE AUDIO (core-feel #13). Landing thuds now read the ground:
   soft 300Hz on grass maps, 520Hz + a 1600Hz click on asphalt/concrete (Depot/Bunker/
   Skyline). Sliding plays a 0.4s friction scrape pitched by surface (900Hz hard / 550Hz

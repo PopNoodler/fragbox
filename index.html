@@ -4661,6 +4661,15 @@ function updateBot(b, dt){
     }
   } else {
     const reaction = 0.35 + (1-b.skill)*0.45;
+    // aim telegraph: red muzzle glint while the bot lines you up (fairness vs ambush)
+    const aimingAtPlayer = enemy === player && canSee && dist < 55 && b.fireT <= 0 && b.seeT > reaction * 0.35 && b.seeT < reaction;
+    if(aimingAtPlayer && !b.glint){
+      b.glint = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 5),
+        new THREE.MeshBasicMaterial({ color: 0xff2b2b, transparent: true, opacity: 0.95 }));
+      b.glint.position.set(0, 1.26, 0.95);
+      b.mesh.add(b.glint);
+    }
+    if(b.glint) b.glint.visible = aimingAtPlayer;
     if(enemy && canSee && dist < 55 && b.fireT <= 0 && b.seeT >= reaction){
       const w = b.weapon || WEAPONS[0];
       if(w.auto){
