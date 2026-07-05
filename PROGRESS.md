@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v098** (2026-07-05): WORLD PROP MODELS (core-feel #12). tools/make_props.py →
+  models/props.glb: medkit (rounded white case, glowing red cross both faces, steel latch/
+  hinge/handle) and ammo crate (olive box, dark stencil bands, 4 brass shells w/ steel tips,
+  side handles) replace the primitive pickups. Emissive carried through the Lambert
+  conversion (capped 0.8); spin/bob/ring/collection unchanged; primitives remain the offline
+  fallback and an in-place upgrade swaps visuals when the GLB arrives after world build.
+  Screenshot-verified on Depot. Full suite green. SW → v098 + props.glb precached.
 - **v097** (2026-07-05): ALL 10 WEAPONS BLENDER-MODELED (core-feel #11). Added the remaining
   seven viewmodels to models/weapons.glb (554KB total): MP5 (suppressor tip + folding stock
   bar), AWP (fluted barrel, big scope w/ lens rings, side bolt, green chassis), M249 (bipod

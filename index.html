@@ -1895,6 +1895,29 @@ const BOT_NAMES = ['Vex','Nova','Rusty','Ghost','Piko','Zed','Mango','Bolt','Fro
 const BOT_COLORS = [0xe53935, 0x8e24aa, 0xfb8c00, 0x00897b, 0x3949ab, 0xc0ca33, 0xd81b60];
 const bots = [];
 
+let propsTpl = null;
+new GLTFLoader().load('./models/props.glb', gltf => {
+  gltf.scene.traverse(o => {
+    if(o.isMesh){
+      const src = o.material;
+      const c = src.color ? src.color.clone() : new THREE.Color(0x888888);
+      const lm = new THREE.MeshLambertMaterial({ color: c });
+      if(src.emissive && src.emissiveIntensity > 0){ lm.emissive = src.emissive.clone(); lm.emissiveIntensity = Math.min(0.8, src.emissiveIntensity); }
+      o.material = lm;
+    }
+  });
+  propsTpl = gltf.scene;
+  // upgrade pickups that were built from primitives before the GLB arrived
+  if(typeof pickups !== 'undefined') for(const p of pickups){
+    const prop = propsTpl.getObjectByName(p.kind === 'hp' ? 'prop_medkit' : 'prop_ammo');
+    if(!prop) continue;
+    const keepRing = p.g.children.find(ch => ch.geometry && ch.geometry.type === 'TorusGeometry');
+    [...p.g.children].forEach(ch => { if(ch !== keepRing) p.g.remove(ch); });
+    const c = prop.clone(true);
+    c.traverse(m => { if(m.isMesh) m.castShadow = true; });
+    p.g.add(c);
+  }
+}, undefined, () => {});
 let weaponsTpl = null;
 new GLTFLoader().load('./models/weapons.glb', gltf => {
   gltf.scene.traverse(o => {
@@ -2340,7 +2363,10 @@ const pickups = [];
 function makePickup(x, z, kind, y=0.7){
   const g = new THREE.Group();
   const mat = c => new THREE.MeshLambertMaterial({ color:c });
-  if(kind==='hp'){
+  const glbProp = propsTpl && propsTpl.getObjectByName(kind === 'hp' ? 'prop_medkit' : 'prop_ammo');
+  if(glbProp){
+    g.add(glbProp.clone(true));
+  } else if(kind==='hp'){
     const base = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.55,0.55), mat(0xf5f5f5)); g.add(base);
     const crossMat = new THREE.MeshLambertMaterial({ color:0xe53935, emissive:0x7a1512, emissiveIntensity:0.8 });
     const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.2,0.18), crossMat); g.add(c1);
