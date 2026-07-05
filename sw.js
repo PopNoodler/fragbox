@@ -1,5 +1,5 @@
 const CACHE = 'fragbox-v034';
-const ASSETS = ['./', './index.html', './lib/three.module.js', './shared/map.mjs', './shared/weapons.mjs', './manifest.json', './icon.svg'];
+const ASSETS = ['./', './index.html', './lib/three.module.js', './lib/GLTFLoader.js', './lib/BufferGeometryUtils.js', './models/soldier.glb', './shared/map.mjs', './shared/weapons.mjs', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

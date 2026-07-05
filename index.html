@@ -480,6 +480,7 @@ import * as THREE from 'three';
 import { getMap, MAPS } from './shared/map.mjs';
 import { WEAPONS, GG_LADDER, NADE } from './shared/weapons.mjs';
 import { SKINS } from './shared/cosmetics.mjs';
+import { GLTFLoader } from './lib/GLTFLoader.js';
 
 /* =============================================================
    FragBox — single-file low-poly arena FPS vs bots
@@ -1894,7 +1895,41 @@ const BOT_NAMES = ['Vex','Nova','Rusty','Ghost','Piko','Zed','Mango','Bolt','Fro
 const BOT_COLORS = [0xe53935, 0x8e24aa, 0xfb8c00, 0x00897b, 0x3949ab, 0xc0ca33, 0xd81b60];
 const bots = [];
 
+let soldierTpl = null;
+new GLTFLoader().load('./models/soldier.glb', gltf => {
+  const tpl = gltf.scene.getObjectByName('soldier') || gltf.scene;
+  tpl.traverse(o => {
+    if(o.isMesh){
+      const c = o.material.color ? o.material.color.clone() : new THREE.Color(0x888888);
+      o.material = new THREE.MeshLambertMaterial({ color: c });
+      o.material.name = o.userData.matName = (gltf.parser ? o.material.name : '') || '';
+      o.castShadow = true;
+    }
+  });
+  soldierTpl = tpl;
+}, undefined, () => { /* offline/missing: box rig remains */ });
+function makeSoldierMesh(color){
+  const g = soldierTpl.clone(true);
+  const body = new THREE.MeshLambertMaterial({ color });
+  const dark = new THREE.MeshLambertMaterial({ color: new THREE.Color(color).multiplyScalar(0.45) });
+  g.traverse(o => {
+    if(!o.isMesh) return;
+    const nm = o.name;
+    if(nm.startsWith('torso') || nm.startsWith('thigh') || nm.startsWith('upper') || nm.startsWith('fore')) o.material = body;
+    else if(nm === 'belt' || nm === 'pouch' || nm === 'rim') o.material = dark;
+    o.castShadow = true;
+  });
+  g.userData.legs = [g.getObjectByName('legL'), g.getObjectByName('legR')];
+  g.userData.arms = [g.getObjectByName('armL'), g.getObjectByName('armR')];
+  g.userData.armBase = 0;   // arms are pre-posed forward in the model
+  const gunG = new THREE.Group();
+  g.add(gunG);
+  g.userData.gun = gunG;
+  buildHeldGun(gunG, 'rifle');
+  return g;
+}
 function makeBotMesh(color){
+  if(soldierTpl) return makeSoldierMesh(color);
   const g = new THREE.Group();
   const mat = c => new THREE.MeshLambertMaterial({ color: c });
   const box = (sx, sy, sz, c, x, y, z, parent=g) => {
@@ -1934,6 +1969,7 @@ function makeBotMesh(color){
   box(0.4, 0.1, 0.05, 0x1c2733, 0, 1.64, 0.19);             // visor strip
   g.userData.legs = [legL, legR];
   g.userData.arms = [armL, armR];
+  g.userData.armBase = -1.0;
   return g;
 }
 // class-shaped held weapons (rebuilt when the entity's weapon type changes)
@@ -3530,10 +3566,10 @@ function updateRemotes(dt){
     if(legs){
       legs[0].rotation.x = Math.sin(r.animT) * 0.6 * moving;
       legs[1].rotation.x = -Math.sin(r.animT) * 0.6 * moving;
-      const arms = r.mesh.userData.arms;
+      const arms = r.mesh.userData.arms, ab = r.mesh.userData.armBase || 0;
       if(arms){
-        arms[0].rotation.x = -1.0 + Math.sin(r.animT) * 0.18 * moving;
-        arms[1].rotation.x = -1.0 - Math.sin(r.animT) * 0.18 * moving;
+        arms[0].rotation.x = ab + Math.sin(r.animT) * 0.18 * moving;
+        arms[1].rotation.x = ab - Math.sin(r.animT) * 0.18 * moving;
       }
     }
     if(r.lastW !== undefined && r.mesh.userData.gun) buildHeldGun(r.mesh.userData.gun, (WEAPONS[r.lastW] || WEAPONS[0]).type);
@@ -4557,10 +4593,10 @@ function updateBot(b, dt){
     const m = Math.min(1, bSp/3);
     bLegs[0].rotation.x = Math.sin(b.animT) * 0.6 * m;
     bLegs[1].rotation.x = -Math.sin(b.animT) * 0.6 * m;
-    const bArms = b.mesh.userData.arms;
+    const bArms = b.mesh.userData.arms, ab = b.mesh.userData.armBase || 0;
     if(bArms){
-      bArms[0].rotation.x = -1.0 + Math.sin(b.animT) * 0.18 * m;
-      bArms[1].rotation.x = -1.0 - Math.sin(b.animT) * 0.18 * m;
+      bArms[0].rotation.x = ab + Math.sin(b.animT) * 0.18 * m;
+      bArms[1].rotation.x = ab - Math.sin(b.animT) * 0.18 * m;
     }
   }
   if(b.weapon && b.mesh.userData.gun) buildHeldGun(b.mesh.userData.gun, b.weapon.type);

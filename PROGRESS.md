@@ -18,6 +18,19 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v095** (2026-07-05): BLENDER CHARACTER MODELS (core-feel #9 — user installed Blender and
+  asked for it to be used for modeling). New asset pipeline: tools/make_soldier.py runs
+  Blender 5.1 headless → models/soldier.glb (170KB) loaded via vendored GLTFLoader +
+  BufferGeometryUtils (r160, importmap-relative). The soldier: beveled low-poly rig with
+  tapered torso, vest plate + pouch, shoulder pads, helmet w/ brim, metallic cyan visor,
+  articulated legs (hip-pivot empties) + forward-posed arms (shoulder pivots) — same
+  animation contract as the box rig (userData.legs/arms/gun + armBase 0 vs -1.0), so walk
+  swing, flinch, death falls, crouch squash and per-class held guns all work unchanged.
+  Materials Lambert-converted at load for the game's flat-lit look; body/dark tinted per
+  bot color/skin. Box rig remains as offline fallback until the GLB loads; GLB + loaders
+  added to SW precache. Blender pipeline gotchas learned: matrix_parent_inverse does NOT
+  survive glTF export (use explicit local TRS), matrix_world is stale mid-build, and
+  primitive size=1 cubes mean scale values are half-extents. Full suite green. SW → v095.
 - **v094** (2026-07-05): ADS + HANDLING SMOOTHING (core-feel #8). Aiming down sights is now
   an animated glide (adsT 0→1 lerp at 7/s): the viewmodel slides from hip (x .26) to screen
   center (x .06), rises slightly, and its bob/sway fades 85% while aimed; recoil kick on the
