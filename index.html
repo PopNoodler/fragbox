@@ -286,10 +286,14 @@
   #menuhint { padding:8px 0 12px; text-align:center; margin-top:0; }
   #namefield { width:100%; }
   @media (max-width: 1020px){
-    #menugrid { grid-template-columns:1fr; overflow-y:auto; }
-    .menucard { max-height:none; }
-    #centercol { order:-1; }
+    #menushell { overflow-y:auto; padding:0 12px; }
+    #menutop { padding:10px 4px 8px; }
+    #menugrid { grid-template-columns:1fr; overflow:visible; flex:none; }
+    .menucard { max-height:none; overflow:visible; }
+    #centercol { order:-1; justify-content:flex-start; padding-top:4px; }
     #centerspacer { display:none; }
+    .playhero { font-size:20px !important; padding:13px 0 !important; }
+    #menuhint { display:none; }
   }
   /* ---------- Touch controls ---------- */
   #touchui { display:none; }
@@ -2670,6 +2674,7 @@ document.querySelectorAll('.setbtn').forEach(btn=>{
       applyQuality(resolveQualityTier());
     }
     if(k === 'xhair' || k === 'xcol') applyCrosshair();
+    if(k === 'map' && state === ST.MENU && mode !== 'mp') buildWorld(v);   // live menu preview swap
     document.querySelectorAll(`.setbtn[data-k="${k}"]`).forEach(b=>{
       const bv = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v;
       b.classList.toggle('active', bv===v);

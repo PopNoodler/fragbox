@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v104** (2026-07-07): BUG TEST PASS #1 (user directive: "do bug test passes"). Probed 6
+  edge-case flows headlessly: skin swap → preview retints ✓; play→Esc→menu → preview returns,
+  vm hidden ✓; Killhouse enter/exit cycle ✓; death/respawn recoil state decays clean ✓;
+  FOUND+FIXED: (1) picking a map in the menu didn't rebuild the world — the character preview
+  kept showing the old map (now buildWorld runs live on map click in MENU, solo only);
+  (2) mobile/small-screen menu opened with PLAY pushed 137px above the viewport — small-
+  screen layout now scrolls the whole shell with PLAY first and compact paddings (verified
+  844x390: PLAY at y67, visible). Full suite green. SW → v104.
 - **v103** (2026-07-07): AAA MAIN MENU (user: "make the main menu AAA... look at KOUR for
   inspiration"). Full Kour-style shell: transparent overlay revealing the live 3D map with a
   slow orbit camera around YOUR SKINNED SOLDIER (GLB clone at 60% toward center from spawn 0,
