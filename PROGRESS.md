@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v105** (2026-07-07): DIRECTIONAL DEATH FALLS (core-feel #17). Kills now read physically:
+  the victim snaps to face its killer and tips over BACKWARD away from the shot (with a
+  slight side wobble), and heavy killing blows (>60 dmg) shove the body backward as it falls
+  (2.4 u/s stagger vs 0.7 standard). Solo bots use the attacker position (player when null);
+  MP victims fall away from you when you get the kill (deathYaw from the kill msg), random
+  side otherwise; remote deathYaw cleared on respawn. Verified: bot due +x fell with yaw
+  snapped to -π/2 (facing shooter) and rotation.x -0.94 backward tip + 0.7 push. Full suite
+  green. SW → v105.
 - **v104** (2026-07-07): BUG TEST PASS #1 (user directive: "do bug test passes"). Probed 6
   edge-case flows headlessly: skin swap → preview retints ✓; play→Esc→menu → preview returns,
   vm hidden ✓; Killhouse enter/exit cycle ✓; death/respawn recoil state decays clean ✓;
