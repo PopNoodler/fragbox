@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v103** (2026-07-07): AAA MAIN MENU (user: "make the main menu AAA... look at KOUR for
+  inspiration"). Full Kour-style shell: transparent overlay revealing the live 3D map with a
+  slow orbit camera around YOUR SKINNED SOLDIER (GLB clone at 60% toward center from spawn 0,
+  rotates, holds its gun; viewmodel hidden in menu, restored in play; rebuilt on skin change).
+  Top bar: animated gradient brand + level chip + crates/career/settings buttons. Left card:
+  LOCKER (name, skins, kill fx, reticle). Center: hero PLAY (glow pulse) + ONLINE/KILLHOUSE +
+  map/difficulty quickbar. Right card: TODAY'S CHALLENGES + MATCH settings. Responsive
+  single-column under 1020px. Fixed en route: SPAWNS are Vector3s (isVector3 crash), opaque
+  overlay hid the scene, vm bleed. Full suite green. SW → v103.
 - **v102** (2026-07-07): GUNPLAY FEEL PASS (core-feel #16 — user: "focus on improving the
   core gameplay feel"). Recoil is now three-axis: vertical kick + per-shot horizontal drift
   (±0.4×kick) + camera roll shake (±0.55×kick), each with its own recovery rate — sustained
