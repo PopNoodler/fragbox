@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v102** (2026-07-07): GUNPLAY FEEL PASS (core-feel #16 — user: "focus on improving the
+  core gameplay feel"). Recoil is now three-axis: vertical kick + per-shot horizontal drift
+  (±0.4×kick) + camera roll shake (±0.55×kick), each with its own recovery rate — sustained
+  fire wanders and shakes like a real gun. AIM PUNCH: taking >20 dmg flicks your aim up
+  (scales with damage, solo + MP). Per-weapon ADS speed: snipers/LMG raise sights slow (4.5),
+  pistols/SMGs snap fast (10), rifles 7.5; lowering is always fast (9). SPRINT CARRY: the gun
+  drops and tilts while sprinting, snapping back instantly when you fire/ADS/stop. Verified
+  live: recoil jitter + decay, sprint pose cycle. Full suite green. SW → v102.
 - **v101** (2026-07-05): VIEWMODEL LOOK-SWAY (core-feel #15). The gun now lags behind camera
   turns (yaw/pitch deltas → clamped, smoothed offsets applied to viewmodel rotation +
   position, damped 70% in ADS, eases back at 9/s). Verified: swayX 0→0.044 during a fast
