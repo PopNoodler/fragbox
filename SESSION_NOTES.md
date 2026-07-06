@@ -46,8 +46,10 @@ modular level kit + 6 maps, 5 modes + Killhouse trainer, progression economy
 1. **Folder rename** `KourHero` → `FragBox` — still locked by a process on your side.
 2. **Monetization go-live** — 4 placements wired behind the simulator; needs your
    accounts (`MONETIZATION.md`).
-3. **Hosting** — solo build works on GitHub Pages; multiplayer needs a Node host.
-   `tools/build-portal.mjs` builds the portal zip.
+3. **Hosting** — ✅ LIVE at https://popnoodler.github.io/fragbox/ (repo:
+   github.com/PopNoodler/fragbox, auto-deploys from main). Solo + Killhouse fully
+   work there; ONLINE needs a Node host (Railway/Fly) for the ws server.
+   `tools/build-portal.mjs` builds the portal zip for CrazyGames/Poki/itch.
 
 ## Engineering notes
 - Full suite: `node tools/verify.mjs && node tools/playtest.js && node tools/mptest.js`
