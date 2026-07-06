@@ -5,7 +5,9 @@ installable as an offline PWA, with an optional Node WebSocket server for real m
 
 ## Play
 
-**Windows: double-click `PLAY.bat`.** It starts the local server (multiplayer included) and
+**▶ Play instantly in your browser: https://popnoodler.github.io/fragbox/** (solo vs bots + Killhouse; installable as a PWA, works offline after first load).
+
+**Windows local (incl. multiplayer): double-click `PLAY.bat`.** It starts the local server (multiplayer included) and
 opens your browser. Don't open `index.html` directly — browsers block module scripts on
 `file://`, so the menu can't work there (the page shows a notice instead of failing silently).
 
