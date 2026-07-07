@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #15 (touch controls) — no defects. Mobile landscape
+  (844x390, hasTouch): menu boots in touch mode with PLAY visible; in-match the virtual
+  joystick moves the player, fire button shoots (30→23 rounds), the ADS button engages the
+  new COD centered-irons (adsT 1, FOV 62, 'on' class) and toggles off cleanly, nade button
+  throws (2→1). Zero errors. The v125 ADS work is verified cross-platform. Fifteen bug
+  passes; defect count still 2 (v104).
 - **v127** (2026-07-07): MENU WEATHER PREVIEW (polish). Selecting a weather in the menu now
   restyles the 3D backdrop live — rain streaks + overcast fog, snow, or clear — and map
   swaps re-apply the chosen weather (auto previews as clear). The AAA menu preview now
