@@ -18,6 +18,15 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v134** (2026-07-07): 🏆 RELEASE #100 — FIRST BLOOD SLOWMO (core-feel #33) + DEFECT #4
+  FIXED. The match's opening kill by the player now lands with a 250ms cinematic 0.35x
+  slow-motion beat (world dt scaled; audio/HUD real-time) under the 🩸 FIRST BLOOD callout.
+  Building it exposed defect #4: firstBloodTaken was consumed unconditionally BEFORE
+  killFlavor ran, making the player's FIRST BLOOD callout UNREACHABLE in solo since ~v08x
+  — bot-vs-bot kills now consume it in their own branch, player kills via killFlavor.
+  Verified numerically: world at 0.36x during the window, 1.0x after, callout fired.
+  One hundred releases: 33 core-feel iterations, 17 bug passes, 4 defects ever (all fixed
+  same-day), AAA menu, Blender pipeline, live PWA deploy. Full suite green. SW → v134.
 - **v133** (2026-07-07): ABOUT ROW + SW-BUMP DEFECT FIXED (defect #3 — found by our own
   feature). Settings panel gets a one-line About ("FRAGBOX V133 · built with Claude Code ·
   github") with the version fetched live from sw.js — and THAT fetch exposed a real bug:

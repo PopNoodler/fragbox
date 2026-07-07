@@ -3138,7 +3138,6 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
   b.hp -= dmg;
   if(b.hp<=0 && b.alive){
     b.alive = false;
-    firstBloodTaken = true;   // any kill anywhere consumes first blood
     b.deaths++;
     b.respawnT = 2.5;
     b.dyingT = 0.9;                            // fall, linger, sink — then hide
@@ -3150,6 +3149,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
     b.enemy = null;
     addPuff(new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z), 0xd32f2f, 14, 5);
     if(attacker){
+      firstBloodTaken = true;   // bot-vs-bot kill consumes first blood
       attacker.kills++;
       if(Math.random() < 0.3) radioBark(attacker.pos, false);
       killfeed(`<b>${attacker.name}</b> ${killGlyph((attacker.weapon || {}).name, false, false)} <b>${b.name}</b>`);
@@ -3244,6 +3244,7 @@ let lastKilledByName = null;   // revenge tracking
 function killFlavor(victimName){
   if(!firstBloodTaken){
     firstBloodTaken = true;
+    slowmo(0.35, 0.25);                        // cinematic beat on the opening kill
     setTimeout(() => { showCallout('🩸 FIRST BLOOD'); SFX.stinger('uav'); }, 350);
     addXp(50);
   } else if(lastKilledByName && victimName === lastKilledByName){
@@ -5274,10 +5275,17 @@ function fmtTime(s){ s = Math.max(0, Math.ceil(s)); return Math.floor(s/60)+':'+
 
 // ---------- Main loop ----------
 let last = performance.now();
+let timeScale = 1, timeScaleT = 0;
+function slowmo(scale, secs){ timeScale = scale; timeScaleT = secs; }
 function frame(now){
   requestAnimationFrame(frame);
   let dt = (now-last)/1000; last = now;
   if(dt>0.05) dt = 0.05;                       // clamp — playbook §9
+  if(timeScaleT > 0){
+    timeScaleT -= dt;                          // window measured in REAL time
+    if(timeScaleT <= 0) timeScale = 1;
+    else dt *= timeScale;                      // world runs slow; audio/HUD unaffected
+  }
 
   if(state===ST.MENU && !trainMode){
     const mt = performance.now() / 1000;
