@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v130** (2026-07-07): HEADSHOT AUDIO IDENTITY (core-feel #31). Headshots now SOUND
+  different — a crisp rising 2100→2600Hz skull ping replaces the flat 1200Hz hit tick
+  (which stays for body shots), wired through both the solo hit path and the MP hitfx
+  message (m.hs). You can now track headshot consistency by ear, COD-style. Assists
+  audited: already complete (server assist msg → "+50" callout + stats). Verified: head
+  volley 5 pings/0 body tones, torso volley the inverse. Full suite green. SW → v130.
 - **audit** (2026-07-07): BUG TEST PASS #16 (settings panel) — no defects. Sens/FOV/volume
   sliders apply live with correct labels, music toggles, all persist across reload; playing
   at MAX extremes (FOV 110 applied to camera, sens 2.2x, vol 0) and MIN extremes (60/0.3x)
