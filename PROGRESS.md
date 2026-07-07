@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v140** (2026-07-07): DYNAMIC MUSIC INTENSITY (core-feel #38). The ambient bed now
+  reacts to combat — a heat value rises fast when an enemy is within 18u or you took damage
+  in the last 3s (and eases out over ~4s of calm), sweeping the bed's lowpass open by up to
+  +900Hz: quiet exploration sounds muffled and tense, firefights sound bright and loud, and
+  the comedown is audible. Works per-map (each bed keeps its base cutoff). Verified: 260Hz
+  calm → 1160Hz hot → decaying after disengage. Full suite green. SW → v140.
 - **v139** (2026-07-07): PER-BOT RADIO VOICES (core-feel #37). Every bot now has a stable
   voice — a name-hashed pitch register (0.82x–1.21x) applied to its radio barks, so Vex
   always sounds like Vex and the squad chatter reads as different people instead of one

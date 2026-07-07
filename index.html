@@ -1182,6 +1182,7 @@ function setMusicMode(mode){
     src.connect(f); f.connect(g); g.connect(MUSIC.gain);
     src.start();
     MUSIC.amb = src;
+    MUSIC.ambFilter = f; MUSIC.ambBaseLp = cfg.lp;
     if(cfg.drone){
       const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = cfg.drone;
       const og = AC.createGain(); og.gain.value = 0.22;
@@ -3279,6 +3280,7 @@ function bigHit(){
   camShake = Math.max(camShake, 0.028);
 }
 function damagePlayer(dmg, from){
+  player.lastHurtT = performance.now();
   if(!player.alive) return;
   if(player.fortifyT > 0) dmg *= 0.5;
   if((player.shield|0) > 0){
@@ -3445,6 +3447,7 @@ function radioBark(fromPos, panic, name){
   setTimeout(() => noiseBurst(0.02, v * 0.5, 1900), 60 + words * 115 + 60);   // squelch close
 }
 let clutchOn = false, clutchDrone = null;
+let combatHeat = 0;
 let killcamRing = null;
 let killcamGun = null;
 function showKillcamGun(wname, at){
@@ -4738,6 +4741,14 @@ function updatePlayer(dt){
   // camera (recoil kicks pitch up, springs back)
   if(chainT > 0){ chainT -= dt; if(chainT <= 0) chainN = 0; }
   if(barkCd > 0) barkCd -= dt;
+  {  // dynamic music intensity: the ambient bed brightens with combat heat
+    let near = false;
+    for(const b2 of bots){ if(b2.alive && Math.hypot(b2.pos.x - player.pos.x, b2.pos.z - player.pos.z) < 18){ near = true; break; } }
+    if(mode === 'mp') for(const r2 of NET.remotes.values()){ if(r2.mesh.visible && Math.hypot(r2.mesh.position.x - player.pos.x, r2.mesh.position.z - player.pos.z) < 18){ near = true; break; } }
+    const inCombat = near || (player.lastHurtT !== undefined && performance.now() - player.lastHurtT < 3000);
+    combatHeat += ((inCombat ? 1 : 0) - combatHeat) * Math.min(1, dt * (inCombat ? 3 : 0.25));   // fast in, ~4s out
+    if(MUSIC.ambFilter) MUSIC.ambFilter.frequency.value = MUSIC.ambBaseLp + combatHeat * 900;
+  }
   const hpFrac = player.maxHp ? player.hp / player.maxHp : 1;
   const wantLow = player.alive && state === ST.PLAY && hpFrac > 0 && hpFrac < 0.3;
   if(wantLow !== lowHpOn){
