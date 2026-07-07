@@ -2755,7 +2755,11 @@ document.querySelectorAll('.setbtn').forEach(btn=>{
       applyQuality(resolveQualityTier());
     }
     if(k === 'xhair' || k === 'xcol') applyCrosshair();
-    if(k === 'map' && state === ST.MENU && mode !== 'mp') buildWorld(v);   // live menu preview swap
+    if(k === 'map' && state === ST.MENU && mode !== 'mp'){
+      buildWorld(v);                                        // live menu preview swap
+      buildWeather(SET.weather && SET.weather !== 'auto' ? SET.weather : 'clear');
+    }
+    if(k === 'weather' && state === ST.MENU && mode !== 'mp') buildWeather(v === 'auto' ? 'clear' : v);
     document.querySelectorAll(`.setbtn[data-k="${k}"]`).forEach(b=>{
       const bv = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v;
       b.classList.toggle('active', bv===v);

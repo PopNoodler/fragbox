@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v127** (2026-07-07): MENU WEATHER PREVIEW (polish). Selecting a weather in the menu now
+  restyles the 3D backdrop live — rain streaks + overcast fog, snow, or clear — and map
+  swaps re-apply the chosen weather (auto previews as clear). The AAA menu preview now
+  reflects every setting: map, skin, AND weather. Verified: rain click → fog 88a1b3 +
+  streak LineSegments in the preview scene (note: rain = LineSegments, snow = Points).
+  Full suite green. SW → v127.
 - **audit** (2026-07-07): BUG TEST PASS #14 (ADS regression sweep) — no defects. The new
   COD ADS (v125/v126) survives all edge combos: ADS during reload, ADS mid-slide, weapon
   switch mid-seat, grenade throw while sighted, and 10x rapid ADS spam — every case
