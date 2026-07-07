@@ -47,6 +47,8 @@
   /* ---------- HUD ---------- */
   #hud { position:fixed; inset:0; pointer-events:none; display:none; }
   #crosshair { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:24px; height:24px; }
+  @keyframes xhPop { 0%{ transform:translate(-50%,-50%) scale(1); } 35%{ transform:translate(-50%,-50%) scale(1.55); } 100%{ transform:translate(-50%,-50%) scale(1); } }
+  #crosshair.pop { animation:xhPop .22s ease-out; }
   #crosshair span { position:absolute; background:var(--xh, #fff); box-shadow:0 0 4px rgba(56,189,248,.9), 0 0 2px rgba(0,0,0,.9); }
   #crosshair .dot { display:none; left:50%; top:50%; width:4px; height:4px; margin:-2px 0 0 -2px; border-radius:50%; }
   #crosshair.st-dot span { display:none; }
@@ -3285,6 +3287,8 @@ function countUp(elm, target, opts = {}){
 let killFrameT = 0;
 function killImpactFrame(){
   killFrameT = 0.07;
+  const xh = el('crosshair');
+  xh.classList.remove('pop'); void xh.offsetWidth; xh.classList.add('pop');
   el('c').style.filter = 'saturate(1.45) contrast(1.12) brightness(1.12)';
   camera.fov = Math.max(30, camera.fov - 1.5);   // pinch; per-frame lerp recovers
   camera.updateProjectionMatrix();
@@ -4515,8 +4519,18 @@ function updatePlayer(dt){
   }
   camera.position.set(player.pos.x, player.pos.y + player.eyeH - landDip, player.pos.z);
   camera.rotation.set(0,0,0);
-  camera.rotateY(player.yaw + (player.recoilH || 0));
-  camera.rotateX(Math.min(1.55, player.pitch + player.recoil));
+  let scopeSwayX = 0, scopeSwayY = 0;
+  const wType = curW().type;
+  if(ads && (wType === 'sniper' || wType === 'scout')){
+    const holdBreath = keys.ShiftLeft || keys.ShiftRight;
+    const amp = holdBreath ? 0.00025 : 0.0013;
+    const st = performance.now() / 1000;
+    scopeSwayX = Math.sin(st * 1.7) * amp;             // slow figure-8 wander
+    scopeSwayY = Math.sin(st * 2.6 + 1.2) * amp * 0.7;
+    player.breathSteady = holdBreath;
+  } else player.breathSteady = false;
+  camera.rotateY(player.yaw + (player.recoilH || 0) + scopeSwayX);
+  camera.rotateX(Math.min(1.55, player.pitch + player.recoil + scopeSwayY));
   camera.rotateZ((player.recoilR || 0));
   if(player.slideT > 0) camera.rotateZ(0.05);
   if(player.sprinting && player.grounded){

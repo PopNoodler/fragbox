@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v112** (2026-07-07): SCOPE SWAY + KILL-POP + SOAK AUDIT. Snipers/scouts now have a slow
+  figure-8 scope wander when ADS (0.0013 rad) — hold SHIFT to steady your breath (6× calmer,
+  verified 0.0026→0.00043 rad range); crosshair pops (1→1.55→1 scale, 220ms) on every kill,
+  stacking with the impact frame. BUG PASS #5 (3-min soak, 7 hard bots + 5 respawn cycles):
+  NO leaks — meshes 549→512 (pools recycle), killfeed DOM bounded, heap 20→45→20MB healthy
+  GC sawtooth, zero errors. Five bug passes total: still only the 2 v104 defects ever found.
+  Full suite green. SW → v112.
 - **v111** (2026-07-07): AUDIO COHESION (core-feel #20). Bunker gets its own ambient bed —
   tight 90Hz room tone + 50Hz electrical hum with occasional fluorescent buzz-and-zap
   (matches the v110 ceiling lights); Compound gets an outdoor bed with low wind gusts
