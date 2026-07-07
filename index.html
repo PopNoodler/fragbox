@@ -3048,6 +3048,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
     addPuff(new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z), 0xd32f2f, 14, 5);
     if(attacker){
       attacker.kills++;
+      if(Math.random() < 0.3) radioBark(attacker.pos, false);
       killfeed(`<b>${attacker.name}</b> 🔫 <b>${b.name}</b>`);
     } else {
       player.kills++;
@@ -3063,6 +3064,10 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       killFlavor(b.name);
       killChain(headshot);
       killImpactFrame();
+      if(player.streak >= 5 && Math.random() < 0.4){
+        const pb = bots.find(x => x.alive);
+        if(pb) setTimeout(() => radioBark(pb.pos, true), 600);
+      }
       if(STREAK_REWARDS[player.streak]) grantStreakReward(player.streak);
       updateStreakHUD();
       updateScoreHUD();
@@ -3283,6 +3288,21 @@ function countUp(elm, target, opts = {}){
     if(p < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
+}
+// bot radio barks: squelch click + warbled chatter + click, distance-attenuated, globally rate-capped
+let barkCd = 0;
+function radioBark(fromPos, panic){
+  if(barkCd > 0) return;
+  barkCd = 4;
+  const d2 = fromPos ? Math.hypot(fromPos.x - player.pos.x, fromPos.z - player.pos.z) : 10;
+  const v = Math.max(0.05, 0.3 * (1 - Math.min(1, d2 / 45)));
+  noiseBurst(0.025, v * 0.6, 1900);                                     // squelch open
+  const base = panic ? 760 : 560;
+  const words = 2 + ((Math.random() * 2) | 0);
+  for(let i = 0; i < words; i++){
+    setTimeout(() => tone(base + (Math.random() - 0.5) * 260, 0.07 + Math.random() * 0.05, v, 'sawtooth'), 60 + i * 115);
+  }
+  setTimeout(() => noiseBurst(0.02, v * 0.5, 1900), 60 + words * 115 + 60);   // squelch close
 }
 let killFrameT = 0;
 function killImpactFrame(){
@@ -4505,6 +4525,7 @@ function updatePlayer(dt){
 
   // camera (recoil kicks pitch up, springs back)
   if(chainT > 0){ chainT -= dt; if(chainT <= 0) chainN = 0; }
+  if(barkCd > 0) barkCd -= dt;
   if(bunkerFlicker){
     const ft = performance.now() / 1000;
     bunkerFlicker.emissiveIntensity = Math.random() < 0.008 ? 0.05 : 0.55 + Math.sin(ft * 11) * 0.18 + Math.sin(ft * 3.7) * 0.1;
@@ -4904,6 +4925,7 @@ function updateBot(b, dt){
         new THREE.MeshBasicMaterial({ color: 0xff2b2b, transparent: true, opacity: 0.95 }));
       b.glint.position.set(0, 1.26, 0.95);
       b.mesh.add(b.glint);
+      if(Math.random() < 0.2) radioBark(b.pos, false);
     }
     if(b.glint) b.glint.visible = aimingAtPlayer;
     if(enemy && canSee && dist < 55 && b.fireT <= 0 && b.seeT >= reaction){

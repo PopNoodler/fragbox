@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v115** (2026-07-07): BOT RADIO BARKS (core-feel #23). Bots now chatter over radio —
+  squelch click + 2-3 warbled sawtooth "words" + click (~0.5s), distance-attenuated from
+  the barking bot: 30% when a bot scores a kill, 20% when one first locks onto you (paired
+  with the aim-telegraph glint — an audio tell), 40% panic bark when your streak hits 5+.
+  Global 4s cooldown keeps it sparse. Verified: barks fired through a 45s hard-bot brawl,
+  correctly rate-limited, zero errors. Full suite green. SW → v115.
 - **v114** (2026-07-07): MENU SOLDIER IDLE LIFE (polish) + BUG PASS #6 complete. The menu
   preview soldier no longer spins robotically — he breathes (subtle bob), shifts his weight,
   and his gaze wanders while the camera orbits; arms sway faintly with the breath. BUG PASS
