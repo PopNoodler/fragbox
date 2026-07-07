@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #18 (killhouse ghost race) — no defects. Seeded a
+  ghost (8 targets w/ splits): pace indicator shows and advances live as the ghost's split
+  times pass (👻 0 → 👻 2); losing to the ghost leaves the ghost AND best score untouched
+  (save-on-improvement only); results screen sane; zero errors. Eighteen bug passes;
+  4 defects ever, all fixed.
 - **v134** (2026-07-07): 🏆 RELEASE #100 — FIRST BLOOD SLOWMO (core-feel #33) + DEFECT #4
   FIXED. The match's opening kill by the player now lands with a 250ms cinematic 0.35x
   slow-motion beat (world dt scaled; audio/HUD real-time) under the 🩸 FIRST BLOOD callout.
