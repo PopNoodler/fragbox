@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v141** (2026-07-07): APP ICON GLOW-UP (polish). icon.svg rebuilt to match the AAA
+  brand — the crosshair ring now sweeps the cyan→purple→gold brand gradient with a soft
+  glow, gold ticks, glossy red center dot, and a subtly bordered dark tile (verified at
+  512px). This is the PWA install icon + favicon. Full suite green. SW → v141.
 - **v140** (2026-07-07): DYNAMIC MUSIC INTENSITY (core-feel #38). The ambient bed now
   reacts to combat — a heat value rises fast when an enemy is within 18u or you took damage
   in the last 3s (and eases out over ~4s of calm), sweeping the bed's lowpass open by up to
