@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v121** (2026-07-07): FOOTSTEP VARIATION (core-feel #27) + hit-direction audit. Every
+  footstep now varies ±8% in pitch and slightly in length — walking no longer sounds like
+  a metronome (verified: 9 consecutive steps, 9 unique frequencies). Also audited the
+  hit-direction indicator empirically: attacker due right → arc rendered right (+100°,
+  ~10° aim-punch skew) — bearing math CORRECT, no change needed. Full suite green.
+  SW → v121.
 - **audit** (2026-07-07): BUG TEST PASS #10 (gamemode matrix) — no defects. Booted a live
   server + client in each MP mode: TDM (team scoreboard shows), GunGame (weapon-ladder
   chip shows), DOM (3 capture-point chips), CTF (flag state synced, pole meshes visible in

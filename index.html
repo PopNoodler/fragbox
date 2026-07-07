@@ -1025,8 +1025,9 @@ const SHOT_RECIPES = {
 };
 function stepSound(vol, sharp){
   if(!AC || vol < 0.008) return;
-  noiseBurst(0.04, vol, sharp ? 1300 : 420);
-  if(!sharp) tone(82 + Math.random()*14, 0.035, vol*0.45, 'sine');
+  const pv = 0.92 + Math.random() * 0.16;                       // ±8% pitch per step — no machine-gun feet
+  noiseBurst(0.035 + Math.random() * 0.012, vol, Math.round((sharp ? 1300 : 420) * pv));
+  if(!sharp) tone((82 + Math.random()*14) * pv, 0.035, vol*0.45, 'sine');
 }
 const SFX = {
   shoot(w, vol=1){
