@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v128** (2026-07-07): IRONS MICRO-DRIFT + INSPECT SFX (core-feel #30). Fully-seated iron
+  sights now wander almost imperceptibly (±0.0004 rad slow figure-8 — held by hands, not a
+  vice; 1/3 of scope sway, no hold-breath for irons). The F-key weapon inspect finally has
+  sound: cloth rustle on raise, mechanical tick at the flourish apex, settle rustle at the
+  end. Verified: hip drift 0 vs seated 0.0006 rad; tick + rustle in the log. Full suite
+  green. SW → v128.
 - **audit** (2026-07-07): BUG TEST PASS #15 (touch controls) — no defects. Mobile landscape
   (844x390, hasTouch): menu boots in touch mode with PLAY visible; in-match the virtual
   joystick moves the player, fire button shoots (30→23 rounds), the ADS button engages the

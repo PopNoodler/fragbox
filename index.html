@@ -2790,7 +2790,12 @@ addEventListener('keydown', e=>{
   if(e.code==='KeyG' && !e.repeat && state===ST.PLAY && player.alive && !paused && (player.nades|0) > 0){ nadeAim = true; tone(2400, 0.025, 0.12, 'square'); noiseBurst(0.02, 0.08, 2600); }
   if(e.code==='KeyQ' && !e.repeat) useAbility();
   if(e.code==='KeyF' && !e.repeat && state===ST.PLAY && player.alive && !paused && !ads
-     && player.reloadT<=0 && (player.inspectT||0)<=0) player.inspectT = 1.2;
+     && player.reloadT<=0 && (player.inspectT||0)<=0){
+    player.inspectT = 1.2;
+    noiseBurst(0.06, 0.06, 700);                                        // cloth rustle
+    setTimeout(() => tone(1750, 0.02, 0.08, 'square'), 550);            // mechanical tick at apex
+    setTimeout(() => noiseBurst(0.04, 0.05, 900), 1050);                // settle back
+  }
   if(e.code==='Tab'){ e.preventDefault(); sbOpen = true; renderScoreboard(); el('scoreboard').style.display='block'; }
   if(e.code==='Space') e.preventDefault();
   if(e.code==='Escape' && !document.pointerLockElement){
@@ -4675,6 +4680,12 @@ function updatePlayer(dt){
       }
     } else if(player.breathSteady){ noiseBurst(0.28, 0.07, 850); }            // exhale on release
     player.breathSteady = holdBreath;
+  } else if(ads && (player.adsT || 0) >= 1){
+    if(player.breathSteady) noiseBurst(0.28, 0.07, 850);
+    player.breathSteady = false;
+    const st = performance.now() / 1000;
+    scopeSwayX = Math.sin(st * 1.5) * 0.0004;          // irons: subtle hand wander
+    scopeSwayY = Math.sin(st * 2.3 + 1.2) * 0.00028;
   } else {
     if(player.breathSteady) noiseBurst(0.28, 0.07, 850);
     player.breathSteady = false;
