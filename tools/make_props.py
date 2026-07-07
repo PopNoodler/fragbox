@@ -90,6 +90,16 @@ am.append(block('handleL', (0.05, 0.16, 0.04), (-0.315, 0, 0.0), LATCH))
 am.append(block('handleR', (0.05, 0.16, 0.04), (0.315, 0, 0.0), LATCH))
 root_for('prop_ammo', am)
 
+# ================= industrial ceiling light =================
+TUBE = mat('TubeMat', (0.95, 0.92, 0.78), rough=0.3, emit=(1.0, 0.95, 0.75), estr=2.2)
+cl = []
+cl.append(block('housing', (0.95, 0.30, 0.16), (0, 0, 0.05), STEEL, bevel=0.015))
+cl.append(block('fin1', (0.02, 0.34, 0.10), (-0.30, 0, 0.02), LATCH, bevel=0.004))
+cl.append(block('fin2', (0.02, 0.34, 0.10), (0.30, 0, 0.02), LATCH, bevel=0.004))
+cl.append(block('tube', (0.78, 0.14, 0.05), (0, 0, -0.07), TUBE, bevel=0.008))
+cl.append(block('stem', (0.06, 0.06, 0.14), (0, 0, 0.17), LATCH))
+root_for('prop_ceillight', cl)
+
 out = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else 'models/props.glb'
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_apply=True, export_yup=True)

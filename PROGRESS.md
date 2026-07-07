@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v110** (2026-07-07): BUNKER ATMOSPHERE (polish). New Blender prop_ceillight (steel
+  housing, cooling fins, glowing tube, mount stem) hung in every one of Bunker's 9 rooms
+  (y4.45 under the ceiling slab; primitive emissive fallback until the GLB loads); one
+  fixture FLICKERS (sine shimmer + rare dropouts); two warm PointLights add local glow on
+  med+ quality (skipped on low). Fixtures live in worldGroup so map swaps clean them.
+  Screenshot-verified glowing fixture overhead. Full suite green. SW → v110.
 - **v109** (2026-07-07): MOVEMENT MICRO-FEEL (core-feel #19). Starts from standstill now
   ease in over ~60ms (ground accel ramps 35%→100%; top speed, strafe, and air control
   untouched — competitive responsiveness preserved); stopping from a sprint (>5 u/s) scuffs
