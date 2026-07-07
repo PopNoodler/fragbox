@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #16 (settings panel) — no defects. Sens/FOV/volume
+  sliders apply live with correct labels, music toggles, all persist across reload; playing
+  at MAX extremes (FOV 110 applied to camera, sens 2.2x, vol 0) and MIN extremes (60/0.3x)
+  is clean with the viewmodel intact. Zero errors. Sixteen bug passes; defect count
+  still 2 (v104).
 - **v129** (2026-07-07): SHARE BUTTONS (polish + organic growth). Match results and
   Killhouse results now have 📋 SHARE — one click copies a bragging line with the live URL
   ("I went 7K/3D in FragBox — play it at popnoodler.github.io/fragbox") / ("I hit N targets
