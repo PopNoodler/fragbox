@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v135** (2026-07-07): MATCH-START BANNER (core-feel #34). The deploy countdown now
+  introduces the arena — "BUNKER / FREE-FOR-ALL · FIRST TO 25" fades in under the 3-2-1
+  and fades out at GO; Killhouse gets "KILLHOUSE / 60 SECONDS · BEAT YOUR GHOST"; MP shows
+  the live server mode. Verified: banner text + fade lifecycle + screenshot. Full suite
+  green. SW → v135.
 - **audit** (2026-07-07): BUG TEST PASS #18 (killhouse ghost race) — no defects. Seeded a
   ghost (8 targets w/ splits): pace indicator shows and advances live as the ghost's split
   times pass (👻 0 → 👻 2); losing to the ghost leaves the ghost AND best score untouched
