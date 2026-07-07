@@ -509,6 +509,7 @@
     <div class="setslider"><label>Field of view <b id="fovval">75</b></label><input type="range" id="fovsl" min="60" max="110" step="1"></div>
     <div class="setslider"><label>Volume <b id="volval">100%</b></label><input type="range" id="volsl" min="0" max="100" step="5"></div>
     <div class="setslider" style="display:flex; justify-content:space-between; align-items:center"><label style="margin:0">Music</label><button id="musicbtn" class="setbtn" style="width:70px">ON</button></div>
+    <div class="setslider" style="display:flex; justify-content:space-between; align-items:center"><label style="margin:0">Slow-mo effects <small style="color:var(--faint)">(hit-stop, first blood)</small></label><button id="rmotionbtn" class="setbtn" style="width:70px">ON</button></div>
     <div style="margin-top:14px; display:flex; gap:10px; justify-content:center">
       <button id="tutreplay" class="setbtn" style="width:auto; padding:8px 16px">Replay tutorial</button>
       <button id="setclose" class="bigbtn" style="font-size:15px; padding:11px 34px">DONE</button>
@@ -2726,6 +2727,8 @@ function saveSET(){ localStorage.kh_set = JSON.stringify(SET); }
 function syncSettingsUI(){
   el('musicbtn').textContent = SET.music ? 'ON' : 'OFF';
   el('musicbtn').classList.toggle('active', !!SET.music);
+  el('rmotionbtn').textContent = SET.noSlowmo ? 'OFF' : 'ON';
+  el('rmotionbtn').classList.toggle('active', !SET.noSlowmo);
   el('senssl').value = SET.sens; el('sensval').textContent = (SET.sens/100).toFixed(2);
   el('fovsl').value = SET.fov;   el('fovval').textContent = SET.fov;
   el('volsl').value = SET.vol;   el('volval').textContent = SET.vol + '%';
@@ -2791,6 +2794,9 @@ el('invitecopy').addEventListener('click', ()=>{
   });
 });
 el('gearbtn2').addEventListener('click', ()=>openSettings());
+el('rmotionbtn').addEventListener('click', ()=>{
+  SET.noSlowmo = SET.noSlowmo ? 0 : 1; saveSET(); syncSettingsUI();
+});
 el('musicbtn').addEventListener('click', ()=>{
   SET.music = SET.music ? 0 : 1; saveSET();
   el('musicbtn').textContent = SET.music ? 'ON' : 'OFF';
@@ -5350,7 +5356,7 @@ function fmtTime(s){ s = Math.max(0, Math.ceil(s)); return Math.floor(s/60)+':'+
 // ---------- Main loop ----------
 let last = performance.now();
 let timeScale = 1, timeScaleT = 0;
-function slowmo(scale, secs){ timeScale = scale; timeScaleT = secs; }
+function slowmo(scale, secs){ if(SET.noSlowmo) return; timeScale = scale; timeScaleT = secs; }
 function frame(now){
   requestAnimationFrame(frame);
   let dt = (now-last)/1000; last = now;

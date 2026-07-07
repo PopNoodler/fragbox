@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v144** (2026-07-07): SLOW-MO TOGGLE (accessibility polish). New settings row disables
+  all time-manipulation effects (first-blood slowmo + headshot hit-stop) for players who
+  find sudden time shifts disorienting — one gate inside slowmo(), persisted. MP nameplates
+  audited: already implemented (makeNameTag on remote join + podium). Verified: toggle OFF
+  → first-blood headshot kill runs at pure real time (0.167s decay/150ms). Full suite
+  green. SW → v144.
 - **audit** (2026-07-07): BUG TEST PASS #23 (class Q matrix) — no defects. All 9 classes'
   abilities fired their real effects headlessly (Assault/Commando frag restock +1 nade,
   Gunner dash 4s, Breacher fortify 5s, Marksman/Scout recon, Support resupply refills
