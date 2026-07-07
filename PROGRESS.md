@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #21 (weapon balance, read-only) — arsenal coherent,
+  NO changes. Body TTK vs 100hp: AK .20s / MP5 .27 / FAMAS .22 (burst-gated, raw DPS 400) /
+  M14 .21 / M249 .33 / Magnum .46 / M1911 .55 / SSG 1.09 (1-shot head — scout identity) /
+  AWP + M870 one-shot (115 dmg / 7x18 point-blank). The sub-.3s rifle TTKs are the user's
+  explicit fast-TTK directive (asked twice); roles are distinct (sidearms slower, snipers
+  binary, LMG sustained). Flagged nothing; balance changes remain user-gated.
 - **v138** (2026-07-07): SHUTDOWN CALLOUT (core-feel #36, WaterHero streak drama). Killing
   an enemy on a 5+ killstreak now pops "🛑 SHUTDOWN +75" with bonus XP — bots track per-life
   streaks solo-side (gain on their kills incl. killing you, reset on death), and the MP
