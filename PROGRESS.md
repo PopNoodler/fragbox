@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #13 (extreme settings) — no defects. 60s soak at
+  max stress (7 hard bots, Bunker, HIGH quality, forced rain, music on, player pinned in
+  the low-HP band, clutch armed via 28s close match): all systems coexisted — low-HP
+  desat + heartbeat + clutch drone + barks + rain suppression — with ZERO errors and sane
+  frames (worst 70ms on SwiftShader). Bonus: the match ended mid-soak, proving cleanup —
+  clutch class/drone removed, desaturation cleared on death. Thirteen bug passes; defect
+  count still 2 (v104).
 - **v123** (2026-07-07): LOW-HP SURVIVAL STATE (core-feel #28). Below 30% health the world
   desaturates (canvas saturate .72, owned by a baseFilter() that the kill-impact frame now
   resets to — no filter fights) and a slow wounded heartbeat thumps at 1.1s (52/44Hz —
