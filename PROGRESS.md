@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v125** (2026-07-07): REAL COD-STYLE ADS (user directive: "Implement real ADS for the
+  guns like COD"). Aiming now brings the gun to SCREEN CENTER with the iron sights rising
+  to the exact eye line — per-weapon sight alignment table (ADS_POSE: 8 non-scoped weapons
+  tuned via screenshot passes; front posts verified on-center for AK/M1911/MP5/M870), gun
+  pulled in closer on z, crosshair HIDDEN once sights are up (adsT>0.65) so you aim with
+  the irons like COD, and ADS walk speed reduced to ~65%. Snipers/scouts keep their
+  fullscreen scope (already COD-correct). Hip-fire pose, sway fade, kick damping, breathe,
+  reload/inspect poses all preserved through the new lerp. Full suite green. SW → v125.
 - **v124** (2026-07-07): NEAR-MISS WALL IMPACTS (core-feel #29). Bot rounds that whiz past
   you now visibly STRIKE the surface behind/beside you — gold spark burst at the impact
   point + proximity-scaled thud (200Hz) and ricochet tick (3kHz), 30ms after the ear-snap.

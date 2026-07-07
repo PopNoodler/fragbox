@@ -2273,6 +2273,18 @@ function resetLoadout(){
 const vmGroup = new THREE.Group();
 camera.add(vmGroup); scene.add(camera);
 let vmMesh = null;
+// COD-style ADS: per-weapon sight alignment — gun centers on x, sights rise to the eye line
+const ADS_POSE = {
+  'AK-47':       { y: -0.063, z: -0.40 },
+  'FAMAS':       { y: -0.063, z: -0.40 },
+  'M14':         { y: -0.063, z: -0.42 },
+  'M249':        { y: -0.073, z: -0.44 },
+  'MP5':         { y: -0.058, z: -0.34 },
+  'M870':        { y: -0.068, z: -0.42 },
+  'M1911':       { y: -0.050, z: -0.30 },
+  '.44 Magnum':  { y: -0.053, z: -0.31 },
+  _def:          { y: -0.063, z: -0.40 }
+};
 let vmFlash = null, vmFlashT = 0;
 // ---------- Weapon camos (per-gun kill tiers past attachments) ----------
 const CAMOS = [
@@ -4572,6 +4584,7 @@ function updatePlayer(dt){
   player.eyeH += (eyeTarget - (player.eyeH || EYE)) * Math.min(1, dt*12);
 
   let speed = (sprinting ? SPRINT : WALK) * (player.speedMul || 1);
+  speed *= 1 - (player.adsT || 0) * 0.35;   // COD ADS walk: ~65% while sighted
   if(player.dashT > 0) speed *= 1.35;
   if(player.carryingFlag) speed *= 0.9;
   if(player.crouch && !sliding) speed *= 0.5;
@@ -4686,7 +4699,8 @@ function updatePlayer(dt){
   }
   const scoped = ads && (wpn.type==='sniper' || wpn.type==='scout') && camera.fov < 42;
   el('scope').style.display = scoped ? 'block' : 'none';
-  el('crosshair').style.display = scoped ? 'none' : 'block';
+  const ironsUp = ads && (player.adsT || 0) > 0.65 && !scoped;
+  el('crosshair').style.display = (scoped || ironsUp) ? 'none' : 'block';
   // bloom decay + crosshair gap reflects live spread
   bloom = Math.max(0, bloom - dt*(mouseDown ? 0.45 : 1.7));
   const chPx = Math.min(90, Math.round(14 + currentSpread(wpn)*800));
@@ -4769,10 +4783,12 @@ function updatePlayer(dt){
   // viewmodel bob & kick
   const moving = wish.lengthSq()>0 && player.grounded;
   vmBob += dt * (moving ? (sprinting?13:9) : 2);
+
   vmKick = Math.max(0, vmKick - dt*8);
   if(player.inspectT > 0) player.inspectT -= dt;
   if(player.vmSwitchT > 0) player.vmSwitchT -= dt;
   const wNow = curW();
+  const AP = ADS_POSE[wNow.name] || ADS_POSE._def;
   const adsRate = wNow.type === 'sniper' || wNow.type === 'lmg' ? 4.5
     : wNow.type === 'scout' || wNow.type === 'dmr' || wNow.type === 'shotgun' ? 6
     : wNow.type === 'pistol' || wNow.type === 'smg' || wNow.type === 'revolver' ? 10 : 7.5;
@@ -4791,10 +4807,10 @@ function updatePlayer(dt){
   if(vmMesh){
     const at = player.adsT, sway = 1 - at*0.85;   // bob/sway fades as sights come up
     vmMesh.position.set(
-      (0.26 - at*0.2) + Math.sin(vmBob)*0.008*(moving?1:0.3)*sway,
-      (-0.24 + at*0.05) + Math.abs(Math.cos(vmBob))*0.012*(moving?1:0.3)*sway + vmKick*0.03*(1 - at*0.45)
+      0.26*(1-at) + Math.sin(vmBob)*0.008*(moving?1:0.3)*sway,
+      (-0.24*(1-at) + AP.y*at) + Math.abs(Math.cos(vmBob))*0.012*(moving?1:0.3)*sway + vmKick*0.03*(1 - at*0.55)
         - (player.vmSwitchT > 0 ? Math.sin((player.vmSwitchT/0.24)*Math.PI)*0.16 : 0),
-      (-0.55 + at*0.07) + vmKick*0.09*(1 - at*0.45)
+      (-0.55*(1-at) + AP.z*at) + vmKick*0.09*(1 - at*0.55)
     );
     if(player.idleT > 1.5){
       const br = Math.min(1, (player.idleT - 1.5) / 1.2);   // ease in
