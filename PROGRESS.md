@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v123** (2026-07-07): LOW-HP SURVIVAL STATE (core-feel #28). Below 30% health the world
+  desaturates (canvas saturate .72, owned by a baseFilter() that the kill-impact frame now
+  resets to — no filter fights) and a slow wounded heartbeat thumps at 1.1s (52/44Hz —
+  slower + deeper than the hold-breath beat), on top of the existing red vignette pulse.
+  All of it clears the moment you heal past 30% or respawn. Verified: hp 20 → desat + 6
+  thumps/3s; heal → baseline filter, silence. Full suite green. SW → v123.
 - **audit** (2026-07-07): BUG TEST PASS #12 (audio/system) — no defects. AudioContext is
   lazily created only on first gesture (nothing pre-gesture, resumes if suspended); 60s of
   menu idle leaks no music/ambient timers (setMusicMode clears before re-arming); 20 rapid

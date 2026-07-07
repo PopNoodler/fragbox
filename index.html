@@ -3350,6 +3350,10 @@ function endClutch(){
   if(clutchDrone){ try { clutchDrone.stop(); } catch(e){} clutchDrone = null; }
 }
 let killFrameT = 0;
+let lowHpOn = false, lowHpBeatT = 0;
+function baseFilter(){
+  return lowHpOn ? 'saturate(.72) contrast(1.05)' : 'saturate(1.07) contrast(1.04)';
+}
 function killImpactFrame(){
   killFrameT = 0.07;
   const xh = el('crosshair');
@@ -3357,7 +3361,7 @@ function killImpactFrame(){
   el('c').style.filter = 'saturate(1.45) contrast(1.12) brightness(1.12)';
   camera.fov = Math.max(30, camera.fov - 1.5);   // pinch; per-frame lerp recovers
   camera.updateProjectionMatrix();
-  setTimeout(() => { el('c').style.filter = 'saturate(1.07) contrast(1.04)'; }, 70);
+  setTimeout(() => { el('c').style.filter = baseFilter(); }, 70);
 }
 function killChain(headshot){
   chainN = chainT > 0 ? chainN + 1 : 1;
@@ -4596,6 +4600,21 @@ function updatePlayer(dt){
   // camera (recoil kicks pitch up, springs back)
   if(chainT > 0){ chainT -= dt; if(chainT <= 0) chainN = 0; }
   if(barkCd > 0) barkCd -= dt;
+  const hpFrac = player.maxHp ? player.hp / player.maxHp : 1;
+  const wantLow = player.alive && state === ST.PLAY && hpFrac > 0 && hpFrac < 0.3;
+  if(wantLow !== lowHpOn){
+    lowHpOn = wantLow;
+    el('c').style.filter = baseFilter();       // desaturate in / restore out
+    lowHpBeatT = 0.2;
+  }
+  if(lowHpOn){
+    lowHpBeatT -= dt;
+    if(lowHpBeatT <= 0){
+      lowHpBeatT = 1.1;                        // slower than hold-breath — wounded, not focused
+      tone(52, 0.09, 0.22, 'sine');
+      setTimeout(() => tone(44, 0.08, 0.15, 'sine'), 150);
+    }
+  }
   if(bunkerFlicker){
     const ft = performance.now() / 1000;
     bunkerFlicker.emissiveIntensity = Math.random() < 0.008 ? 0.05 : 0.55 + Math.sin(ft * 11) * 0.18 + Math.sin(ft * 3.7) * 0.1;
