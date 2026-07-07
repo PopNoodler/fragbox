@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #3 (MP, live server + 2 clients) — no defects.
+  Verified: client disconnect mid-match removes the remote cleanly (0 remotes, 0 stray
+  meshes on the survivor); scoreboard open during another player's death — no errors;
+  respawn cycle clean; zero page errors on both clients through join/play/leave. Kill-flow
+  reprobe was inconclusive due to a harness limit (client-side teleports don't stick under
+  server-authoritative movement) but that path runs green in every mptest duel. Suite green.
 - **v108** (2026-07-07): MATCH-END RESULTS JUICE (polish, WaterHero-style). Gameover stats
   (kills, deaths, +XP) and Killhouse results (targets, accuracy, avg TTK) now COUNT UP from
   zero with ease-out curves, staggered starts, and rising tick sounds; the Killhouse GRADE
