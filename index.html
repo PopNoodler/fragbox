@@ -3152,6 +3152,17 @@ function botShoot(b, e){
       const wv = Math.max(0.06, 0.22 * (1 - dist / 50));
       tone(2600, 0.014, wv, 'square');
       setTimeout(() => tone(880, 0.05, wv * 0.5, 'sine'), 18);
+      // ...and the round striking the wall behind/beside you
+      const wd2 = castWorld(eye, dir, dist + 14);
+      if(isFinite(wd2)){
+        const hitP = eye.clone().add(dir.clone().multiplyScalar(wd2));
+        const dNear = Math.hypot(hitP.x - player.pos.x, hitP.y - (player.pos.y + 1), hitP.z - player.pos.z);
+        if(dNear < 7){
+          addPuff(hitP, 0xffd54f, 4, 4);                       // sparks off the wall
+          const iv = Math.max(0.05, 0.18 * (1 - dNear / 4));
+          setTimeout(() => { tone(200, 0.05, iv, 'sine'); tone(3000, 0.012, iv * 0.7, 'square'); }, 30);
+        }
+      }
     }
   }
 }

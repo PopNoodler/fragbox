@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v124** (2026-07-07): NEAR-MISS WALL IMPACTS (core-feel #29). Bot rounds that whiz past
+  you now visibly STRIKE the surface behind/beside you — gold spark burst at the impact
+  point + proximity-scaled thud (200Hz) and ricochet tick (3kHz), 30ms after the ear-snap.
+  Only fires when the impact lands within 7u of you (recast extends 14u past the target).
+  Verified deterministically: player backed against Bunker's west wall → 6 whizzes, 6
+  impacts, 6 ticks, zero errors. Cover fire finally FEELS like cover fire. Full suite
+  green. SW → v124.
 - **audit** (2026-07-07): BUG TEST PASS #13 (extreme settings) — no defects. 60s soak at
   max stress (7 hard bots, Bunker, HIGH quality, forced rain, music on, player pinned in
   the low-HP band, clutch armed via 28s close match): all systems coexisted — low-HP
