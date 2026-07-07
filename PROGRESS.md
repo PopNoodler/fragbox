@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #4 — no defects. Weather × quality matrix (forced
+  rain on sealed Bunker = 0 particles ✓ indoor handling correct; meadow snow renders 280;
+  low tier clean); camo applies to ALL cm_-prefixed GLB viewmodel furniture at the earned
+  kill threshold (3/3 meshes textured); daily challenge progress persists mid-match across
+  reload. Zero page errors across every boot. Four bug passes total: 2 real defects found
+  and fixed (both v104), everything since clean.
 - **v110** (2026-07-07): BUNKER ATMOSPHERE (polish). New Blender prop_ceillight (steel
   housing, cooling fins, glowing tube, mount stem) hung in every one of Bunker's 9 rooms
   (y4.45 under the ceiling slab; primitive emissive fallback until the GLB loads); one
