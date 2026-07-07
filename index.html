@@ -464,6 +464,7 @@
       <button id="trainretry" class="bigbtn" style="font-size:15px; padding:11px 30px">RETRY</button>
       <button id="trainmoving" class="bigbtn" style="font-size:15px; padding:11px 22px; background:rgba(126,87,194,.35); border:1px solid #7e57c2">MOVING TARGETS</button>
       <button id="trainmenu" class="bigbtn" style="font-size:15px; padding:11px 30px; background:rgba(255,255,255,.1)">MENU</button>
+      <button id="trainshare" class="bigbtn" style="font-size:15px; padding:11px 22px; background:rgba(56,189,248,.18); border:1px solid rgba(56,189,248,.5); box-shadow:none">📋 SHARE</button>
     </div>
   </div>
 </div>
@@ -524,6 +525,7 @@
     <div id="overstats"></div>
     <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
       <button id="againbtn" class="bigbtn">PLAY AGAIN</button>
+      <button id="sharebtn" class="bigbtn" style="font-size:14px; padding:12px 24px; background:rgba(56,189,248,.18); border:1px solid rgba(56,189,248,.5); box-shadow:none">📋 SHARE</button>
       <button id="adx2btn" class="bigbtn" style="display:none; background:linear-gradient(135deg,#66bb6a,#2e7d32); box-shadow:0 4px 20px rgba(46,125,50,.4)">▶ AD — 2× XP</button>
     </div>
   </div>
@@ -2698,6 +2700,22 @@ el('volsl').addEventListener('input', ()=>{ SET.vol = +el('volsl').value; saveSE
 function openSettings(){ syncSettingsUI(); el('settingspanel').style.display = 'flex'; }
 el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
 el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('statspanel').style.display = 'flex'; });
+function wireShare(btnId, textFn){
+  const b = el(btnId);
+  if(!b) return;
+  b.addEventListener('click', async ()=>{
+    try { await navigator.clipboard.writeText(textFn()); } catch(e){}
+    const old = b.textContent;
+    b.textContent = 'COPIED ✓';
+    setTimeout(() => { b.textContent = old; }, 1600);
+  });
+}
+wireShare('sharebtn', () => 'I went ' + player.kills + 'K/' + player.deaths + 'D in FragBox — play it at https://popnoodler.github.io/fragbox/');
+wireShare('trainshare', () => {
+  const g = el('ts3') ? el('ts3').textContent : '?';
+  const t = el('ts0') ? el('ts0').textContent : '?';
+  return 'I hit ' + t + ' targets (grade ' + g + ') in the FragBox Killhouse — beat me at https://popnoodler.github.io/fragbox/';
+});
 el('trainbtn').addEventListener('click', ()=>{ audio(); el('menu').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; mode = 'solo'; startTrain(); });
 el('trainretry').addEventListener('click', ()=>{ el('trainend').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; startTrain(); });
 el('trainmoving').addEventListener('click', ()=>{ train.moving = !train.moving; el('trainmoving').textContent = train.moving ? 'STATIC TARGETS' : 'MOVING TARGETS'; el('trainend').style.display = 'none'; el('hud').style.display = 'block'; state = ST.PLAY; startTrain(); });

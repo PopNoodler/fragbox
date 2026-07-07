@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v129** (2026-07-07): SHARE BUTTONS (polish + organic growth). Match results and
+  Killhouse results now have 📋 SHARE — one click copies a bragging line with the live URL
+  ("I went 7K/3D in FragBox — play it at popnoodler.github.io/fragbox") / ("I hit N targets
+  grade S in the Killhouse — beat me at ...") with a COPIED ✓ swap. Verified end-to-end
+  headlessly: clipboard contents exact. Every match end is now a viral loop hook. Full
+  suite green. SW → v129.
 - **v128** (2026-07-07): IRONS MICRO-DRIFT + INSPECT SFX (core-feel #30). Fully-seated iron
   sights now wander almost imperceptibly (±0.0004 rad slow figure-8 — held by hands, not a
   vice; 1/3 of scope sway, no hold-breath for irons). The F-key weapon inspect finally has
