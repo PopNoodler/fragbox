@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v106** (2026-07-07): KILL-CHAIN JUICE (polish, WaterHero combo-style). Multikill callouts
+  are now TIME-CHAINED — rapid kills within a 4s window escalate DOUBLE→TRIPLE→QUAD→RAMPAGE→
+  UNSTOPPABLE with growing callout size (38→66px), rising two-tone pitch per tier, and a gold
+  screen pulse that intensifies with the chain. Chain resets after 4s or on death (solo+MP);
+  previously "DOUBLE KILL" fired off the life streak even for kills minutes apart. Killstreak
+  REWARDS (UAV/shield/airstrike) stay life-based, unchanged. Verified: rapid triple →
+  DOUBLE, TRIPLE callouts + UAV at streak 3. Full suite green. SW → v106.
 - **v105** (2026-07-07): DIRECTIONAL DEATH FALLS (core-feel #17). Kills now read physically:
   the victim snaps to face its killer and tips over BACKWARD away from the shot (with a
   slight side wobble), and heavy killing blows (>60 dmg) shove the body backward as it falls
