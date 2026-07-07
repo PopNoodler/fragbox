@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v142** (2026-07-07): HEADSHOT HIT-STOP (core-feel #39). Headshot KILLS now land with a
+  35ms near-total time freeze (timeScale 0.05) — a single heartbeat of stopped time that
+  makes crits feel surgical; guarded against stacking with the 250ms first-blood slowmo
+  (first blood wins). Paired with the v130 skull ping, headshots are now unmistakable to
+  both ear and eye. Verified: dying-anim decay halved through the freeze window, real-rate
+  after. Full suite green. SW → v142.
 - **audit** (2026-07-07): BUG TEST PASS #22 (10-min marathon) — no defects. Full 600s match
   end-to-end: timer drift vs wall clock was a CONSTANT ~4.5s (the deploy-offset estimate),
   i.e. ZERO accumulated drift between the 2/5/9-min samples; gameover fired at the horn;
