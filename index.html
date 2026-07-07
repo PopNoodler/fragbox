@@ -4520,6 +4520,7 @@ function checkMatchEnd(){
   if(top >= KILL_TARGET || matchT <= 0) endMatch();
 }
 function endMatch(){
+  lowHpOn = false; el('c').style.filter = baseFilter();   // wounded desat must not tint the results
   if(trainMode){ endTrain(); state = ST.MENU; el('hud').style.display = 'none'; return; }
   {
     const rows = [{ name:'You', k:player.kills, d:player.deaths }, ...bots.map(b=>({ name:b.name, k:b.kills, d:b.deaths }))]

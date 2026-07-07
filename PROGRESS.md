@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v137** (2026-07-07): BUG TEST PASS #20 (match-end flow) — 1 fix (defect #5, cosmetic).
+  Probed the full end-of-match loop twice consecutively with dirtied state (low HP, chain,
+  thrown nade): placements/XP sane, PLAY AGAIN fully resets hp/nades/kills/chain/clutch,
+  zero errors. FOUND+FIXED: finishing a match while wounded left the low-HP desaturation
+  filter stuck on the results screen (the low-HP driver only runs during play) — endMatch
+  now clears it. Twenty bug passes; 5 defects ever, all fixed same-day. Full suite green.
+  SW → v137.
 - **v136** (2026-07-07): KILLCAM MURDER WEAPON (core-feel #35). The gun that killed you now
   floats spinning above your killer for the whole killcam (Blender world-model clone at
   1.4x, weapon FROZEN at the moment of death — killers who respawn mid-cam don't swap it),
