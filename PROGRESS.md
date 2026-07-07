@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v136** (2026-07-07): KILLCAM MURDER WEAPON (core-feel #35). The gun that killed you now
+  floats spinning above your killer for the whole killcam (Blender world-model clone at
+  1.4x, weapon FROZEN at the moment of death — killers who respawn mid-cam don't swap it),
+  completing the killcam triptych: freeze-frame + red ring + the weapon itself. GLB_VM
+  hoisted to module scope. Verified: AWP kill → AWP floats + spins at y2.4, hidden on all
+  three killcam exits. Full suite green. SW → v136.
 - **audit** (2026-07-07): BUG TEST PASS #19 (10-min menu idle soak) — no defects. Heap
   SHRANK 15→11MB over 10 minutes idling in the AAA menu (music + ambient on), scene
   children exactly stable (31), soldier preview + orbit alive throughout, zero errors.

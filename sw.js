@@ -1,4 +1,4 @@
-const CACHE = 'fragbox-v135';
+const CACHE = 'fragbox-v136';
 const ASSETS = ['./', './index.html', './lib/three.module.js', './lib/GLTFLoader.js', './lib/BufferGeometryUtils.js', './models/soldier.glb', './models/weapons.glb', './models/props.glb', './shared/map.mjs', './shared/weapons.mjs', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
