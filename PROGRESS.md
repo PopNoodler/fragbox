@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #23 (class Q matrix) — no defects. All 9 classes'
+  abilities fired their real effects headlessly (Assault/Commando frag restock +1 nade,
+  Gunner dash 4s, Breacher fortify 5s, Marksman/Scout recon, Support resupply refills
+  reserves, Ranger quickdraw instant reload, Outlaw fan-the-hammer arms 6) with the 20s
+  cooldown starting each time; zero errors. Twenty-three bug passes; 5 defects ever.
 - **v143** (2026-07-07): MEADOW TREE SWAY (polish). The 18 perimeter pines now sway in a
   layered wind (two sine bands, per-tree random phase, ±0.03 rad) — Meadow finally feels
   like weather touches it; skipped on low tier, sway pool cleared on every map rebuild
