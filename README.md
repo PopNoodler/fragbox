@@ -3,6 +3,9 @@
 A fast low-poly browser arena FPS. Single `index.html` + vendored Three.js r160,
 installable as an offline PWA, with an optional Node WebSocket server for real multiplayer.
 
+![FragBox menu](docs/hero-menu.png)
+![FragBox action](docs/hero-action.png)
+
 ## Play
 
 **▶ Play instantly in your browser: https://popnoodler.github.io/fragbox/** (solo vs bots + Killhouse; installable as a PWA, works offline after first load).
@@ -20,7 +23,8 @@ npx serve .        # or: python -m http.server
 Deathmatch against class-playing AI bots (they burst-fire real weapons, lock on gradually,
 grab health packs, throw grenades on Hard). Menu picks bot count, difficulty (Easy/Normal/
 Hard/Adaptive — Adaptive tracks your K/D), match length, map (Meadow / Depot / Skyline /
-Bunker), weather and graphics tier. There's also 🎯 KILLHOUSE — a 60-second aim-trainer with
+Bunker / Compound), weather and graphics tier — all previewed live in the 3D menu behind
+your soldier. There's also 🎯 KILLHOUSE — a 60-second aim-trainer with
 grades and a replay ghost of your best run. Works on phones (touch stick + buttons + optional
 auto-fire assist) and installs as a PWA for offline play.
 
@@ -49,7 +53,7 @@ Server flags: `node server/server.mjs [port] [--pop=N] [--round=SECONDS] [--test
 | Ctrl / C | Crouch — sprint+crouch to SLIDE |
 | Mouse / right-zone drag | Aim |
 | LMB / FIRE button | Shoot |
-| RMB | Aim-down-sights (snipers & scout scope) |
+| RMB | Aim-down-sights — COD-style centered irons on every gun; snipers scope (Shift holds breath) |
 | Space / JUMP | Jump (ride the blue pads!) |
 | G / 🧨 | Throw grenade (2 per life, ammo packs refill) |
 | Q | Class ability (dash, fortify, recon, resupply…) |
@@ -58,6 +62,12 @@ Server flags: `node server/server.mjs [port] [--pop=N] [--round=SECONDS] [--test
 | R | Reload |
 | Tab (hold) | Scoreboard |
 | Esc | Pause / class change (in MP: Esc again leaves) |
+
+**Feel:** COD-style ADS with per-weapon sight alignment and class zoom tiers, first-blood
+slow-motion, killcam freeze-frame with a killer ring, directional death falls, bullet
+whiz-bys + wall-impact sparks, bot radio chatter, low-HP heartbeat + desaturation, clutch-time
+tension in close finals, per-map ambient beds, magnetic pickups, a map/mode title card on
+every deploy — and 📋 SHARE buttons on results to challenge your friends.
 
 **Progression:** account levels unlock 9 classes + skins; per-gun kills unlock challenges,
 attachments (25/100) and camos (50/150/400 incl. GOLD); killstreaks earn UAV / Overshield /
@@ -70,7 +80,7 @@ pulls, crate-exclusive skins); an ELO rating with Bronze→Diamond bands tracks 
 ```
 index.html        the whole client: rendering, physics, AI, HUD, audio, net (ES module)
 lib/three.module.js   vendored Three.js r160 (offline-capable, no CDN)
-shared/map.mjs        4 maps: geometry/spawns/pads/pickups/DOM points — client AND server
+shared/map.mjs        5 maps: geometry/spawns/pads/pickups/DOM points — client AND server
 shared/weapons.mjs    weapon stats + hitboxes — single source of truth for damage
 server/server.mjs     static hosting + WebSocket: snapshots @20Hz, authoritative combat, lobby bots
 sw.js                 service worker (network-first navigations; bump CACHE every release)
