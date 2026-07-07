@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v119** (2026-07-07): CLUTCH TIME + BULLET WHIZ (core-feel #25, WaterHero tension juice).
+  Last 30s of a close solo match (score gap ≤3 vs best bot) triggers "⚡ CLUTCH TIME" — the
+  timer pulses red and a low 110Hz tension drone hums until the match ends (cleaned up on
+  restart/menu). Bot shots that narrowly miss you (<45u, 55%) now SNAP past your ear
+  (2600Hz crack + 880Hz tail, volume by proximity) — danger you can hear. Verified: clutch
+  callout + timer class at setMatchT(28) 0-0; 7 whiz snaps through a forced miss volley.
+  Full suite green. SW → v119.
 - **v118** (2026-07-07): CAREER STATS JUICE (polish) + BUG PASS #8. Opening career stats now
   counts up XP/kills/KD/accuracy/matches/wins/assists with staggered ease-out ticks (reuses
   v108 countUp; K/D 2-decimal, accuracy %-suffixed). BUG PASS #8 (2-browser MP soak, one

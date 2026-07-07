@@ -49,6 +49,8 @@
   #crosshair { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:24px; height:24px; }
   @keyframes xhPop { 0%{ transform:translate(-50%,-50%) scale(1); } 35%{ transform:translate(-50%,-50%) scale(1.55); } 100%{ transform:translate(-50%,-50%) scale(1); } }
   #crosshair.pop { animation:xhPop .22s ease-out; }
+  #timeleft.clutch { color:#ff5340 !important; animation:clutchPulse 1s ease-in-out infinite; }
+  @keyframes clutchPulse { 50% { text-shadow:0 0 14px rgba(255,80,60,.9); transform:scale(1.08); } }
   #nadewarn { position:absolute; left:50%; top:58%; transform:translateX(-50%); color:#ff5340; font-size:15px; font-weight:900; letter-spacing:3px; text-shadow:0 0 12px rgba(255,60,40,.8), 0 1px 3px #000; display:none; animation:nwBlink .3s steps(2) infinite; }
   @keyframes nwBlink { 50% { opacity:.25; } }
   #crosshair span { position:absolute; background:var(--xh, #fff); box-shadow:0 0 4px rgba(56,189,248,.9), 0 0 2px rgba(0,0,0,.9); }
@@ -3137,6 +3139,11 @@ function botShoot(b, e){
       const dmg = Math.round(per * DIFFS[effDiff].dmg * (0.85 + Math.random()*0.3));
       if(e===player) damagePlayer(dmg, b);
       else damageBot(e, dmg, false, b);
+    } else if(e === player && dist < 45 && Math.random() < 0.55){
+      // narrow miss: supersonic snap past the ear
+      const wv = Math.max(0.06, 0.22 * (1 - dist / 50));
+      tone(2600, 0.014, wv, 'square');
+      setTimeout(() => tone(880, 0.05, wv * 0.5, 'sine'), 18);
     }
   }
 }
@@ -3325,6 +3332,12 @@ function radioBark(fromPos, panic){
     setTimeout(() => tone(base + (Math.random() - 0.5) * 260, 0.07 + Math.random() * 0.05, v, 'sawtooth'), 60 + i * 115);
   }
   setTimeout(() => noiseBurst(0.02, v * 0.5, 1900), 60 + words * 115 + 60);   // squelch close
+}
+let clutchOn = false, clutchDrone = null;
+function endClutch(){
+  clutchOn = false;
+  el('timeleft').classList.remove('clutch');
+  if(clutchDrone){ try { clutchDrone.stop(); } catch(e){} clutchDrone = null; }
 }
 let killFrameT = 0;
 function killImpactFrame(){
@@ -4311,6 +4324,7 @@ function endTrain(){
 }
 
 function startMatch(){
+  endClutch();
   firstBloodTaken = false;
   lastKilledByName = null;
   refreshEffDiff();
@@ -5162,10 +5176,23 @@ function frame(now){
       const preT = matchT;
       matchT -= dt;
       el('timeleft').textContent = fmtTime(matchT);
+      if(!trainMode && mode !== 'mp' && matchT > 0 && matchT <= 30 && !clutchOn){
+        const bestBot = bots.reduce((m2, b2) => Math.max(m2, b2.kills), 0);
+        if(Math.abs(player.kills - bestBot) <= 3){
+          clutchOn = true;
+          el('timeleft').classList.add('clutch');
+          showCallout('⚡ CLUTCH TIME');
+          try {
+            clutchDrone = AC.createOscillator(); clutchDrone.type = 'sine'; clutchDrone.frequency.value = 110;
+            const cg = AC.createGain(); cg.gain.value = 0.06;
+            clutchDrone.connect(cg); cg.connect(SFX.gain || AC.destination); clutchDrone.start();
+          } catch(e){}
+        }
+      }
       if(trainMode && matchT <= 10 && Math.ceil(preT) !== Math.ceil(matchT) && matchT > 0){
         tone(Math.ceil(matchT) % 2 ? 1050 : 880, 0.05, 0.14, 'square');   // tick-tock urgency
       }
-      if(matchT<=0){ endMatch(); }
+      if(matchT<=0){ endClutch(); endMatch(); }
     }
     if(!paused || mode === 'mp'){
       updatePlayer(dt);
