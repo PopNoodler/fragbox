@@ -16,6 +16,11 @@
 <meta name="twitter:title" content="FragBox — Low-Poly Arena FPS">
 <meta name="twitter:description" content="Fast free browser FPS. 6 maps, 10 weapons, ranked bots. Play instantly.">
 <style>
+  /* instant-paint boot splash — first bytes on slow networks */
+  #bootsplash { position:fixed; inset:0; z-index:200; background:#06080d; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:system-ui,sans-serif; }
+  #bootsplash b { font-size:34px; font-weight:900; letter-spacing:6px; color:#38bdf8; }
+  #bootsplash span { margin-top:10px; font-size:11px; letter-spacing:4px; color:#4a5568; animation:bsPulse 1.1s ease-in-out infinite; }
+  @keyframes bsPulse { 50% { opacity:.25; } }
   /* ============================================================
      FRAGBOX UI SYSTEM v2 — tokens, glass, motion (v080)
      ============================================================ */
@@ -329,6 +334,7 @@
 </style>
 </head>
 <body>
+<div id="bootsplash"><b>FRAGBOX</b><span>LOADING</span></div>
 <canvas id="c"></canvas>
 <div id="basevig"></div>
 
@@ -2751,6 +2757,7 @@ function applyCrosshair(){
   ch.style.setProperty('--xh', SET.xcol || '#ffffff');
 }
 applyCrosshair();
+el('bootsplash').style.display = 'none';
 
 const keys = {};
 let mouseDown = false;

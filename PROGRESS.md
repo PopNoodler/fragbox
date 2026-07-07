@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v122** (2026-07-07): BOOT SPLASH (polish). Slow-network audit (emulated slow-3G,
+  400ms RTT): first paint was ~2s of PURE BLACK before the single-file HTML arrived. Added
+  an instant-paint boot splash — FRAGBOX wordmark + pulsing LOADING, styled in the first
+  CSS bytes and placed first in <body> so it renders progressively as soon as the initial
+  chunk lands (verified visible at 1s on slow-3G); hidden when the game module finishes
+  booting. Sub-100ms flash on fast connections. Full suite green (suite also proves the
+  splash unhides — it overlays all UI at z-200). SW → v122.
 - **audit** (2026-07-07): BUG TEST PASS #11 (input edges) — no defects. Probed: 10-event
   weapon-scroll spam mid-reload (lands on a valid slot, full state, no stuck reload timer
   or viewmodel); grenade throw while ADS (clean, nade spent, aim released); sprint→slide→
