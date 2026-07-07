@@ -4433,7 +4433,19 @@ function updatePlayer(dt){
   if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
 
   const wasGrounded = player.grounded;
-  const accel = sliding ? 2.2 : (wasGrounded ? 14 : 14*AIR_CTRL);   // slide keeps momentum
+  // short ease-in from standstill: full accel unlocks over ~60ms (weighty starts, same top speed)
+  const curSp = Math.hypot(player.vel.x, player.vel.z);
+  if(wish.lengthSq() > 0 && curSp < 0.5) player.accelRamp = Math.min(1, (player.accelRamp || 0) + dt / 0.06);
+  else if(wish.lengthSq() === 0) player.accelRamp = 0;
+  else player.accelRamp = 1;
+  const ramp = 0.35 + 0.65 * (player.accelRamp || 1);
+  const accel = (sliding ? 2.2 : (wasGrounded ? 14 : 14*AIR_CTRL)) * (wasGrounded && !sliding ? ramp : 1);
+  if(wasGrounded && wish.lengthSq() === 0 && curSp > 5 && !player.skidT){
+    player.skidT = 0.3;
+    noiseBurst(0.14, 0.12, MAP.ground === 'asphalt' || MAP.ground === 'concrete' ? 800 : 480);
+    addPuff(new THREE.Vector3(player.pos.x, player.pos.y + 0.1, player.pos.z), 0xbcaaa4, 3, 1.6);
+  }
+  if(player.skidT > 0) player.skidT -= dt;
   player.vel.x += (wish.x - player.vel.x) * Math.min(1, accel*dt);
   player.vel.z += (wish.z - player.vel.z) * Math.min(1, accel*dt);
   player.vel.y -= GRAV*dt;

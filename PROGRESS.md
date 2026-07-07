@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v109** (2026-07-07): MOVEMENT MICRO-FEEL (core-feel #19). Starts from standstill now
+  ease in over ~60ms (ground accel ramps 35%→100%; top speed, strafe, and air control
+  untouched — competitive responsiveness preserved); stopping from a sprint (>5 u/s) scuffs
+  with a surface-pitched skid sound + dust puffs at the feet. Verified: skid fired on
+  release from 10.4 u/s, ramp active with top speed intact, mptest walk assertions green.
+  Full suite green. SW → v109.
 - **audit** (2026-07-07): BUG TEST PASS #3 (MP, live server + 2 clients) — no defects.
   Verified: client disconnect mid-match removes the remote cleanly (0 remotes, 0 stray
   meshes on the survivor); scoreboard open during another player's death — no errors;
