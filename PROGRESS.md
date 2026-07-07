@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #17 (map-vote e2e) — no defects. Two live clients
+  through a full round-end → intermission → vote → swap cycle: vote bar appears on both,
+  both vote Depot, server tallies and switches, BOTH clients rebuild the world in sync
+  (116→108 colliders) and play continues; zero errors. (First attempt "failed" from test
+  timing — votes clicked after the 7s intermission window; the hidden votebar DOM lingers.
+  Vote windows need event-driven polling, not fixed waits.) Seventeen bug passes; defect
+  count still 2 (v104).
 - **v131** (2026-07-07): KILLFEED EXIT + SCOREBOARD HOVER (polish). Killfeed rows now fade
   and slide out gracefully at end-of-life (0.3s ease-in exit at 4.2s) instead of vanishing
   abruptly — matching their slide-in entrance; scoreboard rows get a subtle cyan hover
