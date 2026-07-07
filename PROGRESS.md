@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #9 (progression integrity) — no defects.
+  Attachment unlocked at EXACTLY the 25th weapon kill with callout ("ATTACHMENT: AK-47
+  EXTENDED MAG"); corrupted killhouse ghost JSON → killhouse boots clean; XP level
+  boundary (600 XP = Level 3) consistent between menu chip and career stats; crate pulls
+  filter to unowned items by construction with a dupe→+300 XP fallback. Nine bug passes
+  total, still only the two v104 defects ever found.
 - **v119** (2026-07-07): CLUTCH TIME + BULLET WHIZ (core-feel #25, WaterHero tension juice).
   Last 30s of a close solo match (score gap ≤3 vs best bot) triggers "⚡ CLUTCH TIME" — the
   timer pulses red and a low 110Hz tension drone hums until the match ends (cleaned up on
