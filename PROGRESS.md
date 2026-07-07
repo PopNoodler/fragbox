@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #19 (10-min menu idle soak) — no defects. Heap
+  SHRANK 15→11MB over 10 minutes idling in the AAA menu (music + ambient on), scene
+  children exactly stable (31), soldier preview + orbit alive throughout, zero errors.
+  The menu can be left open indefinitely. Nineteen bug passes; 4 defects ever, all fixed.
 - **v135** (2026-07-07): MATCH-START BANNER (core-feel #34). The deploy countdown now
   introduces the arena — "BUNKER / FREE-FOR-ALL · FIRST TO 25" fades in under the 3-2-1
   and fades out at GO; Killhouse gets "KILLHOUSE / 60 SECONDS · BEAT YOUR GHOST"; MP shows
