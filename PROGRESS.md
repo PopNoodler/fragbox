@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v114** (2026-07-07): MENU SOLDIER IDLE LIFE (polish) + BUG PASS #6 complete. The menu
+  preview soldier no longer spins robotically — he breathes (subtle bob), shifts his weight,
+  and his gaze wanders while the camera orbits; arms sway faintly with the breath. BUG PASS
+  #6 remainder: mid-match resize 800x600↔1920x1080 updates camera aspect + canvas cleanly;
+  10 rapid menu↔play cycles leak ZERO preview soldiers, zero errors. Six bug passes done.
+  Full suite green. SW → v114.
 - **v113** (2026-07-07): HOLD-BREATH AUDIO (core-feel #22) + resilience audit. Steadying
   your scope (SHIFT while ADS on sniper/scout) now plays a slow 56/48Hz lub-dub heartbeat
   (~0.85s cycle), and releasing exhales a soft breath — completes the v112 scope-sway loop.
