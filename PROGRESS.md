@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #2 — no defects. Probed: crate flow (spend
+  decrements 2→1, prize persists; the earlier "no decrement" reading was the +750 XP prize
+  triggering a level-up that awards a crate back — designed economy); settings persistence
+  across reload (map/diff/crosshair + active button states + world rebuilt to saved map);
+  all 10 weapons hot-swapped → GLB viewmodels present, no stale meshes; Esc-during-countdown
+  (headless artifact: synthetic Escape can't trigger native pointer-lock exit — real browsers
+  route through the pointerlockchange→openPause handler, verified present). Suite green.
 - **v106** (2026-07-07): KILL-CHAIN JUICE (polish, WaterHero combo-style). Multikill callouts
   are now TIME-CHAINED — rapid kills within a 4s window escalate DOUBLE→TRIPLE→QUAD→RAMPAGE→
   UNSTOPPABLE with growing callout size (38→66px), rising two-tone pitch per tier, and a gold
