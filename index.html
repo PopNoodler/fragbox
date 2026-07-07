@@ -3201,6 +3201,7 @@ function damagePlayer(dmg, from){
     chainN = 0; chainT = 0;
     player.killcam = (from.mesh && from.alive !== false) ? { bot: from } : null;
     player.killcamA = Math.random() * Math.PI * 2;
+    player.killcamFreeze = 0.4;
     player.respawnT = 3;
     player.streak = 0;
     player.deathRoll = 0;
@@ -3334,6 +3335,7 @@ function radioBark(fromPos, panic){
   setTimeout(() => noiseBurst(0.02, v * 0.5, 1900), 60 + words * 115 + 60);   // squelch close
 }
 let clutchOn = false, clutchDrone = null;
+let killcamRing = null;
 function endClutch(){
   clutchOn = false;
   el('timeleft').classList.remove('clutch');
@@ -4001,6 +4003,7 @@ function mpConnect(){
       player.deathRecapTxt = deathRecap(m.by);
       player.killcam = m.kid !== undefined ? { rid: m.kid, kw: m.kw } : null;
       player.killcamA = Math.random() * Math.PI * 2;
+      player.killcamFreeze = 0.4;
       player.respawnT = 3;                       // server respawns us; this drives the countdown text
       player.streak = 0; player.deathRoll = 0; ads = false;
       SFX.die();
@@ -4130,6 +4133,7 @@ function mpConnect(){
       player.hp = player.maxHp;
       player.killcam = null;
       el('killcamlabel').style.display = 'none';
+      if(killcamRing) killcamRing.visible = false;
       el('respawnmsg').style.display = 'none';
       el('deathpick').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();
@@ -4465,10 +4469,20 @@ function updatePlayer(dt){
       }
     }
     if(kcTarget){
-      player.killcamA += dt * 0.85;
+      if(player.killcamFreeze > 0) player.killcamFreeze -= dt;   // hold the killing frame, then orbit
+      else player.killcamA += dt * 0.85;
       const r = 5.2;
       camera.position.set(kcTarget.x + Math.cos(player.killcamA)*r, kcTarget.y + 3.2, kcTarget.z + Math.sin(player.killcamA)*r);
       camera.lookAt(kcTarget.x, kcTarget.y + 1.4, kcTarget.z);
+      if(!killcamRing){
+        killcamRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.8, 24),
+          new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, side: THREE.DoubleSide }));
+        killcamRing.rotation.x = -Math.PI / 2;
+        scene.add(killcamRing);
+      }
+      killcamRing.visible = true;
+      killcamRing.position.set(kcTarget.x, kcTarget.y + 0.06, kcTarget.z);
+      killcamRing.material.opacity = 0.45 + Math.sin(performance.now() / 130) * 0.3;
       const kb = player.killedBy || {};
       const kw = player.killcam.bot && player.killcam.bot.weapon ? ' · ' + player.killcam.bot.weapon.name : (player.killcam.kw ? ' · ' + player.killcam.kw : '');
       el('killcamlabel').style.display = 'block';
@@ -4476,6 +4490,7 @@ function updatePlayer(dt){
         + (player.deathRecapTxt ? '<br><small style="color:var(--dim)">' + player.deathRecapTxt + '</small>' : '');
     } else {
       el('killcamlabel').style.display = 'none';
+      if(killcamRing) killcamRing.visible = false;
       // classic death cam: sink + roll
       player.deathRoll = Math.min(0.45, (player.deathRoll||0) + dt*1.1);
       camera.position.y = Math.max(player.pos.y+0.5, camera.position.y - dt*1.6);
@@ -4497,6 +4512,7 @@ function updatePlayer(dt){
       player.hp = player.maxHp;
       player.killcam = null;
       el('killcamlabel').style.display = 'none';
+      if(killcamRing) killcamRing.visible = false;
       el('respawnmsg').style.display = 'none';
       el('deathpick').style.display = 'none';
       updateHpHUD(); updateAmmoHUD();

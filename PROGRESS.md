@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v120** (2026-07-07): KILLCAM POLISH (core-feel #26). Death now holds the killing frame
+  for 0.4s before the orbit starts (you see exactly what got you), and the killer stands on
+  a pulsing red ring for the whole killcam — instantly readable even mid-brawl. Ring hidden
+  on respawn/class-pick/match-end (all three exit paths). Verified live: orbit angle static
+  through the freeze window (0.099 rad) then orbiting (0.694 rad), ring visible, label
+  "KILLED BY Nova · AWP · 18 HP". Full suite green. SW → v120.
 - **audit** (2026-07-07): BUG TEST PASS #9 (progression integrity) — no defects.
   Attachment unlocked at EXACTLY the 25th weapon kill with callout ("ATTACHMENT: AK-47
   EXTENDED MAG"); corrupted killhouse ghost JSON → killhouse boots clean; XP level
