@@ -4691,7 +4691,11 @@ function updatePlayer(dt){
 
   // ADS zoom (right mouse): sniper scopes in, others steady-aim
   const wpn = curW();
-  const targetFov = ads ? (wpn.type==='sniper' ? 26 : wpn.type==='scout' ? 34 : Math.min(55, SET.fov-10))
+  const adsZoom = wpn.type==='sniper' ? 0 : wpn.type==='scout' ? 0
+    : wpn.type==='dmr' || wpn.type==='lmg' ? 16
+    : wpn.type==='rifle' ? 13
+    : wpn.type==='smg' || wpn.type==='shotgun' ? 9 : 6;   // pistol/revolver mildest
+  const targetFov = ads ? (wpn.type==='sniper' ? 26 : wpn.type==='scout' ? 34 : Math.max(42, SET.fov - adsZoom))
     : SET.fov + (player.sprinting && player.grounded ? 3 : 0);
   if(Math.abs(camera.fov - targetFov) > 0.05){
     camera.fov += (targetFov - camera.fov) * Math.min(1, dt*14);
@@ -4792,7 +4796,15 @@ function updatePlayer(dt){
   const adsRate = wNow.type === 'sniper' || wNow.type === 'lmg' ? 4.5
     : wNow.type === 'scout' || wNow.type === 'dmr' || wNow.type === 'shotgun' ? 6
     : wNow.type === 'pistol' || wNow.type === 'smg' || wNow.type === 'revolver' ? 10 : 7.5;
-  player.adsT = Math.max(0, Math.min(1, (player.adsT || 0) + (ads ? dt*adsRate : -dt*9)));
+  const prevAdsT = player.adsT || 0;
+  player.adsT = Math.max(0, Math.min(1, prevAdsT + (ads ? dt*adsRate : -dt*9)));
+  if(prevAdsT < 1 && player.adsT >= 1){                       // sights just seated
+    tone(1400, 0.018, 0.09, 'square');                        // shoulder click
+    noiseBurst(0.02, 0.05, 2200);
+    player.adsSettleT = 0.16;                                 // micro settle bounce
+  }
+  if(prevAdsT >= 0.6 && player.adsT < 0.6 && !ads) noiseBurst(0.05, 0.05, 1100);   // lower whoosh
+  if(player.adsSettleT > 0) player.adsSettleT -= dt;
   const isStill = moving === false || (Math.abs(player.vel.x) + Math.abs(player.vel.z) < 0.2);
   player.idleT = (isStill && !ads && player.fireCd <= 0 && player.reloadT <= 0) ? (player.idleT || 0) + dt : 0;
   const wantLower = player.sprinting && player.grounded && !ads && player.fireCd <= 0 && player.reloadT <= 0;
@@ -4812,6 +4824,10 @@ function updatePlayer(dt){
         - (player.vmSwitchT > 0 ? Math.sin((player.vmSwitchT/0.24)*Math.PI)*0.16 : 0),
       (-0.55*(1-at) + AP.z*at) + vmKick*0.09*(1 - at*0.55)
     );
+    if(player.adsSettleT > 0){
+      const st2 = player.adsSettleT / 0.16;
+      vmMesh.position.y -= Math.sin(st2 * Math.PI) * 0.008;   // tiny seat-in dip
+    }
     if(player.idleT > 1.5){
       const br = Math.min(1, (player.idleT - 1.5) / 1.2);   // ease in
       const bt = performance.now() / 1000;

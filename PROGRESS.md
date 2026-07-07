@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v126** (2026-07-07): ADS FEEL COMPLETE (COD follow-through). Per-class ADS zoom tiers —
+  DMR/LMG 16°, rifles 13°, SMG/shotgun 9°, pistols/revolver 6° (was flat −10 for all);
+  snipers/scouts unchanged. Sights SEAT with a shoulder click + tiny settle dip the frame
+  adsT hits 1, and lowering plays a soft whoosh. Verified: AK 75→62, M1911 75→69, seat
+  click + out-whoosh in the log. Full suite green. SW → v126.
 - **v125** (2026-07-07): REAL COD-STYLE ADS (user directive: "Implement real ADS for the
   guns like COD"). Aiming now brings the gun to SCREEN CENTER with the iron sights rising
   to the exact eye line — per-weapon sight alignment table (ADS_POSE: 8 non-scoped weapons
