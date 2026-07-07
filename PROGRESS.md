@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v117** (2026-07-07): GRENADE FEEL (core-feel #24). Pulling the pin (G-down) clicks;
+  the throw gets a whoosh + low huff on top of the swap sound; and any armed grenade within
+  9u (true 3D distance to your chest) blinks a red ⚠ GRENADE warning under the crosshair
+  with urgent 1350Hz beeps every 0.55s — covers your own cooked bounces (self-damage is
+  real) and MP enemy nades. Verified: pin click, whoosh, warning + 3 beeps through a lofted
+  self-throw's danger window. Full suite green. SW → v117.
 - **v116** (2026-07-07): KILLFEED GLYPHS (polish) + BUG PASS #7. Killfeed icons now read
   per weapon class: 💥 shotgun, ⌖ sniper/scout, 🔥 LMG, 🧨 grenade, 🎯 headshot (always
   wins), 🔫 everything else — applied to your kills, bot-vs-bot lines, deaths, and all MP

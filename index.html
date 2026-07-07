@@ -49,6 +49,8 @@
   #crosshair { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:24px; height:24px; }
   @keyframes xhPop { 0%{ transform:translate(-50%,-50%) scale(1); } 35%{ transform:translate(-50%,-50%) scale(1.55); } 100%{ transform:translate(-50%,-50%) scale(1); } }
   #crosshair.pop { animation:xhPop .22s ease-out; }
+  #nadewarn { position:absolute; left:50%; top:58%; transform:translateX(-50%); color:#ff5340; font-size:15px; font-weight:900; letter-spacing:3px; text-shadow:0 0 12px rgba(255,60,40,.8), 0 1px 3px #000; display:none; animation:nwBlink .3s steps(2) infinite; }
+  @keyframes nwBlink { 50% { opacity:.25; } }
   #crosshair span { position:absolute; background:var(--xh, #fff); box-shadow:0 0 4px rgba(56,189,248,.9), 0 0 2px rgba(0,0,0,.9); }
   #crosshair .dot { display:none; left:50%; top:50%; width:4px; height:4px; margin:-2px 0 0 -2px; border-radius:50%; }
   #crosshair.st-dot span { display:none; }
@@ -331,6 +333,7 @@
 <div id="hud">
   <div id="dmgvig"></div>
   <div id="crosshair"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span><span class="dot"></span></div>
+  <div id="nadewarn">⚠ GRENADE</div>
   <div id="hitmarker"><span class="h1"></span><span class="h2"></span><span class="v1"></span><span class="v2"></span></div>
   <div id="healthbar"><div id="streakchip" style="display:none"></div><div id="hpnum">100</div><div id="shieldbg"><div id="shieldfill"></div></div><div id="hpbg"><div id="hpfill"></div></div></div>
   <div id="ammobox"><div id="slots"></div><div id="wname">Rifle</div><div><span id="ammonum">30</span> <span id="ammores">/ 90</span></div><div id="nadehud">🧨 2</div><div id="abilitychip"></div></div>
@@ -1836,6 +1839,8 @@ function throwNade(){
   player.nades--;
   updateNadeHUD();
   SFX.swap();
+  noiseBurst(0.14, 0.10, 1300);   // throw whoosh
+  tone(300, 0.1, 0.06, 'sine');
   const dir = camera.getWorldDirection(new THREE.Vector3());
   const o = playerEye().clone().add(dir.clone().multiplyScalar(0.5));
   const v = dir.multiplyScalar(NADE.speed);
@@ -1892,7 +1897,16 @@ function explodeFx(pos){
   for(const c of colliders){ /* decal on nearest ground */ }
   addDecal(new THREE.Vector3(pos.x, 0.01, pos.z), new THREE.Vector3(0, 1, 0));
 }
+let nadeWarnT = 0;
 function updateNades(dt){
+  let danger = false;
+  for(const g of nades){
+    if(g.t > 0.6 && player.alive &&
+       Math.hypot(g.pos.x - player.pos.x, g.pos.y - (player.pos.y + 1), g.pos.z - player.pos.z) < 9){ danger = true; break; }
+  }
+  el('nadewarn').style.display = danger ? 'block' : 'none';
+  if(danger){ nadeWarnT -= dt; if(nadeWarnT <= 0){ nadeWarnT = 0.55; tone(1350, 0.06, 0.16, 'square'); } }
+  else nadeWarnT = 0;
   for(let i = nades.length-1; i >= 0; i--){
     const g = nades[i];
     g.t += dt;
@@ -2739,7 +2753,7 @@ addEventListener('keydown', e=>{
   if(e.code==='KeyR') tryReload();
   if(e.code==='Digit1') switchWeapon(0);
   if(e.code==='Digit2') switchWeapon(1);
-  if(e.code==='KeyG' && !e.repeat && state===ST.PLAY && player.alive && !paused && (player.nades|0) > 0) nadeAim = true;
+  if(e.code==='KeyG' && !e.repeat && state===ST.PLAY && player.alive && !paused && (player.nades|0) > 0){ nadeAim = true; tone(2400, 0.025, 0.12, 'square'); noiseBurst(0.02, 0.08, 2600); }
   if(e.code==='KeyQ' && !e.repeat) useAbility();
   if(e.code==='KeyF' && !e.repeat && state===ST.PLAY && player.alive && !paused && !ads
      && player.reloadT<=0 && (player.inspectT||0)<=0) player.inspectT = 1.2;
