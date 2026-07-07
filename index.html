@@ -2587,12 +2587,31 @@ function updatePickups(dt){
   for(const p of pickups){
     if(p.taken){
       p.respawnT -= dt;
-      if(p.respawnT<=0){ p.taken = false; p.g.visible = true; }
+      if(p.respawnT<=0){
+        p.taken = false; p.g.visible = true;
+        if(p.homeX !== undefined){ p.g.position.x = p.homeX; p.g.position.z = p.homeZ; }   // undo magnet drift
+      }
       continue;
     }
     p.spin += dt*2.2;
     p.g.rotation.y = p.spin;
     p.g.position.y = p.homeY + Math.sin(p.spin)*0.12;
+    // magnetism: eligible pickups drift toward the player for satisfying collection
+    if(player.alive){
+      const mdx = player.pos.x - p.g.position.x, mdz = player.pos.z - p.g.position.z;
+      const md = Math.hypot(mdx, mdz);
+      const eligible = p.kind === 'hp' ? player.hp < player.maxHp : true;
+      if(eligible && md < 2.3 && md > 0.05 && Math.abs(player.pos.y - p.g.position.y) < 2){
+        if(p.homeX === undefined){ p.homeX = p.g.position.x; p.homeZ = p.g.position.z; }
+        const pull = (4 + 9 * (1 - md / 2.3)) * dt;          // accelerates as it closes
+        p.g.position.x += (mdx / md) * Math.min(pull, md);
+        p.g.position.z += (mdz / md) * Math.min(pull, md);
+      } else if(p.homeX !== undefined && md >= 2.3){
+        // player left without collecting: ease back home
+        p.g.position.x += (p.homeX - p.g.position.x) * Math.min(1, dt * 3);
+        p.g.position.z += (p.homeZ - p.g.position.z) * Math.min(1, dt * 3);
+      }
+    }
     // player collect
     if(player.alive && tryCollect(p, player.pos, true)) continue;
     // bots collect health only, and only when hurt

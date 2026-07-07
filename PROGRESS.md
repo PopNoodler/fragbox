@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v132** (2026-07-07): PICKUP MAGNETISM (core-feel #32, WaterHero collection juice).
+  Eligible pickups now drift toward you — within 2.3u a medkit (when hurt) or ammo crate
+  accelerates into your hands (4→13 u/s as it closes); ineligible pickups (medkit at full
+  HP) stay put, and a magnetized pickup eases back home if you walk away without collecting.
+  Respawn resets any drift. Verified: wounded player at 2.0u → medkit drifted 2.0→1.29u
+  into the collect radius, +40 HP, hands-free. Full suite green. SW → v132.
 - **audit** (2026-07-07): BUG TEST PASS #17 (map-vote e2e) — no defects. Two live clients
   through a full round-end → intermission → vote → swap cycle: vote bar appears on both,
   both vote Depot, server tallies and switches, BOTH clients rebuild the world in sync
