@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #12 (audio/system) — no defects. AudioContext is
+  lazily created only on first gesture (nothing pre-gesture, resumes if suspended); 60s of
+  menu idle leaks no music/ambient timers (setMusicMode clears before re-arming); 20 rapid
+  pause/unpause cycles → clean play state, no drift, zero errors. Twelve bug passes;
+  defect count still 2 (both v104).
 - **v122** (2026-07-07): BOOT SPLASH (polish). Slow-network audit (emulated slow-3G,
   400ms RTT): first paint was ~2s of PURE BLACK before the single-file HTML arrived. Added
   an instant-paint boot splash — FRAGBOX wordmark + pulsing LOADING, styled in the first
