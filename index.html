@@ -3159,7 +3159,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       firstBloodTaken = true;   // bot-vs-bot kill consumes first blood
       attacker.kills++;
       attacker.streak = (attacker.streak || 0) + 1;
-      if(Math.random() < 0.3) radioBark(attacker.pos, false);
+      if(Math.random() < 0.3) radioBark(attacker.pos, false, attacker.name);
       killfeed(`<b>${attacker.name}</b> ${killGlyph((attacker.weapon || {}).name, false, false)} <b>${b.name}</b>`);
     } else {
       player.kills++;
@@ -3181,7 +3181,7 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       }
       if(player.streak >= 5 && Math.random() < 0.4){
         const pb = bots.find(x => x.alive);
-        if(pb) setTimeout(() => radioBark(pb.pos, true), 600);
+        if(pb) setTimeout(() => radioBark(pb.pos, true, pb.name), 600);
       }
       if(STREAK_REWARDS[player.streak]) grantStreakReward(player.streak);
       updateStreakHUD();
@@ -3425,16 +3425,22 @@ function countUp(elm, target, opts = {}){
 }
 // bot radio barks: squelch click + warbled chatter + click, distance-attenuated, globally rate-capped
 let barkCd = 0;
-function radioBark(fromPos, panic){
+function voiceOf(name){                          // stable per-bot voice: same bot, same pitch
+  let h = 0;
+  for(let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
+  return 0.82 + (Math.abs(h) % 40) / 100;        // 0.82x – 1.21x
+}
+function radioBark(fromPos, panic, name){
   if(barkCd > 0) return;
   barkCd = 4;
   const d2 = fromPos ? Math.hypot(fromPos.x - player.pos.x, fromPos.z - player.pos.z) : 10;
   const v = Math.max(0.05, 0.3 * (1 - Math.min(1, d2 / 45)));
+  const vp = voiceOf(name);
   noiseBurst(0.025, v * 0.6, 1900);                                     // squelch open
-  const base = panic ? 760 : 560;
+  const base = (panic ? 760 : 560) * vp;
   const words = 2 + ((Math.random() * 2) | 0);
   for(let i = 0; i < words; i++){
-    setTimeout(() => tone(base + (Math.random() - 0.5) * 260, 0.07 + Math.random() * 0.05, v, 'sawtooth'), 60 + i * 115);
+    setTimeout(() => tone(base + (Math.random() - 0.5) * 260 * vp, 0.07 + Math.random() * 0.05, v, 'sawtooth'), 60 + i * 115);
   }
   setTimeout(() => noiseBurst(0.02, v * 0.5, 1900), 60 + words * 115 + 60);   // squelch close
 }
@@ -5171,7 +5177,7 @@ function updateBot(b, dt){
         new THREE.MeshBasicMaterial({ color: 0xff2b2b, transparent: true, opacity: 0.95 }));
       b.glint.position.set(0, 1.26, 0.95);
       b.mesh.add(b.glint);
-      if(Math.random() < 0.2) radioBark(b.pos, false);
+      if(Math.random() < 0.2) radioBark(b.pos, false, b.name);
     }
     if(b.glint) b.glint.visible = aimingAtPlayer;
     if(enemy && canSee && dist < 55 && b.fireT <= 0 && b.seeT >= reaction){

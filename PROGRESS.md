@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v139** (2026-07-07): PER-BOT RADIO VOICES (core-feel #37). Every bot now has a stable
+  voice — a name-hashed pitch register (0.82x–1.21x) applied to its radio barks, so Vex
+  always sounds like Vex and the squad chatter reads as different people instead of one
+  robot. Verified: brawl barks spanned 6 distinct pitch clusters (417–652Hz). Crate panel
+  style audited (already on the design system, untouched). Full suite green. SW → v139.
 - **audit** (2026-07-07): BUG TEST PASS #21 (weapon balance, read-only) — arsenal coherent,
   NO changes. Body TTK vs 100hp: AK .20s / MP5 .27 / FAMAS .22 (burst-gated, raw DPS 400) /
   M14 .21 / M249 .33 / Magnum .46 / M1911 .55 / SSG 1.09 (1-shot head — scout identity) /
