@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v111** (2026-07-07): AUDIO COHESION (core-feel #20). Bunker gets its own ambient bed —
+  tight 90Hz room tone + 50Hz electrical hum with occasional fluorescent buzz-and-zap
+  (matches the v110 ceiling lights); Compound gets an outdoor bed with low wind gusts
+  (both previously fell through to the generic bed). Killhouse final 10 seconds now
+  tick-tocks (alternating 1050/880Hz per second) for urgency. Footstep cadence audited:
+  already speed-scaled correctly, untouched. Also: __dbg.setMatchT test hook. Verified:
+  bunker bed builds, 4 ticks logged in final-10s window. Full suite green. SW → v111.
 - **audit** (2026-07-07): BUG TEST PASS #4 — no defects. Weather × quality matrix (forced
   rain on sealed Bunker = 0 particles ✓ indoor handling correct; meadow snow renders 280;
   low tier clean); camo applies to ALL cm_-prefixed GLB viewmodel furniture at the earned
