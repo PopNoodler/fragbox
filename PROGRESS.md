@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #11 (input edges) — no defects. Probed: 10-event
+  weapon-scroll spam mid-reload (lands on a valid slot, full state, no stuck reload timer
+  or viewmodel); grenade throw while ADS (clean, nade spent, aim released); sprint→slide→
+  jump→shoot combo (eyeH restores 1.62, crouch clears, no residual velocity); R-spam
+  through weapon switches (no stuck reload); Escape during killcam (respawn proceeds,
+  label clears). Zero page errors across all probes. Eleven bug passes; defect count
+  still 2 (v104).
 - **v121** (2026-07-07): FOOTSTEP VARIATION (core-feel #27) + hit-direction audit. Every
   footstep now varies ±8% in pitch and slightly in length — walking no longer sounds like
   a metronome (verified: 9 consecutive steps, 9 unique frequencies). Also audited the
