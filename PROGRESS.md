@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v131** (2026-07-07): KILLFEED EXIT + SCOREBOARD HOVER (polish). Killfeed rows now fade
+  and slide out gracefully at end-of-life (0.3s ease-in exit at 4.2s) instead of vanishing
+  abruptly — matching their slide-in entrance; scoreboard rows get a subtle cyan hover
+  highlight. Full suite green. SW → v131.
 - **v130** (2026-07-07): HEADSHOT AUDIO IDENTITY (core-feel #31). Headshots now SOUND
   different — a crisp rising 2100→2600Hz skull ping replaces the flat 1200Hz hit tick
   (which stays for body shots), wired through both the solo hit path and the MP hitfx

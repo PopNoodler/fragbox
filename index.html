@@ -148,6 +148,8 @@
   .kf b { color:var(--gold); }
   .kf .me { color:var(--acc); }
   @keyframes kfin { from { transform:translateX(30px); opacity:0; } }
+  .kf.out { transition:transform .3s ease-in, opacity .3s ease-in; transform:translateX(40px); opacity:0; }
+  #sbtable tbody tr:hover td { background:rgba(56,189,248,.08); }
 
   #scorepill { position:absolute; left:50%; top:14px; transform:translateX(-50%); background:var(--glass); border:1px solid var(--line); color:#fff; padding:7px 22px; font-size:14px; font-weight:800; clip-path:var(--clip-btn); backdrop-filter:blur(10px); font-variant-numeric:tabular-nums; }
   #scorepill .k { color:var(--acc); } #scorepill .d { color:var(--danger); }
@@ -3510,6 +3512,7 @@ function killfeed(html){
   const kf = el('killfeed');
   kf.appendChild(div);
   while(kf.children.length>5) kf.removeChild(kf.firstChild);
+  setTimeout(()=>{ div.classList.add('out'); }, 4200);
   setTimeout(()=>{ if(div.parentNode) div.parentNode.removeChild(div); }, 4500);
 }
 function updateHpHUD(){
