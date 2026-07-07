@@ -18,6 +18,10 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v143** (2026-07-07): MEADOW TREE SWAY (polish). The 18 perimeter pines now sway in a
+  layered wind (two sine bands, per-tree random phase, ±0.03 rad) — Meadow finally feels
+  like weather touches it; skipped on low tier, sway pool cleared on every map rebuild
+  (no stale refs). Verified: 0.028 rad live sway range. Full suite green. SW → v143.
 - **v142** (2026-07-07): HEADSHOT HIT-STOP (core-feel #39). Headshot KILLS now land with a
   35ms near-total time freeze (timeScale 0.05) — a single heartbeat of stopped time that
   makes crits feel surgical; guarded against stacking with the 250ms first-blood slowmo
