@@ -3153,9 +3153,12 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
     b.deathPush = { x: (b.pos.x - src.x) / pd, z: (b.pos.z - src.z) / pd, s: dmg > 60 ? 2.4 : 0.7 };
     b.enemy = null;
     addPuff(new THREE.Vector3(b.pos.x, b.pos.y+1, b.pos.z), 0xd32f2f, 14, 5);
+    const victimStreak = b.streak || 0;
+    b.streak = 0;
     if(attacker){
       firstBloodTaken = true;   // bot-vs-bot kill consumes first blood
       attacker.kills++;
+      attacker.streak = (attacker.streak || 0) + 1;
       if(Math.random() < 0.3) radioBark(attacker.pos, false);
       killfeed(`<b>${attacker.name}</b> ${killGlyph((attacker.weapon || {}).name, false, false)} <b>${b.name}</b>`);
     } else {
@@ -3172,6 +3175,10 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
       killFlavor(b.name);
       killChain(headshot);
       killImpactFrame();
+      if(victimStreak >= 5){
+        setTimeout(() => { showCallout('🛑 SHUTDOWN  +75'); SFX.stinger('point'); }, 700);
+        addXp(75);
+      }
       if(player.streak >= 5 && Math.random() < 0.4){
         const pb = bots.find(x => x.alive);
         if(pb) setTimeout(() => radioBark(pb.pos, true), 600);
@@ -3306,6 +3313,7 @@ function damagePlayer(dmg, from){
     renderClassCards();
     el('deathpick').style.display = 'block';
     if(document.pointerLockElement) document.exitPointerLock();
+    from.streak = (from.streak || 0) + 1;
     killfeed(`<b>${from.name}</b> ${killGlyph((from.weapon || {}).name, false, false)} <span class="me">You</span>`);
     updateScoreHUD();
     checkMatchEnd();
@@ -4146,6 +4154,10 @@ function mpConnect(){
         dailyKill(m.kwn || curW().name, m.hs, m.kwn === 'Grenade');
         killChain(m.hs);
         killImpactFrame();
+        if(m.vs >= 5){
+          setTimeout(() => { showCallout('🛑 SHUTDOWN  +75'); SFX.stinger('point'); }, 700);
+          addXp(75);
+        }
         updateStreakHUD();
       } else if(m.victimId === NET.id){
         firstBloodTaken = true;

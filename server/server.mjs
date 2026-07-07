@@ -536,6 +536,7 @@ function applyDamage(victim, dmg, attacker, headshot){
   victim.deaths++;
   victim.deadUntil = Date.now() + 3000;
   attacker.kills++;
+  const victimStreak = victim.streak || 0;
   attacker.streak = (attacker.streak || 0) + 1;
   victim.streak = 0;
   victim.shield = 0;
@@ -572,7 +573,7 @@ function applyDamage(victim, dmg, attacker, headshot){
     send(helper.ws, { t:'assist', victim: victim.name });
   }
   victim.recentDmg = [];
-  broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot, kwn:lastKillWeapon, asn });
+  broadcast({ t:'kill', killer:attacker.name, killerId:attacker.id, victim:victim.name, victimId:victim.id, hs:!!headshot, kwn:lastKillWeapon, asn, vs: victimStreak });
   console.log(`[x] ${attacker.name} killed ${victim.name}${headshot?' (headshot)':''}`);
 }
 

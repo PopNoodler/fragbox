@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v138** (2026-07-07): SHUTDOWN CALLOUT (core-feel #36, WaterHero streak drama). Killing
+  an enemy on a 5+ killstreak now pops "🛑 SHUTDOWN +75" with bonus XP — bots track per-life
+  streaks solo-side (gain on their kills incl. killing you, reset on death), and the MP
+  server now sends the victim's streak (vs) in the kill message so online shutdowns pay out
+  too. Verified: 6-streak bot killed → callout + 75 XP + streak zeroed. Full suite green.
+  SW → v138.
 - **v137** (2026-07-07): BUG TEST PASS #20 (match-end flow) — 1 fix (defect #5, cosmetic).
   Probed the full end-of-match loop twice consecutively with dirtied state (low HP, chain,
   thrown nade): placements/XP sane, PLAY AGAIN fully resets hp/nades/kills/chain/clutch,
