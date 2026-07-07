@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #22 (10-min marathon) — no defects. Full 600s match
+  end-to-end: timer drift vs wall clock was a CONSTANT ~4.5s (the deploy-offset estimate),
+  i.e. ZERO accumulated drift between the 2/5/9-min samples; gameover fired at the horn;
+  bots brawled the whole match (11 kills); zero errors across 10.5 minutes. Twenty-two bug
+  passes; 5 defects ever, all fixed.
 - **v141** (2026-07-07): APP ICON GLOW-UP (polish). icon.svg rebuilt to match the AAA
   brand — the crosshair ring now sweeps the cyan→purple→gold brand gradient with a soft
   glow, gold ticks, glossy red center dot, and a subtly bordered dark tile (verified at
