@@ -4527,8 +4527,20 @@ function updatePlayer(dt){
     const st = performance.now() / 1000;
     scopeSwayX = Math.sin(st * 1.7) * amp;             // slow figure-8 wander
     scopeSwayY = Math.sin(st * 2.6 + 1.2) * amp * 0.7;
+    if(holdBreath && !player.breathSteady){ player.heartT = 0.15; }          // first thump almost immediately
+    if(holdBreath){
+      player.heartT -= dt;
+      if(player.heartT <= 0){
+        player.heartT = 0.85;                                                 // slow, steady heartbeat
+        tone(56, 0.08, 0.20, 'sine');
+        setTimeout(() => tone(48, 0.07, 0.14, 'sine'), 140);                  // lub-dub
+      }
+    } else if(player.breathSteady){ noiseBurst(0.28, 0.07, 850); }            // exhale on release
     player.breathSteady = holdBreath;
-  } else player.breathSteady = false;
+  } else {
+    if(player.breathSteady) noiseBurst(0.28, 0.07, 850);
+    player.breathSteady = false;
+  }
   camera.rotateY(player.yaw + (player.recoilH || 0) + scopeSwayX);
   camera.rotateX(Math.min(1.55, player.pitch + player.recoil + scopeSwayY));
   camera.rotateZ((player.recoilR || 0));

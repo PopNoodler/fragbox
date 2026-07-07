@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v113** (2026-07-07): HOLD-BREATH AUDIO (core-feel #22) + resilience audit. Steadying
+  your scope (SHIFT while ADS on sniper/scout) now plays a slow 56/48Hz lub-dub heartbeat
+  (~0.85s cycle), and releasing exhales a soft breath — completes the v112 scope-sway loop.
+  Verified: 3 lub-dubs per 2s steadied + exhale on release. BUG PASS #6 (partial): poisoned
+  ALL kh_ localStorage keys with garbage — boots clean to menu and plays with zero errors
+  (every parse guarded). Full suite green. SW → v113.
 - **v112** (2026-07-07): SCOPE SWAY + KILL-POP + SOAK AUDIT. Snipers/scouts now have a slow
   figure-8 scope wander when ADS (0.0013 rad) — hold SHIFT to steady your breath (6× calmer,
   verified 0.0026→0.00043 rad range); crosshair pops (1→1.55→1 scale, 220ms) on every kill,
