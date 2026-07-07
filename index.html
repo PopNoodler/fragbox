@@ -1672,10 +1672,18 @@ function renderStatsPage(){
   const rk = rankOf(rkVal);
   el('statshead').innerHTML = [
     ['RATING', '<span style="color:' + rk[2] + '">' + rkVal + '</span><small style="display:block;font-size:8px;color:' + rk[2] + '">' + rk[1] + '</small>'],
-    ['LEVEL', levelOf(xp)], ['XP', xp], ['KILLS', totalK], ['K/D', kd],
-    ['ACCURACY', totalS ? Math.round(totalH/totalS*100) + '%' : '—'],
-    ['MATCHES', stats.matches], ['WINS', stats.wins], ['ASSISTS', stats.assists || 0], ['PLAYTIME', fmtPlaytime(stats.playMs)]
+    ['LEVEL', levelOf(xp)],
+    ['XP', '<span class="cnt" data-t="' + xp + '">0</span>'],
+    ['KILLS', '<span class="cnt" data-t="' + totalK + '">0</span>'],
+    ['K/D', '<span class="cnt" data-t="' + kd + '" data-dec="2">0</span>'],
+    ['ACCURACY', totalS ? '<span class="cnt" data-t="' + Math.round(totalH/totalS*100) + '" data-suf="%">0</span>' : '—'],
+    ['MATCHES', '<span class="cnt" data-t="' + stats.matches + '">0</span>'],
+    ['WINS', '<span class="cnt" data-t="' + stats.wins + '">0</span>'],
+    ['ASSISTS', '<span class="cnt" data-t="' + (stats.assists || 0) + '">0</span>'],
+    ['PLAYTIME', fmtPlaytime(stats.playMs)]
   ].map(([k,v]) => '<div class="statcell"><b>' + v + '</b><span>' + k + '</span></div>').join('');
+  [...el('statshead').querySelectorAll('.cnt')].forEach((c, i) =>
+    setTimeout(() => countUp(c, +c.dataset.t, { dur: 700, decimals: +(c.dataset.dec || 0), suffix: c.dataset.suf || '' }), 120 + i * 90));
   el('statssparkrow').innerHTML = (stats.ratingHist && stats.ratingHist.length > 1)
     ? '<span style="font-size:9px;color:#8fa3b8;letter-spacing:1px">RATING TREND</span> ' + ratingSparkline() : '';
   el('statsbody').innerHTML = WEAPONS.map(w => {

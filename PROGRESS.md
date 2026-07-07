@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v118** (2026-07-07): CAREER STATS JUICE (polish) + BUG PASS #8. Opening career stats now
+  counts up XP/kills/KD/accuracy/matches/wins/assists with staggered ease-out ticks (reuses
+  v108 countUp; K/D 2-decimal, accuracy %-suffixed). BUG PASS #8 (2-browser MP soak, one
+  client walking a square while the other measures): remote interp SMOOTH — 1120 frames,
+  max frame-to-frame delta 1.14u, ZERO spikes >5u, killfeed bounded, clean disconnect, no
+  errors. (Harness note: same-browser background pages freeze rAF — multi-client sims need
+  one browser process per client.) Full suite green. SW → v118.
 - **v117** (2026-07-07): GRENADE FEEL (core-feel #24). Pulling the pin (G-down) clicks;
   the throw gets a whoosh + low huff on top of the swap sound; and any armed grenade within
   9u (true 3D distance to your chest) blinks a red ⚠ GRENADE warning under the crosshair
