@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v107** (2026-07-07): IDLE BREATHE + KILL IMPACT FRAME (core-feel #18). Standing still
+  ≥1.5s eases the viewmodel into a subtle 0.25Hz breathing sway (position + roll, gone the
+  moment you move/fire/ADS). Every kill now lands a 70ms impact frame: canvas saturation/
+  brightness blink + 1.5° FOV pinch that snaps back — stacks with the chain gold pulse for
+  escalating hits. Verified via rAF: breathe oscillation at idleT 5.8s, filter blink + fov
+  75→73.5→75 on kill. Full suite green. SW → v107.
 - **audit** (2026-07-07): BUG TEST PASS #2 — no defects. Probed: crate flow (spend
   decrements 2→1, prize persists; the earlier "no decrement" reading was the +750 XP prize
   triggering a level-up that awards a crate back — designed economy); settings persistence
