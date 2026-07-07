@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #10 (gamemode matrix) — no defects. Booted a live
+  server + client in each MP mode: TDM (team scoreboard shows), GunGame (weapon-ladder
+  chip shows), DOM (3 capture-point chips), CTF (flag state synced, pole meshes visible in
+  scene); all four join, play, and shut down with zero client or server errors. Ten bug
+  passes total — defect count still 2 (both fixed v104).
 - **v120** (2026-07-07): KILLCAM POLISH (core-feel #26). Death now holds the killing frame
   for 0.4s before the orbit starts (you see exactly what got you), and the killer stands on
   a pulsing red ring for the whole killcam — instantly readable even mid-brawl. Ring hidden
