@@ -18,6 +18,12 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v108** (2026-07-07): MATCH-END RESULTS JUICE (polish, WaterHero-style). Gameover stats
+  (kills, deaths, +XP) and Killhouse results (targets, accuracy, avg TTK) now COUNT UP from
+  zero with ease-out curves, staggered starts, and rising tick sounds; the Killhouse GRADE
+  pops in last with a scale-down reveal + stinger. Shared countUp(el, target, {dur, decimals,
+  suffix}) helper. Verified live on the Killhouse results screen (values settle, grade
+  reveal). Full suite green. SW → v108.
 - **v107** (2026-07-07): IDLE BREATHE + KILL IMPACT FRAME (core-feel #18). Standing still
   ≥1.5s eases the viewmodel into a subtle 0.25Hz breathing sway (position + roll, gone the
   moment you move/fire/ADS). Every kill now lands a 70ms impact frame: canvas saturation/

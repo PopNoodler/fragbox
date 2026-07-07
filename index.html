@@ -3233,6 +3233,19 @@ function updateTut(dt){
 const STREAKS = { 2:['DOUBLE KILL',50], 3:['TRIPLE KILL',75], 4:['QUAD KILL',100], 5:['RAMPAGE!',150], 8:['UNSTOPPABLE!',250] };
 // time-chained multikills (rapid kills within 4s) — separate from life streaks
 let chainN = 0, chainT = 0;
+function countUp(elm, target, opts = {}){
+  const dur = opts.dur || 900, dec = opts.decimals || 0, suf = opts.suffix || '';
+  const t0 = performance.now();
+  let lastTick = 0;
+  function step(now){
+    const p = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 3);   // ease-out cubic
+    elm.textContent = (target * e).toFixed(dec) + suf;
+    if(now - lastTick > 70 && p < 1){ lastTick = now; tone(700 + p * 500, 0.02, 0.05, 'square'); }
+    if(p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 let killFrameT = 0;
 function killImpactFrame(){
   killFrameT = 0.07;
@@ -4192,10 +4205,14 @@ function endTrain(){
   el('ghostpace').style.display = 'none';
   addXp(100);
   el('trainstats').innerHTML =
-    '<div class="statcell"><b>' + train.targets + '</b><span>TARGETS</span></div>' +
-    '<div class="statcell"><b>' + acc + '%</b><span>ACCURACY</span></div>' +
-    '<div class="statcell"><b>' + avgTtk + 's</b><span>AVG TTK</span></div>' +
-    '<div class="statcell"><b style="font-size:24px">' + grade + '</b><span>GRADE</span></div>';
+    '<div class="statcell"><b id="ts0">0</b><span>TARGETS</span></div>' +
+    '<div class="statcell"><b id="ts1">0%</b><span>ACCURACY</span></div>' +
+    '<div class="statcell"><b id="ts2">0s</b><span>AVG TTK</span></div>' +
+    '<div class="statcell"><b id="ts3" style="font-size:24px; opacity:0; transition:opacity .3s, transform .3s; display:inline-block; transform:scale(1.6)">' + grade + '</b><span>GRADE</span></div>';
+  setTimeout(() => countUp(el('ts0'), train.targets, { dur: 700 }), 200);
+  setTimeout(() => countUp(el('ts1'), +acc, { dur: 800, suffix: '%' }), 380);
+  setTimeout(() => countUp(el('ts2'), +avgTtk, { dur: 800, decimals: 2, suffix: 's' }), 560);
+  setTimeout(() => { const g2 = el('ts3'); g2.style.opacity = 1; g2.style.transform = 'scale(1)'; SFX.stinger ? SFX.stinger('point') : SFX.streak(); }, 1450);
   el('trainbest').textContent = (train.moving ? 'MOVING · ' : 'STATIC · ') + 'BEST: ' + Math.max(best, train.targets) + ' targets · +100 XP';
   el('trainend').style.display = 'flex';
   if(document.pointerLockElement) document.exitPointerLock();
@@ -4288,7 +4305,10 @@ function endMatch(){
   el('overtitle').textContent = won ? 'VICTORY!' : 'MATCH OVER';
   el('overtitle').style.color = won ? '#ffca28' : '#fff';
   const matchXp = xp - (player.matchXpStart === undefined ? xp : player.matchXpStart);
-  el('overstats').innerHTML = `You placed <b>#${rows.findIndex(r=>r.name==='You')+1}</b> of ${rows.length}<br>${player.kills} kills · ${player.deaths} deaths<br><span style="color:#ffca28">+${matchXp} XP earned</span>`;
+  el('overstats').innerHTML = `You placed <b>#${rows.findIndex(r=>r.name==='You')+1}</b> of ${rows.length}<br><b id="ovk">0</b> kills · <b id="ovd">0</b> deaths<br><span style="color:#ffca28">+<b id="ovx" style="color:#ffca28">0</b> XP earned</span>`;
+  setTimeout(() => countUp(el('ovk'), player.kills, { dur: 800 }), 250);
+  setTimeout(() => countUp(el('ovd'), player.deaths, { dur: 800 }), 450);
+  setTimeout(() => countUp(el('ovx'), matchXp, { dur: 1000 }), 650);
   const adBtn = el('adx2btn');
   if(matchXp > 0 && Monetize.rewardedAvailable()){
     adBtn.style.display = '';
