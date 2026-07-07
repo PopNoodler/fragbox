@@ -28,11 +28,16 @@ try { execSync('node --check .v.mjs', { stdio: 'pipe' }); }
 catch (e) { console.error('FAIL: syntax\n' + e.stderr); ok = false; }
 fs.unlinkSync('.v.mjs');
 
-// SW cache version must exist
+// SW cache version must exist AND match the newest release in PROGRESS.md
 const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const ver = sw.match(/CACHE = 'fragbox-v(\d+)'/);
 if (!ver) { console.error('FAIL: sw.js cache version missing'); ok = false; }
-else console.log('sw cache version:', ver[1]);
+else {
+  const prog = fs.readFileSync(new URL('../PROGRESS.md', import.meta.url), 'utf8');
+  const rel = prog.match(/\*\*v(\d+)\*\*/);   // newest release entry (releases are newest-first)
+  if (rel && +rel[1] > +ver[1]) { console.error('FAIL: sw.js is v' + ver[1] + ' but PROGRESS.md newest is v' + rel[1] + ' — bump forgotten'); ok = false; }
+  else console.log('sw cache version:', ver[1], rel ? '(newest release v' + rel[1] + ')' : '');
+}
 
 console.log(ok ? 'VERIFY OK' : 'VERIFY FAILED');
 process.exit(ok ? 0 : 1);

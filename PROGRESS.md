@@ -18,6 +18,14 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v133** (2026-07-07): ABOUT ROW + SW-BUMP DEFECT FIXED (defect #3 — found by our own
+  feature). Settings panel gets a one-line About ("FRAGBOX V133 · built with Claude Code ·
+  github") with the version fetched live from sw.js — and THAT fetch exposed a real bug:
+  the sw.js CACHE bump seds had been silently NO-OPING since ~v098 (exact-match sed against
+  a version string that wasn't there; sw.js sat at v034 for ~35 releases; network-first
+  masked it online but offline precaches never refreshed). Fixed: regex version-agnostic
+  bump, sw.js now truly v133, and verify.mjs HARDENED to fail whenever sw.js lags the
+  newest PROGRESS.md release — this class of no-op can never ship again. Full suite green.
 - **v132** (2026-07-07): PICKUP MAGNETISM (core-feel #32, WaterHero collection juice).
   Eligible pickups now drift toward you — within 2.3u a medkit (when hurt) or ammo crate
   accelerates into your hands (4→13 u/s as it closes); ineligible pickups (medkit at full

@@ -509,6 +509,9 @@
       <button id="tutreplay" class="setbtn" style="width:auto; padding:8px 16px">Replay tutorial</button>
       <button id="setclose" class="bigbtn" style="font-size:15px; padding:11px 34px">DONE</button>
     </div>
+    <div id="aboutrow" style="margin-top:12px; text-align:center; font-size:10px; color:var(--faint); letter-spacing:1px">
+      FRAGBOX · built with Claude Code · <a href="https://github.com/PopNoodler/fragbox" target="_blank" rel="noopener" style="color:var(--dim)">github</a>
+    </div>
   </div>
 </div>
 
@@ -2724,6 +2727,10 @@ el('volsl').addEventListener('input', ()=>{ SET.vol = +el('volsl').value; saveSE
 function openSettings(){ syncSettingsUI(); el('settingspanel').style.display = 'flex'; }
 el('gearbtn').addEventListener('click', ()=>{ audio(); openSettings(); });
 el('statsbtn').addEventListener('click', ()=>{ audio(); renderStatsPage(); el('statspanel').style.display = 'flex'; });
+fetch('./sw.js').then(r => r.text()).then(t => {
+  const m2 = t.match(/fragbox-(vd+)/);
+  if(m2) el('aboutrow').innerHTML = 'FRAGBOX ' + m2[1].toUpperCase() + ' · built with Claude Code · <a href="https://github.com/PopNoodler/fragbox" target="_blank" rel="noopener" style="color:var(--dim)">github</a>';
+}).catch(()=>{});
 function wireShare(btnId, textFn){
   const b = el(btnId);
   if(!b) return;
