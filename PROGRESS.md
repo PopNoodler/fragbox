@@ -18,6 +18,13 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **v116** (2026-07-07): KILLFEED GLYPHS (polish) + BUG PASS #7. Killfeed icons now read
+  per weapon class: 💥 shotgun, ⌖ sniper/scout, 🔥 LMG, 🧨 grenade, 🎯 headshot (always
+  wins), 🔫 everything else — applied to your kills, bot-vs-bot lines, deaths, and all MP
+  lines (killGlyph helper). BUG PASS #7: service worker installs + activates, OFFLINE
+  reload boots to menu from cache with the server dead (PWA verified end-to-end headless),
+  second-tab double-launch clean. Verified shotgun kill renders "💥 M870". Full suite
+  green. SW → v116.
 - **v115** (2026-07-07): BOT RADIO BARKS (core-feel #23). Bots now chatter over radio —
   squelch click + 2-3 warbled sawtooth "words" + click (~0.5s), distance-attenuated from
   the barking bot: 30% when a bot scores a kill, 20% when one first locks onto you (paired

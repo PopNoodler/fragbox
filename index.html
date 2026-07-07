@@ -3049,14 +3049,14 @@ function damageBot(b, dmg, headshot, attacker){   // attacker: undefined/null = 
     if(attacker){
       attacker.kills++;
       if(Math.random() < 0.3) radioBark(attacker.pos, false);
-      killfeed(`<b>${attacker.name}</b> 🔫 <b>${b.name}</b>`);
+      killfeed(`<b>${attacker.name}</b> ${killGlyph((attacker.weapon || {}).name, false, false)} <b>${b.name}</b>`);
     } else {
       player.kills++;
       player.streak++;
       tutFlag('kill');
       SFX.kill();
       killBanner(headshot ? 150 : 100, (headshot ? 'HEADSHOT · ' : 'ELIMINATED ') + b.name);
-      killfeed(`<span class="me">You</span> ${headshot?'🎯':'🔫'}<small style="opacity:.55"> ${killContext==='nade'?'GRENADE':curW().name}</small> <b>${b.name}</b>`);
+      killfeed(`<span class="me">You</span> ${killGlyph(curW().name, headshot, killContext==='nade')}<small style="opacity:.55"> ${killContext==='nade'?'GRENADE':curW().name}</small> <b>${b.name}</b>`);
       recordWeaponKill(curW().name);
       dailyKill(curW().name, headshot, killContext === 'nade');
       playKillFx(b.pos);
@@ -3180,7 +3180,7 @@ function damagePlayer(dmg, from){
     renderClassCards();
     el('deathpick').style.display = 'block';
     if(document.pointerLockElement) document.exitPointerLock();
-    killfeed(`<b>${from.name}</b> 🔫 <span class="me">You</span>`);
+    killfeed(`<b>${from.name}</b> ${killGlyph((from.weapon || {}).name, false, false)} <span class="me">You</span>`);
     updateScoreHUD();
     checkMatchEnd();
   }
@@ -3391,6 +3391,16 @@ function showCallout(text){
 }
 
 // ---------- Kill feed / HUD ----------
+function killGlyph(wname, headshot, nade){
+  if(headshot) return '🎯';
+  if(nade || wname === 'Grenade') return '🧨';
+  const w = WEAPONS.find(x => x.name === wname);
+  const t = w ? w.type : '';
+  if(t === 'shotgun') return '💥';
+  if(t === 'sniper' || t === 'scout') return '⌖';
+  if(t === 'lmg') return '🔥';
+  return '🔫';
+}
 function killfeed(html){
   const div = document.createElement('div');
   div.className = 'kf'; div.innerHTML = html;
@@ -3966,7 +3976,7 @@ function mpConnect(){
       updateHpHUD();
     }
     else if(m.t === 'kill'){
-      const hsIcon = m.hs ? '🎯' : '🔫';
+      const hsIcon = killGlyph(m.kwn, m.hs, m.kwn === 'Grenade');
       if(m.killerId === NET.id){
         player.streak++;
         const vr = NET.remotes.get(m.victimId);
