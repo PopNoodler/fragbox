@@ -18,6 +18,11 @@ WebSocket multiplayer (authoritative server, bots fill lobbies).
 - [ ] More cosmetics: viewmodel gun skins, kill effects
 
 ## Releases (newest first)
+- **audit** (2026-07-07): BUG TEST PASS #14 (ADS regression sweep) — no defects. The new
+  COD ADS (v125/v126) survives all edge combos: ADS during reload, ADS mid-slide, weapon
+  switch mid-seat, grenade throw while sighted, and 10x rapid ADS spam — every case
+  settles to the identical rest state (adsT 0, FOV 75, crosshair visible, viewmodel at
+  hip pose, no stuck reload), zero errors. Fourteen bug passes; defect count still 2.
 - **v126** (2026-07-07): ADS FEEL COMPLETE (COD follow-through). Per-class ADS zoom tiers —
   DMR/LMG 16°, rifles 13°, SMG/shotgun 9°, pistols/revolver 6° (was flat −10 for all);
   snipers/scouts unchanged. Sights SEAT with a shoulder click + tiny settle dip the frame
